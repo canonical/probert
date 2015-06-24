@@ -11,4 +11,4 @@ make lint:
 
 make unit:
 	echo "Running unit tests..."
-	/usr/bin/nosetests -v --nologcapture --with-coverage probert/tests/
+	python3 -m "nose" -v --nologcapture --with-coverage probert/tests/

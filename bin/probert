@@ -28,6 +28,10 @@ def parse_options(argv):
                         default=True,
                         dest='probe_storage',
                         help='Probe storage hardware.')
+    parser.add_argument('--network', action='store_true',
+                        default=True,
+                        dest='probe_network',
+                        help='Probe network hardware.')
     return parser.parse_args(argv)
 
 
