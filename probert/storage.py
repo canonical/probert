@@ -15,11 +15,18 @@
 
 import pyudev
 from probert.utils import udev_get_attribute
+import os
 
 
 class Storage():
     def __init__(self):
         self.context = pyudev.Context()
+
+    def get_device_size(self, device):
+        ''' device='/dev/sda' '''
+        with open(os.path.join('/sys/class/block',
+                  os.path.basename(device), 'size')) as d:
+            return d.read().strip()
 
     def probe(self):
         storage = {}
@@ -27,6 +34,9 @@ class Storage():
             if device['MAJOR'] not in ["1", "7"]:
                 attrs = dict([(key, udev_get_attribute(device, key))
                               for key in device.attributes])
+                if 'size' not in attrs:
+                    attrs['size'] = \
+                        str(self.get_device_size(device['DEVNAME']))
                 storage[device['DEVNAME']] = dict(device)
                 storage[device['DEVNAME']].update({'attrs': attrs})
 
