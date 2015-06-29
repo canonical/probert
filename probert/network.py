@@ -30,8 +30,13 @@ class Network():
         return netifaces.interfaces()
 
     def get_ips(self, iface):
-        """ returns dictionary with keys: addr, netmask, broadcast """
-        return netifaces.ifaddresses(iface).get(netifaces.AF_INET, [{}])
+        """ returns list of dictionary with keys: addr, netmask, broadcast """
+        empty = {
+            'addr': None,
+            'netmask': None,
+            'broadcast': None,
+        }
+        return netifaces.ifaddresses(iface).get(netifaces.AF_INET, [empty])
 
     def get_hwaddr(self, iface):
         """ returns dictionary with keys: addr, broadcast """
