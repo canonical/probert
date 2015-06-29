@@ -23,5 +23,5 @@ def dict_merge(onto, source):
 def udev_get_attribute(device, key):
     val = device.attributes.get(key)
     if isinstance(val, bytes):
-        return val.decode('utf-8')
+        return val.decode('utf-8', 'replace')
     return val
