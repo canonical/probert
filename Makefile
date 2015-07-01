@@ -2,7 +2,7 @@
 # Makefile for probert
 #
 run:
-	(PYTHONPATH=$(shell pwd) bin/probert)
+	(PYTHONPATH=$(shell pwd) bin/probert --all)
 
 lint:
 	echo "Running flake8 lint tests..."

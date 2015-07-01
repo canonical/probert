@@ -24,12 +24,16 @@ def parse_options(argv):
     parser = argparse.ArgumentParser(
         description='probert - Hardware prober for all',
         prog='probert')
+    parser.add_argument('--all', action='store_true',
+                        default=False,
+                        dest='probe_all',
+                        help='Probe all hardware types.')
     parser.add_argument('--storage', action='store_true',
-                        default=True,
+                        default=False,
                         dest='probe_storage',
                         help='Probe storage hardware.')
     parser.add_argument('--network', action='store_true',
-                        default=True,
+                        default=False,
                         dest='probe_network',
                         help='Probe network hardware.')
     return parser.parse_args(argv)
