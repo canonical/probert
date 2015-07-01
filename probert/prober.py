@@ -22,11 +22,27 @@ class Prober():
         self.options = options
         self.results = {}
 
+        ''' build a list of probe_ methods of this class,
+            excluding probe_all so we don't recurse.
+            This allows probe_all method to call all probe_
+            methods as we add it without maintaining a list
+            in the code.
+        '''
+        exclude = ['probe_all']
+        self.probes = [getattr(self, fn) for fn in
+                       filter(lambda x: callable(getattr(self, x)) and
+                              x.startswith('probe_') and
+                              x not in exclude, dir(self))]
+
     def probe(self):
-        if self.options.probe_storage:
-            self.probe_storage()
-        if self.options.probe_network:
-            self.probe_network()
+        # find out what methods to call by looking options
+        for fn in [x for x in dir(self.options)
+                   if self.options.__getattribute__(x) is True]:
+            getattr(self, fn)()
+
+    def probe_all(self):
+        for fn in self.probes:
+            fn()
 
     def probe_storage(self):
         storage = Storage()
