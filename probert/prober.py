@@ -18,9 +18,9 @@ from probert.network import Network
 
 
 class Prober():
-    def __init__(self, options):
+    def __init__(self, options, results={}):
         self.options = options
-        self.results = {}
+        self.results = results
 
         ''' build a list of probe_ methods of this class,
             excluding probe_all so we don't recurse.

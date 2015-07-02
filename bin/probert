@@ -15,9 +15,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
-from probert import prober
 import sys
 import json
+import logging
+from probert.log import setup_logger
+from probert import __version__ as VERSION
+from probert import prober
 
 
 def parse_options(argv):
@@ -41,6 +44,11 @@ def parse_options(argv):
 
 def main():
     opts = parse_options(sys.argv[1:])
+    setup_logger()
+    logger = logging.getLogger('probert')
+    logger.info("Starting probert v{}".format(VERSION))
+    logger.info("Arguments passed: {}".format(sys.argv))
+
     p = prober.Prober(opts)
     p.probe()
     results = p.get_results()

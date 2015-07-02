@@ -1,0 +1,7 @@
+# .coveragerc
+[report]
+include =
+    bin/probert
+    probert/*.py
+omit =
+    probert/tests/*

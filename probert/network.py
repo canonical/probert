@@ -16,20 +16,129 @@
 import os
 import netifaces
 import pyudev
+import logging
 
 from probert.utils import dict_merge, udev_get_attribute
 
+log = logging.getLogger('probert.network')
+
+
+class NetworkInfo():
+    ''' properties:
+        .type = eth
+        .name = eth7
+        .vendor = Innotec
+        .model = SuperSonicEtherRocket
+        .driver = sser
+        .devpath = /devices
+        .hwaddr = aa:bb:cc:dd:ee:ff
+        .addr = 10.2.7.2
+        .netmask = 255.255.255.0
+        .broadcast = 10.2.7.255
+        .addr6 =
+        .is_virtual =
+        .raw = {raw dictionary}
+    '''
+    def __init__(self, probe_data):
+        [self.name] = probe_data
+        self.raw = probe_data.get(self.name)
+
+        self.hwinfo = self.raw['hardware']
+        self.hwaddr = self.hwinfo['attrs']['address']
+        self.ip = self.raw['ip']
+        self.type = self.raw['type']
+
+        # autoset ip related attributes
+        for i in self.ip.keys():
+            if self.ip[i] is None:
+                setattr(self, i, "Unknown")
+            else:
+                setattr(self, i, self.ip[i])
+
+    def _get_hwvalues(self, keys, missing='Unknown value'):
+        for key in keys:
+            try:
+                return self.hwinfo[key]
+            except KeyError:
+                log.debug('Failed to get key '
+                          '{} from interface {}'.format(key, self.name))
+                pass
+
+        return missing
+
+    @property
+    def vendor(self):
+        keys = [
+            'ID_VENDOR_FROM_DATABASE',
+            'ID_VENDOR',
+            'ID_VENDOR_ID'
+        ]
+        return self._get_hwvalues(keys=keys, missing='Unknown Vendor')
+
+    @property
+    def model(self):
+        keys = [
+            'ID_MODEL_FROM_DATABASE',
+            'ID_MODEL',
+            'ID_MODEL_ID'
+        ]
+        return self._get_hwvalues(keys=keys, missing='Unknown Model')
+
+    @property
+    def driver(self):
+        keys = [
+            'ID_NET_DRIVER',
+            'ID_USB_DRIVER',
+        ]
+        return self._get_hwvalues(keys=keys, missing='Unknown Driver')
+
+    @property
+    def devpath(self):
+        keys = ['DEVPATH']
+        return self._get_hwvalues(keys=keys, missing='Unknown devpath')
+
+    @property
+    def is_virtual(self):
+        return self.devpath.startswith('/devices/virtual/')
+
 
 class Network():
-    def __init__(self):
-        self.results = {}
+    def __init__(self, results={}):
+        self.results = results
         self.context = pyudev.Context()
 
+    # these methods extract data from results dictionary
     def get_interfaces(self):
+        try:
+            return self.results.get('network').keys()
+        except (KeyError, AttributeError):
+            return []
+
+    def get_ips(self, iface):
+        try:
+            return self.results.get('network').get(iface).get('ip')
+        except (KeyError, AttributeError):
+            return []
+
+    def get_hwaddr(self, iface):
+        try:
+            hwinfo = self.results.get('network').get(iface).get('hardware')
+            return hwinfo.get('attrs').get('address')
+        except (KeyError, AttributeError):
+            return "00:00:00:00:00:00"
+
+    def get_iface_type(self, iface):
+        try:
+            return self.results.get('network').get(iface).get('type')
+        except (KeyError, AttributeError):
+            return None
+
+    # the methods below will all probe the host system
+    def _get_interfaces(self):
         """ returns list of string interface names """
         return netifaces.interfaces()
 
-    def get_ips(self, iface):
+    def _get_ips(self, iface):
         """ returns list of dictionary with keys: addr, netmask, broadcast """
         empty = {
             'addr': None,
@@ -38,11 +147,15 @@ class Network():
         }
         return netifaces.ifaddresses(iface).get(netifaces.AF_INET, [empty])
 
-    def get_hwaddr(self, iface):
+    def _get_hwaddr(self, iface):
         """ returns dictionary with keys: addr, broadcast """
-        return netifaces.ifaddresses(iface)[netifaces.AF_LINK]
+        [linkinfo] = netifaces.ifaddresses(iface)[netifaces.AF_LINK]
+        try:
+            return linkinfo.get('addr')
+        except AttributeError:
+            return None
 
-    def get_iface_type(self, iface):
+    def _get_iface_type(self, iface):
         if len(iface) < 1:
             print('Invalid iface={}'.format(iface))
             return None
@@ -114,7 +227,7 @@ class Network():
         results = {}
         for device in self.context.list_devices(subsystem='net'):
             iface = device['INTERFACE']
-            results[iface] = {'type': self.get_iface_type(iface)}
+            results[iface] = {'type': self._get_iface_type(iface)}
 
             hardware = dict(device)
             hardware.update(
@@ -122,9 +235,10 @@ class Network():
                                 for key in device.attributes])})
             results = dict_merge(results, {iface: {'hardware': hardware}})
 
-            [af_inet] = self.get_ips(iface)
+            [af_inet] = self._get_ips(iface)
             for k in af_inet.keys():
                 results = dict_merge(results,
                                      {iface: {'ip': {k: af_inet[k]}}})
 
+        self.results = results
         return results
