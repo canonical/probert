@@ -13,9 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import pyudev
-import os
 import logging
+import os
+import re
+import pyudev
 
 from probert.utils import udev_get_attribute
 
@@ -39,6 +40,7 @@ class StorageInfo():
         self.raw = probe_data.get(self.name)
 
         self.type = self.raw['DEVTYPE']
+        self.size = int(self.raw['attrs']['size'])
 
     def _get_hwvalues(self, keys, missing='Unknown value'):
         for key in keys:
@@ -135,11 +137,24 @@ class Storage():
         except (KeyError, AttributeError):
             return "0"
 
-    def _get_device_size(self, device):
+    def _get_device_size(self, device, is_partition=False):
         ''' device='/dev/sda' '''
-        with open(os.path.join('/sys/class/block',
-                  os.path.basename(device), 'size')) as d:
-            return d.read().strip()
+        device_dir = os.path.join('/sys/class/block', os.path.basename(device))
+        blockdev_size = os.path.join(device_dir, 'size')
+        with open(blockdev_size) as d:
+            size = int(d.read().strip())
+
+        logsize_base = device_dir
+        if not os.path.exists(os.path.join(device_dir, 'queue')):
+            parent_dev = os.path.basename(re.split('[\d+]', "/dev/sda1")[0])
+            logsize_base = os.path.join('/sys/class/block', parent_dev)
+
+        logical_size = os.path.join(logsize_base, 'queue',
+                                    'logical_block_size')
+        with open(logical_size) as s:
+            size *= int(s.read().strip())
+
+        return size
 
     def probe(self):
         storage = {}
@@ -149,7 +164,7 @@ class Storage():
                               for key in device.attributes])
                 if 'size' not in attrs:
                     attrs['size'] = \
-                        str(self.get_device_size(device['DEVNAME']))
+                        str(self._get_device_size(device['DEVNAME']))
                 storage[device['DEVNAME']] = dict(device)
                 storage[device['DEVNAME']].update({'attrs': attrs})
 
