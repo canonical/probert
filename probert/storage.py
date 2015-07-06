@@ -162,9 +162,10 @@ class Storage():
             if device['MAJOR'] not in ["1", "7"]:
                 attrs = dict([(key, udev_get_attribute(device, key))
                               for key in device.attributes])
-                if 'size' not in attrs:
-                    attrs['size'] = \
-                        str(self._get_device_size(device['DEVNAME']))
+                # update the size attr as it may only be the number
+                # of blocks rather than size in bytes.
+                attrs['size'] = \
+                    str(self._get_device_size(device['DEVNAME']))
                 storage[device['DEVNAME']] = dict(device)
                 storage[device['DEVNAME']].update({'attrs': attrs})
 
