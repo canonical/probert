@@ -70,6 +70,12 @@ class ProbertTestNetworkInfo(testtools.TestCase):
     def test_networkinfo_init(self):
         probe_data = {
             'em1': {
+                'bond': {
+                    'is_slave': False,
+                    'is_master': False,
+                    'slaves': [],
+                    'mode': None,
+                },
                 'hardware': {
                     'attrs': {
                         'address': '00:11:22:33:44:55',
@@ -81,7 +87,6 @@ class ProbertTestNetworkInfo(testtools.TestCase):
         }
         ni = NetworkInfo(probe_data)
         self.assertNotEqual(ni, None)
-
 
     def test_networkinfo_attributes(self):
         eth0 = {'eth0': self.results.get('network').get('eth0')}

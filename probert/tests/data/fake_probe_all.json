@@ -1,6 +1,12 @@
 {
     "network": {
         "eth0": {
+            "bond": {
+                "is_master": false,
+                "is_slave": false,
+                "mode": null,
+                "slaves": null
+            },
             "hardware": {
                 "DEVPATH": "/devices/pci0000:00/0000:00:14.0/usb3/3-2/3-2.1/3-2.1.1/3-2.1.1:1.0/net/eth0",
                 "ID_BUS": "usb",
@@ -24,10 +30,10 @@
                 "ID_VENDOR_ENC": "ASIX\\x20Elec.\\x20Corp.",
                 "ID_VENDOR_FROM_DATABASE": "ASIX Electronics Corp.",
                 "ID_VENDOR_ID": "0b95",
-                "IFINDEX": "5",
+                "IFINDEX": "3",
                 "INTERFACE": "eth0",
                 "SUBSYSTEM": "net",
-                "USEC_INITIALIZED": "54059692",
+                "USEC_INITIALIZED": "33255",
                 "attrs": {
                     "addr_assign_type": "0",
                     "addr_len": "6",
@@ -40,8 +46,8 @@
                     "duplex": "full",
                     "flags": "0x1003",
                     "ifalias": "",
-                    "ifindex": "5",
-                    "iflink": "5",
+                    "ifindex": "3",
+                    "iflink": "3",
                     "link_mode": "0",
                     "mtu": "1500",
                     "netdev_group": "0",
@@ -51,7 +57,7 @@
                     "subsystem": "net",
                     "tx_queue_len": "1000",
                     "type": "1",
-                    "uevent": "INTERFACE=eth0\nIFINDEX=5"
+                    "uevent": "INTERFACE=eth0\nIFINDEX=3"
                 }
             },
             "ip": {
@@ -62,13 +68,19 @@
             "type": "eth"
         },
         "lo": {
+            "bond": {
+                "is_master": false,
+                "is_slave": false,
+                "mode": null,
+                "slaves": null
+            },
             "hardware": {
                 "DEVPATH": "/devices/virtual/net/lo",
                 "ID_MM_CANDIDATE": "1",
                 "IFINDEX": "1",
                 "INTERFACE": "lo",
                 "SUBSYSTEM": "net",
-                "USEC_INITIALIZED": "33061",
+                "USEC_INITIALIZED": "11311",
                 "attrs": {
                     "addr_assign_type": "0",
                     "addr_len": "6",
@@ -102,63 +114,27 @@
             "type": "lo"
         },
         "lxcbr0": {
+            "bond": {
+                "is_master": false,
+                "is_slave": false,
+                "mode": null,
+                "slaves": null
+            },
             "hardware": {
                 "DEVPATH": "/devices/virtual/net/lxcbr0",
                 "DEVTYPE": "bridge",
                 "ID_MM_CANDIDATE": "1",
-                "IFINDEX": "3",
+                "IFINDEX": "4",
                 "INTERFACE": "lxcbr0",
                 "SUBSYSTEM": "net",
-                "USEC_INITIALIZED": "69190",
+                "USEC_INITIALIZED": "75746",
                 "attrs": {
                     "addr_assign_type": "1",
                     "addr_len": "6",
-                    "address": "e6:24:fd:95:d4:d6",
+                    "address": "b2:ff:62:85:c0:08",
                     "brforward": "",
                     "broadcast": "ff:ff:ff:ff:ff:ff",
                     "carrier": "1",
-                    "dev_id": "0x0",
-                    "dormant": "0",
-                    "duplex": null,
-                    "flags": "0x1003",
-                    "ifalias": "",
-                    "ifindex": "3",
-                    "iflink": "3",
-                    "link_mode": "0",
-                    "mtu": "1500",
-                    "netdev_group": "0",
-                    "operstate": "unknown",
-                    "phys_port_id": null,
-                    "speed": null,
-                    "subsystem": "net",
-                    "tx_queue_len": "0",
-                    "type": "1",
-                    "uevent": "DEVTYPE=bridge\nINTERFACE=lxcbr0\nIFINDEX=3"
-                }
-            },
-            "ip": {
-                "addr": "10.0.3.1",
-                "broadcast": "10.0.3.1",
-                "netmask": "255.255.255.0"
-            },
-            "type": "bridge"
-        },
-        "virbr0": {
-            "hardware": {
-                "DEVPATH": "/devices/virtual/net/virbr0",
-                "DEVTYPE": "bridge",
-                "ID_MM_CANDIDATE": "1",
-                "IFINDEX": "4",
-                "INTERFACE": "virbr0",
-                "SUBSYSTEM": "net",
-                "USEC_INITIALIZED": "48696",
-                "attrs": {
-                    "addr_assign_type": "1",
-                    "addr_len": "6",
-                    "address": "3e:9d:5f:ca:54:3a",
-                    "brforward": "",
-                    "broadcast": "ff:ff:ff:ff:ff:ff",
-                    "carrier": "0",
                     "dev_id": "0x0",
                     "dormant": "0",
                     "duplex": null,
@@ -169,13 +145,110 @@
                     "link_mode": "0",
                     "mtu": "1500",
                     "netdev_group": "0",
+                    "operstate": "unknown",
+                    "phys_port_id": null,
+                    "speed": null,
+                    "subsystem": "net",
+                    "tx_queue_len": "0",
+                    "type": "1",
+                    "uevent": "DEVTYPE=bridge\nINTERFACE=lxcbr0\nIFINDEX=4"
+                }
+            },
+            "ip": {
+                "addr": "10.0.3.1",
+                "broadcast": "10.0.3.1",
+                "netmask": "255.255.255.0"
+            },
+            "type": "bridge"
+        },
+        "tun0": {
+            "bond": {
+                "is_master": false,
+                "is_slave": false,
+                "mode": null,
+                "slaves": null
+            },
+            "hardware": {
+                "DEVPATH": "/devices/virtual/net/tun0",
+                "ID_MM_CANDIDATE": "1",
+                "IFINDEX": "7",
+                "INTERFACE": "tun0",
+                "SUBSYSTEM": "net",
+                "USEC_INITIALIZED": "277564657499",
+                "attrs": {
+                    "addr_assign_type": "0",
+                    "addr_len": "0",
+                    "address": "",
+                    "broadcast": "",
+                    "carrier": "1",
+                    "dev_id": "0x0",
+                    "dormant": "0",
+                    "duplex": "full",
+                    "flags": "0x1091",
+                    "group": "-1",
+                    "ifalias": "",
+                    "ifindex": "7",
+                    "iflink": "7",
+                    "link_mode": "0",
+                    "mtu": "1500",
+                    "netdev_group": "0",
+                    "operstate": "unknown",
+                    "owner": "-1",
+                    "phys_port_id": null,
+                    "speed": "10",
+                    "subsystem": "net",
+                    "tun_flags": "0x2001",
+                    "tx_queue_len": "100",
+                    "type": "65534",
+                    "uevent": "INTERFACE=tun0\nIFINDEX=7"
+                }
+            },
+            "ip": {
+                "addr": "10.172.64.178",
+                "netmask": "255.255.192.0",
+                "peer": "10.172.127.255"
+            },
+            "type": "tun"
+        },
+        "virbr0": {
+            "bond": {
+                "is_master": false,
+                "is_slave": false,
+                "mode": null,
+                "slaves": null
+            },
+            "hardware": {
+                "DEVPATH": "/devices/virtual/net/virbr0",
+                "DEVTYPE": "bridge",
+                "ID_MM_CANDIDATE": "1",
+                "IFINDEX": "5",
+                "INTERFACE": "virbr0",
+                "SUBSYSTEM": "net",
+                "USEC_INITIALIZED": "45457",
+                "attrs": {
+                    "addr_assign_type": "1",
+                    "addr_len": "6",
+                    "address": "00:00:00:00:00:00",
+                    "brforward": "",
+                    "broadcast": "ff:ff:ff:ff:ff:ff",
+                    "carrier": "0",
+                    "dev_id": "0x0",
+                    "dormant": "0",
+                    "duplex": null,
+                    "flags": "0x1003",
+                    "ifalias": "",
+                    "ifindex": "5",
+                    "iflink": "5",
+                    "link_mode": "0",
+                    "mtu": "1500",
+                    "netdev_group": "0",
                     "operstate": "down",
                     "phys_port_id": null,
                     "speed": null,
                     "subsystem": "net",
                     "tx_queue_len": "0",
                     "type": "1",
-                    "uevent": "DEVTYPE=bridge\nINTERFACE=virbr0\nIFINDEX=4"
+                    "uevent": "DEVTYPE=bridge\nINTERFACE=virbr0\nIFINDEX=5"
                 }
             },
             "ip": {
@@ -186,6 +259,12 @@
             "type": "bridge"
         },
         "wlan0": {
+            "bond": {
+                "is_master": false,
+                "is_slave": false,
+                "mode": null,
+                "slaves": null
+            },
             "hardware": {
                 "DEVPATH": "/devices/pci0000:00/0000:00:1c.1/0000:03:00.0/net/wlan0",
                 "DEVTYPE": "wlan",
@@ -203,7 +282,7 @@
                 "IFINDEX": "2",
                 "INTERFACE": "wlan0",
                 "SUBSYSTEM": "net",
-                "USEC_INITIALIZED": "49728",
+                "USEC_INITIALIZED": "60258",
                 "attrs": {
                     "addr_assign_type": "0",
                     "addr_len": "6",
@@ -248,7 +327,7 @@
             "ID_ATA": "1",
             "ID_ATA_DOWNLOAD_MICROCODE": "1",
             "ID_ATA_FEATURE_SET_APM": "1",
-            "ID_ATA_FEATURE_SET_APM_CURRENT_VALUE": "128",
+            "ID_ATA_FEATURE_SET_APM_CURRENT_VALUE": "254",
             "ID_ATA_FEATURE_SET_APM_ENABLED": "1",
             "ID_ATA_FEATURE_SET_HPA": "1",
             "ID_ATA_FEATURE_SET_HPA_ENABLED": "1",
@@ -285,7 +364,7 @@
             "UDISKS_PARTITION_TABLE_COUNT": "3",
             "UDISKS_PARTITION_TABLE_SCHEME": "mbr",
             "UDISKS_PRESENTATION_NOPOLICY": "0",
-            "USEC_INITIALIZED": "52059",
+            "USEC_INITIALIZED": "50985",
             "attrs": {
                 "alignment_offset": "0",
                 "bdi": null,
@@ -301,8 +380,8 @@
                 "range": "16",
                 "removable": "0",
                 "ro": "0",
-                "size": "250069680",
-                "stat": "  207567     5593  5516470   202492   282786   180983 11162744   642580        0   201084   844908",
+                "size": "128035676160",
+                "stat": " 5960154   418011 251421894  4042900  2930345  2305347 625076624 40381860        0  4298220 44434212",
                 "subsystem": "block",
                 "uevent": "MAJOR=8\nMINOR=0\nDEVNAME=sda\nDEVTYPE=disk"
             }
@@ -369,7 +448,7 @@
             "UDISKS_PARTITION_SLAVE": "/sys/devices/pci0000:00/0000:00:1f.2/ata1/host0/target0:0:0/0:0:0:0/block/sda",
             "UDISKS_PARTITION_TYPE": "0x83",
             "UDISKS_PRESENTATION_NOPOLICY": "0",
-            "USEC_INITIALIZED": "52077",
+            "USEC_INITIALIZED": "51007",
             "attrs": {
                 "alignment_offset": "0",
                 "dev": "8:1",
@@ -377,9 +456,9 @@
                 "inflight": "       0        0",
                 "partition": "1",
                 "ro": "0",
-                "size": "233910272",
+                "size": "119762059264",
                 "start": "2048",
-                "stat": "  207141     5562  5512826   202424   267010   180954 11162504   627156        0   186252   829356",
+                "stat": " 5868323    39268 247656154  3979572  2758364  1808788 620931400 40147368        0  4129984 44145416",
                 "subsystem": "block",
                 "uevent": "MAJOR=8\nMINOR=1\nDEVNAME=sda1\nDEVTYPE=partition"
             }
@@ -439,7 +518,7 @@
             "UDISKS_PARTITION_SLAVE": "/sys/devices/pci0000:00/0000:00:1f.2/ata1/host0/target0:0:0/0:0:0:0/block/sda",
             "UDISKS_PARTITION_TYPE": "0x05",
             "UDISKS_PRESENTATION_NOPOLICY": "0",
-            "USEC_INITIALIZED": "52092",
+            "USEC_INITIALIZED": "51022",
             "attrs": {
                 "alignment_offset": "0",
                 "dev": "8:2",
@@ -447,7 +526,7 @@
                 "inflight": "       0        0",
                 "partition": "2",
                 "ro": "0",
-                "size": "2",
+                "size": "1024",
                 "start": "233914366",
                 "stat": "       2        0        4        0        0        0        0        0        0        0        0",
                 "subsystem": "block",
@@ -514,7 +593,7 @@
             "UDISKS_PARTITION_SLAVE": "/sys/devices/pci0000:00/0000:00:1f.2/ata1/host0/target0:0:0/0:0:0:0/block/sda",
             "UDISKS_PARTITION_TYPE": "0x82",
             "UDISKS_PRESENTATION_NOPOLICY": "0",
-            "USEC_INITIALIZED": "52104",
+            "USEC_INITIALIZED": "51035",
             "attrs": {
                 "alignment_offset": "0",
                 "dev": "8:5",
@@ -522,9 +601,9 @@
                 "inflight": "       0        0",
                 "partition": "5",
                 "ro": "0",
-                "size": "16154624",
+                "size": "8271167488",
                 "start": "233914368",
-                "stat": "     253       31     2272       44        1       29      240        0        0       44       44",
+                "stat": "   91490   378743  3763024    63276    21593   496559  4145224    98624        0    83104   161804",
                 "subsystem": "block",
                 "uevent": "MAJOR=8\nMINOR=5\nDEVNAME=sda5\nDEVTYPE=partition"
             }
