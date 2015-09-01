@@ -13,14 +13,47 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import fcntl
 import os
 import netifaces
 import pyudev
+import socket
+import struct
 import logging
 
 from probert.utils import dict_merge, udev_get_attribute
 
 log = logging.getLogger('probert.network')
+
+# Soeckt configuration controls (sockios.h)
+SIOCGIFFLAGS = 0x8913          # get flags
+
+# Standard interface flags (net/if.h)
+IFF_UP = 0x1                   # Interface is up.
+IFF_BROADCAST = 0x2            # Broadcast address valid.
+IFF_DEBUG = 0x4                # Turn on debugging.
+IFF_LOOPBACK = 0x8             # Is a loopback net.
+IFF_POINTOPOINT = 0x10         # Interface is point-to-point link.
+IFF_NOTRAILERS = 0x20          # Avoid use of trailers.
+IFF_RUNNING = 0x40             # Resources allocated.
+IFF_NOARP = 0x80               # No address resolution protocol.
+IFF_PROMISC = 0x100            # Receive all packets.
+IFF_ALLMULTI = 0x200           # Receive all multicast packets.
+IFF_MASTER = 0x400             # Master of a load balancer.
+IFF_SLAVE = 0x800              # Slave of a load balancer.
+IFF_MULTICAST = 0x1000         # Supports multicast.
+IFF_PORTSEL = 0x2000           # Can set media type.
+IFF_AUTOMEDIA = 0x4000         # Auto media select active.
+
+BONDING_MODES = {
+    '0': 'balance-rr',
+    '1': 'active-backup',
+    '2': 'balance-xor',
+    '3': 'broadcast',
+    '4': '802.3ad',
+    '5': 'balance-tlb',
+    '6': 'balance-alb',
+}
 
 
 class NetworkInfo():
@@ -133,6 +166,12 @@ class Network():
         except (KeyError, AttributeError):
             return None
 
+    def get_bond(self, iface):
+        try:
+            return self.results.get('network').get(iface).get('bonds')
+        except (KeyError, AttributeError):
+            return None
+
     # the methods below will all probe the host system
     def _get_interfaces(self):
         """ returns list of string interface names """
@@ -223,11 +262,70 @@ class Network():
 
         return DEV_TYPE
 
+    def _get_slave_iface_list(self, ifname):
+        try:
+            if self._iface_is_master(ifname):
+                bond = open('/sys/class/net/%s/bonding/slaves' % ifname).read()
+                return bond.split()
+        except IOError:
+            return []
+
+    def _get_bond_mode(self, ifname):
+        try:
+            if self._iface_is_master(ifname):
+                bond_mode = \
+                    open('/sys/class/net/%s/bonding/mode' % ifname).read()
+                return bond_mode.split()
+        except IOError:
+            return None
+
+    def _iface_is_slave(self, ifname):
+        return self._is_iface_flags(ifname, IFF_SLAVE)
+
+    def _iface_is_master(self, ifname):
+        return self._is_iface_flags(ifname, IFF_MASTER)
+
+    def _is_iface_flags(self, ifname, typ):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        flags, = struct.unpack('H', fcntl.ioctl(s.fileno(), SIOCGIFFLAGS,
+                               struct.pack('256s', bytes(ifname[:15],
+                                                         'utf=8')))[16:18])
+        return (flags & typ) != 0
+
+    def _get_bonding(self, ifname):
+        ''' return bond structure for iface
+           'bond': {
+              'is_master': [True|False]
+              'is_slave': [True|False]
+              'slaves': []
+              'mode': in BONDING_MODES.keys() or BONDING_MODES.values()
+            }
+        '''
+        is_master = self._iface_is_master(ifname)
+        is_slave = self._iface_is_slave(ifname)
+        slaves = self._get_slave_iface_list(ifname)
+        mode = self._get_bond_mode(ifname)
+        if mode:
+            mode_name = mode[0]
+        else:
+            mode_name = None
+        bond = {
+            'is_master': is_master,
+            'is_slave': is_slave,
+            'slaves': slaves,
+            'mode': mode_name
+        }
+        log.debug('bond info on {}: {}'.format(ifname, bond))
+        return bond
+
     def probe(self):
         results = {}
         for device in self.context.list_devices(subsystem='net'):
             iface = device['INTERFACE']
-            results[iface] = {'type': self._get_iface_type(iface)}
+            results[iface] = {
+                'type': self._get_iface_type(iface),
+                'bond': self._get_bonding(iface),
+            }
 
             hardware = dict(device)
             hardware.update(
