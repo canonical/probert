@@ -318,6 +318,64 @@ class Network():
         log.debug('bond info on {}: {}'.format(ifname, bond))
         return bond
 
+    def _iface_is_bridge(self, ifname):
+        bridge_path = os.path.join('/sys/class/net', ifname, 'bridge')
+        return os.path.exists(bridge_path)
+
+    def _iface_is_bridge_port(self, ifname):
+        bridge_port = os.path.join('/sys/class/net', ifname, 'brport')
+        return os.path.exists(bridge_port)
+
+    def _get_bridge_iface_list(self, ifname):
+        if self._iface_is_bridge(ifname):
+            bridge_path = os.path.join('/sys/class/net', ifname, 'brif')
+            return os.listdir(bridge_path)
+
+        return []
+
+    def _get_bridge_options(self, ifname):
+        invalid_attrs = ['flush', 'bridge']  # needs root access, not useful
+
+        options = {}
+        if self._iface_is_bridge(ifname):
+            bridge_path = os.path.join('/sys/class/net', ifname, 'bridge')
+        elif self._iface_is_bridge_port(ifname):
+            bridge_path = os.path.join('/sys/class/net', ifname, 'brport')
+        else:
+            return options
+
+        for bridge_attr_name in [attr for attr in os.listdir(bridge_path)
+                                 if attr not in invalid_attrs]:
+            bridge_attr_file = os.path.join(bridge_path, bridge_attr_name)
+            with open(bridge_attr_file) as bridge_attr:
+                options.update({bridge_attr_name: bridge_attr.read().strip()})
+
+        return options
+
+    def _get_bridging(self, ifname):
+        ''' return bridge structure for iface
+           'bridge': {
+              'is_bridge': [True|False],
+              'is_port': [True|False],
+              'interfaces': [],
+              'options': {  # /sys/class/net/brX/bridge/<options key>
+                  'sysfs_key': sysfs_value
+              },
+            }
+        '''
+        is_bridge = self._iface_is_bridge(ifname)
+        is_port = self._iface_is_bridge_port(ifname)
+        interfaces = self._get_bridge_iface_list(ifname)
+        options = self._get_bridge_options(ifname)
+        bridge = {
+            'is_bridge': is_bridge,
+            'is_port': is_port,
+            'interfaces': interfaces,
+            'options': options,
+        }
+        log.debug('bridge info on {}: {}'.format(ifname, bridge))
+        return bridge
+
     def probe(self):
         results = {}
         for device in self.context.list_devices(subsystem='net'):
@@ -325,6 +383,7 @@ class Network():
             results[iface] = {
                 'type': self._get_iface_type(iface),
                 'bond': self._get_bonding(iface),
+                'bridge': self._get_bridging(iface),
             }
 
             hardware = dict(device)
