@@ -76,6 +76,18 @@ class ProbertTestNetworkInfo(testtools.TestCase):
                     'slaves': [],
                     'mode': None,
                 },
+                "bridge": {
+                    "interfaces": [],
+                    "is_bridge": False,
+                    "is_port": False,
+                    "options": {}
+                },
+                "dhcp": {
+                    "active": False,
+                    "address": None,
+                    "lease": None,
+                    "source": None
+                },
                 'hardware': {
                     'attrs': {
                         'address': '00:11:22:33:44:55',

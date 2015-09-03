@@ -21,7 +21,11 @@ import socket
 import struct
 import logging
 
-from probert.utils import dict_merge, udev_get_attribute
+from probert.utils import (dict_merge,
+                           get_dhclient_d,
+                           parse_dhclient_leases_file,
+                           udev_get_attribute)
+
 
 log = logging.getLogger('probert.network')
 
@@ -139,6 +143,7 @@ class Network():
     def __init__(self, results={}):
         self.results = results
         self.context = pyudev.Context()
+        self._dhcp_leases = []
 
     # these methods extract data from results dictionary
     def get_interfaces(self):
@@ -376,6 +381,67 @@ class Network():
         log.debug('bridge info on {}: {}'.format(ifname, bridge))
         return bridge
 
+    def _get_dhcp_leases(self):
+        if not self._dhcp_leases:
+            lease_d = get_dhclient_d()
+            if lease_d:
+                lease_files = [file for file in os.listdir(lease_d)
+                               if file.endswith('.leases') or
+                               file.endswith('.lease')]
+
+            for lf in [os.path.join(lease_d, f) for f in lease_files]:
+                with open(lf, 'r') as lease_f:
+                    lease_data = lease_f.read()
+                    self._dhcp_leases.extend(
+                        parse_dhclient_leases_file(lease_data))
+
+        return self._dhcp_leases
+
+    def _get_dhcp_lease(self, iface):
+        ''' Using iface name look on system for indicators that iface might
+            have been configured with DHCP
+
+            Heuristics:
+                [ -e /var/lib/dhcp/dhclient.<iface>.leases ]
+                if grep -q <iface> /var/lib/dhcp/dhclient.leases; then
+                   if iface_lease is not expired
+                pgrep dhclient
+
+            return dhcp-server-identifier if iface used dhcp, else None
+        '''
+        # TODO find the most recent lease
+        for lease in [lease for lease in self._get_dhcp_leases()
+                      if lease['interface'] == iface]:
+            return lease
+
+        return None
+
+    def _get_dhcp(self, ifname):
+        ''' return dhcp structure for iface
+           'dhcp': {
+              'active': [True|False],
+              'source': <dhcp-server ip>,
+              'address': <fixed-address>,
+              'lease': lease_record
+            }
+        '''
+        source = None
+        active = False
+        address = None
+        lease = self._get_dhcp_lease(ifname)
+        if lease:
+            active = True
+            source = lease.get('options').get('dhcp-server-identifier')
+            address = lease.get('fixed-address')
+        dhcp = {
+            'active': active,
+            'source': source,
+            'address': address,
+            'lease': lease,
+        }
+        log.debug('dhcp info on {}: {}'.format(ifname, dhcp))
+        return dhcp
+
     def probe(self):
         results = {}
         for device in self.context.list_devices(subsystem='net'):
@@ -384,6 +450,7 @@ class Network():
                 'type': self._get_iface_type(iface),
                 'bond': self._get_bonding(iface),
                 'bridge': self._get_bridging(iface),
+                'dhcp': self._get_dhcp(iface),
             }
 
             hardware = dict(device)
