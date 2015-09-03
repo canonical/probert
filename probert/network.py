@@ -21,7 +21,12 @@ import socket
 import struct
 import logging
 
-from probert.utils import dict_merge, udev_get_attribute
+from probert.utils import (dict_merge,
+                           get_dhclient_d,
+                           parse_dhclient_leases_file,
+                           parse_etc_network_interfaces,
+                           udev_get_attribute)
+
 
 log = logging.getLogger('probert.network')
 
@@ -80,6 +85,8 @@ class NetworkInfo():
         self.hwaddr = self.hwinfo['attrs']['address']
         self.ip = self.raw['ip']
         self.type = self.raw['type']
+        self.bond = self.raw['bond']
+        self.bridge = self.raw['bridge']
 
         # autoset ip related attributes
         for i in self.ip.keys():
@@ -139,6 +146,8 @@ class Network():
     def __init__(self, results={}):
         self.results = results
         self.context = pyudev.Context()
+        self._dhcp_leases = []
+        self._etc_network_interfaces = {}
 
     # these methods extract data from results dictionary
     def get_interfaces(self):
@@ -376,6 +385,116 @@ class Network():
         log.debug('bridge info on {}: {}'.format(ifname, bridge))
         return bridge
 
+    def _get_dhcp_leases(self):
+        if not self._dhcp_leases:
+            lease_d = get_dhclient_d()
+            if lease_d:
+                lease_files = [file for file in os.listdir(lease_d)
+                               if file.endswith('.leases') or
+                               file.endswith('.lease')]
+
+            for lf in [os.path.join(lease_d, f) for f in lease_files]:
+                with open(lf, 'r') as lease_f:
+                    lease_data = lease_f.read()
+                    self._dhcp_leases.extend(
+                        parse_dhclient_leases_file(lease_data))
+
+        return self._dhcp_leases
+
+    def _get_etc_network_interfaces(self):
+        if not self._etc_network_interfaces:
+            eni = '/etc/network/interfaces'
+            with open(eni, 'r') as fp:
+                contents = fp.read().strip()
+            parse_etc_network_interfaces(self._etc_network_interfaces,
+                                         contents,
+                                         os.path.dirname(eni))
+
+        return self._etc_network_interfaces
+
+    def _get_dhcp_lease(self, iface):
+        ''' Using iface name look on system for indicators that iface might
+            have been configured with DHCP
+
+            Heuristics:
+                [ -e /var/lib/dhcp/dhclient.<iface>.leases ]
+                if grep -q <iface> /var/lib/dhcp/dhclient.leases; then
+                   if iface_lease is not expired
+                pgrep dhclient
+
+            return dhcp-server-identifier if iface used dhcp, else None
+        '''
+        # TODO find the most recent lease
+        for lease in [lease for lease in self._get_dhcp_leases()
+                      if lease['interface'] == iface]:
+            return lease
+
+        return None
+
+    def _get_dhcp(self, ifname):
+        ''' return dhcp structure for iface
+           'dhcp': {
+              'active': [True|False],
+              'lease': lease_record
+            }
+        '''
+        active = False
+        lease = self._get_dhcp_lease(ifname)
+        if lease:
+            active = True
+        dhcp = {
+            'active': active,
+            'lease': lease,
+        }
+        log.debug('dhcp info on {}: {}'.format(ifname, dhcp))
+        return dhcp
+
+    def _get_ip_source(self, ifname, ip):
+        '''Determine the interface's ip source
+
+           'ip': {
+               'address': ,
+               ...
+               'source':  {
+                  'method': [dhcp|static],
+                  'provider': <dhcp server ip>|<local config>
+                  'config': <dhcp_dict> | <eni_config>
+               }
+           }
+
+           probert inspects the following sources:
+              /var/lib/dhcp/*.leases
+              /etc/network/interfaces
+           As others are added probert will include
+           config details from those locations if the
+           interface and ip match.
+        '''
+        source = {}
+        if ip:
+            dhcp = self._get_dhcp(ifname)
+            eni = self._get_etc_network_interfaces()
+            if dhcp['active']:
+                source.update({
+                    'method': 'dhcp',
+                    'provider':
+                    dhcp['lease']['options']['dhcp-server-identifier'],
+                    'config': dhcp})
+            elif ifname in eni:
+                ifcfg = eni[ifname]
+                source.update({
+                    'method': ifcfg['method'],
+                    'provider': 'local config',
+                    'config': ifcfg})
+
+            else:
+                source.update({
+                    'method': 'manual',
+                    'provider': None,
+                    'config': None})
+
+        log.debug('ip source info on {}: {}'.format(ifname, source))
+        return source
+
     def probe(self):
         results = {}
         for device in self.context.list_devices(subsystem='net'):
@@ -393,9 +512,11 @@ class Network():
             results = dict_merge(results, {iface: {'hardware': hardware}})
 
             [af_inet] = self._get_ips(iface)
+            ip = {}
             for k in af_inet.keys():
-                results = dict_merge(results,
-                                     {iface: {'ip': {k: af_inet[k]}}})
+                ip.update({k: af_inet[k]})
+            ip.update({'source': self._get_ip_source(iface, af_inet['addr'])})
+            results = dict_merge(results, {iface: {'ip': ip}})
 
         self.results = results
         return results

@@ -62,6 +62,9 @@ class ProbertTestNetworkInfo(testtools.TestCase):
         .addr6 =
         .is_virtual =
         .raw = {raw dictionary}
+        .ip = {ip dict}
+        .bond = {bond dict}
+        .bridge = {bridge_dict}
     '''
     def setUp(self):
         super(ProbertTestNetworkInfo, self).setUp()
@@ -75,6 +78,12 @@ class ProbertTestNetworkInfo(testtools.TestCase):
                     'is_master': False,
                     'slaves': [],
                     'mode': None,
+                },
+                "bridge": {
+                    "interfaces": [],
+                    "is_bridge": False,
+                    "is_port": False,
+                    "options": {}
                 },
                 'hardware': {
                     'attrs': {
@@ -103,7 +112,10 @@ class ProbertTestNetworkInfo(testtools.TestCase):
             'netmask': '255.255.255.0',
             'broadcast': '192.168.11.255',
             'is_virtual': False,
-            'raw': eth0.get('eth0')
+            'raw': eth0.get('eth0'),
+            'bond': eth0.get('eth0').get('bond'),
+            'bridge': eth0.get('eth0').get('bridge'),
+            'ip': eth0.get('eth0').get('ip'),
         }
         for (prop, value) in props.items():
             self.assertEqual(getattr(ni, prop), value)
