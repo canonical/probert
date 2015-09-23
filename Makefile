@@ -3,6 +3,9 @@
 #
 NAME=probert
 VERSION=$(shell PYTHONPATH=$(shell pwd) python -c "import probert; print probert.__version__")
+.PHONY: all
+
+all: run
 
 version:
 	echo "VERSION=$(VERSION)"
