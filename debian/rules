@@ -4,12 +4,6 @@ VERS=$(shell dpkg-parsechangelog | sed -rne 's,^Version: ([^-]+).*,\1,p')
 export DH_VERBOSE=1
 export PYBUILD_NAME=probert
 export PYBUILD_DISABLE_python2=1
-export PYBUILD_INSTALL_DIR=usr/share/probert/
-export PYBUILD_INSTALL_ARGS_python3=--install-lib=usr/share/probert/ \
-	--install-data=usr/ \
-	--install-scripts=usr/share/probert/bin/ \
-	--root=$(CURDIR)/debian/probert/ \
-	--no-compile -O0
 
 %:
 	dh $@ --with python3 --buildsystem=pybuild
