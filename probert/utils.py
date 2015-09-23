@@ -134,7 +134,7 @@ def parse_etc_network_interfaces(ifaces, contents, path):
         elif option == "source":
             src_path = os.path.join(src_dir, split[1])
             for src_file in glob.glob(src_path):
-                with open(src_path, "r") as fp:
+                with open(src_file, "r") as fp:
                     src_data = fp.read().strip()
                 parse_etc_network_interfaces(
                     ifaces, src_data,
