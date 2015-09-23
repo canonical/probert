@@ -28,4 +28,3 @@ get-orig-source:
 	cp dist/*.tar.gz ../probert_${VERS}.orig.tar.gz
 	cp dist/*.tar.gz /tmp/probert_${VERS}.orig.tar.gz
 	rm -rf dist
-	dh_auto_clean
