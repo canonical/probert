@@ -16,7 +16,7 @@ $(NAME)_$(VERSION).orig.tar.gz:
 
 tarball: $(NAME)_$(VERSION).orig.tar.gz
 
-DPKGBUILDARGS = -us -uc -i'logs*|.coverage|.git.*|.tox|.bzr.*|.editorconfig|.travis-yaml'
+DPKGBUILDARGS = -i'logs*|.coverage|.git.*|.tox|.bzr.*|.editorconfig|.travis-yaml'
 deb-src: clean tarball
 	@dpkg-buildpackage -S -sa $(DPKGBUILDARGS)
 
@@ -24,7 +24,7 @@ deb-release: tarball
 	@dpkg-buildpackage -S -sd $(DPKGBUILDARGS)
 
 deb:
-	@dpkg-buildpackage -b $(DPKGBUILDARGS)
+	@dpkg-buildpackage -b -us -uc $(DPKGBUILDARGS)
 
 clean:
 	./debian/rules clean; \
