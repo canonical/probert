@@ -3,28 +3,28 @@
 #
 NAME=probert
 VERSION=$(shell PYTHONPATH=$(shell pwd) python -c "import probert; print probert.__version__")
-.PHONY: all
+.PHONY: all version tarball $(NAME)_$(VERSION).orig.tar.gz
 
 all: run
 
 version:
 	echo "VERSION=$(VERSION)"
 
-$(NAME)_$(VERSION).orig.tar.gz:
+../$(NAME)_$(VERSION).orig.tar.gz:
 	echo "Making tarball"
 	fakeroot debian/rules get-orig-source
 
-tarball: $(NAME)_$(VERSION).orig.tar.gz
+tarball: ../$(NAME)_$(VERSION).orig.tar.gz
 
-DPKGBUILDARGS = -us -uc -i'logs*|.coverage|.git.*|.tox|.bzr.*|.editorconfig|.travis-yaml'
-deb-src: clean tarball
+DPKGBUILDARGS = -i'logs*|.coverage|.git.*|.tox|.bzr.*|.editorconfig|.travis-yaml'
+deb-src: tarball
 	@dpkg-buildpackage -S -sa $(DPKGBUILDARGS)
 
 deb-release: tarball
 	@dpkg-buildpackage -S -sd $(DPKGBUILDARGS)
 
 deb:
-	@dpkg-buildpackage -b $(DPKGBUILDARGS)
+	@dpkg-buildpackage -b -us -uc $(DPKGBUILDARGS)
 
 clean:
 	./debian/rules clean; \

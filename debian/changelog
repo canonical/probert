@@ -1,3 +1,9 @@
+probert (0.0.3-0ubuntu1) wily; urgency=medium
+
+  * Version bump for PPA builds
+
+ -- Ryan Harper <ryan.harper@canonical.com>  Wed, 23 Sep 2015 17:12:13 -0500
+
 probert (0.0.1-0ubuntu1) wily; urgency=medium
 
   * Initial release.
