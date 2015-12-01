@@ -482,7 +482,7 @@ class Network():
             elif ifname in eni:
                 ifcfg = eni[ifname]
                 source.update({
-                    'method': ifcfg['method'],
+                    'method': ifcfg.get('method', 'manual'),
                     'provider': 'local config',
                     'config': ifcfg})
 
