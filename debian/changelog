@@ -1,3 +1,9 @@
+probert (0.0.4-0ubuntu1) xenial; urgency=medium
+
+  * Add in empty ifname fix
+
+ -- Ryan Harper <ryan.harper@canonical.com>  Mon, 04 Jan 2016 11:43:10 -0600
+
 probert (0.0.3-0ubuntu1) wily; urgency=medium
 
   * Version bump for PPA builds
