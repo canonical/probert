@@ -85,6 +85,9 @@ def dictify_lease(lease):
     lease_dict = {}
     options = {}
     for line in disentagle_data_from_whitespace(lease):
+        if len(line) <= 0:
+            continue
+
         key, value = partition_to_pair(line)
         if key == 'option':
             options.update({value[0]: value[1]})
