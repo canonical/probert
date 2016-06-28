@@ -425,9 +425,9 @@ class Network():
             return dhcp-server-identifier if iface used dhcp, else None
         '''
         # TODO find the most recent lease
-        for lease in [lease for lease in self._get_dhcp_leases()
-                      if lease['interface'] == iface]:
-            return lease
+        for lease in self._get_dhcp_leases():
+            if 'interface' in lease and lease['interface'] == iface:
+                return lease
 
         return None
 
