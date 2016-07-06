@@ -156,6 +156,10 @@ class Network():
         except (KeyError, AttributeError):
             return []
 
+    def get_routes(self):
+        """ returns list of gateways (routes) on the system """
+        return netifaces.gateways()
+
     def get_ips(self, iface):
         try:
             return self.results.get('network').get(iface).get('ip')
