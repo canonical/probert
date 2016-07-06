@@ -161,7 +161,7 @@ class Storage():
         for device in self.context.list_devices(subsystem='block'):
             if device['MAJOR'] not in ["1", "7"]:
                 attrs = dict([(key, udev_get_attribute(device, key))
-                              for key in device.attributes.available_attributes])
+                              for key in device.attributes])
                 # update the size attr as it may only be the number
                 # of blocks rather than size in bytes.
                 attrs['size'] = \

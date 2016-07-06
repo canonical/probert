@@ -512,7 +512,7 @@ class Network():
             hardware = dict(device)
             hardware.update(
                 {'attrs': dict([(key, udev_get_attribute(device, key))
-                                for key in device.attributes.available_attributes])})
+                                for key in device.attributes])})
             results = dict_merge(results, {iface: {'hardware': hardware}})
 
             [af_inet] = self._get_ips(iface)
