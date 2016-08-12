@@ -70,10 +70,7 @@ class NetworkInfo():
         .driver = sser
         .devpath = /devices
         .hwaddr = aa:bb:cc:dd:ee:ff
-        .addr = 10.2.7.2
-        .netmask = 255.255.255.0
-        .broadcast = 10.2.7.255
-        .addr6 =
+        .ip = { dictionary of addresses }
         .is_virtual =
         .raw = {raw dictionary}
     '''
@@ -87,13 +84,6 @@ class NetworkInfo():
         self.type = self.raw['type']
         self.bond = self.raw['bond']
         self.bridge = self.raw['bridge']
-
-        # autoset ip related attributes
-        for i in self.ip.keys():
-            if self.ip[i] is None:
-                setattr(self, i, "Unknown")
-            else:
-                setattr(self, i, self.ip[i])
 
     def _get_hwvalues(self, keys, missing='Unknown value'):
         for key in keys:
@@ -162,6 +152,7 @@ class Network():
 
     def get_ips(self, iface):
         try:
+            log.debug("get MATT: {}".format(self.results.get('network').get(iface).get('ip')))
             return self.results.get('network').get(iface).get('ip')
         except (KeyError, AttributeError):
             return []
@@ -192,12 +183,10 @@ class Network():
 
     def _get_ips(self, iface):
         """ returns list of dictionary with keys: addr, netmask, broadcast """
-        empty = {
-            'addr': None,
-            'netmask': None,
-            'broadcast': None,
-        }
-        return netifaces.ifaddresses(iface).get(netifaces.AF_INET, [empty])
+        ips = { netifaces.AF_INET: netifaces.ifaddresses(iface).get(netifaces.AF_INET, []),
+                netifaces.AF_INET6: netifaces.ifaddresses(iface).get(netifaces.AF_INET6, [])
+              }
+        return ips
 
     def _get_hwaddr(self, iface):
         """ returns dictionary with keys: addr, broadcast """
@@ -477,20 +466,26 @@ class Network():
         if ip:
             dhcp = self._get_dhcp(ifname)
             eni = self._get_etc_network_interfaces()
+            manual_source = False
             if dhcp['active']:
-                source.update({
-                    'method': 'dhcp',
-                    'provider':
-                    dhcp['lease']['options']['dhcp-server-identifier'],
-                    'config': dhcp})
+                if ip['addr'] == dhcp['lease']['fixed-address']:
+                    source.update({
+                        'method': 'dhcp',
+                        'provider':
+                        dhcp['lease']['options']['dhcp-server-identifier'],
+                        'config': dhcp})
+                else:
+                    manual_source = True
             elif ifname in eni:
                 ifcfg = eni[ifname]
                 source.update({
                     'method': ifcfg.get('method', 'manual'),
                     'provider': 'local config',
                     'config': ifcfg})
-
             else:
+               manual_source = True
+
+            if manual_source:
                 source.update({
                     'method': 'manual',
                     'provider': None,
@@ -515,12 +510,18 @@ class Network():
                                 for key in device.attributes])})
             results = dict_merge(results, {iface: {'hardware': hardware}})
 
-            [af_inet] = self._get_ips(iface)
-            ip = {}
-            for k in af_inet.keys():
-                ip.update({k: af_inet[k]})
-            ip.update({'source': self._get_ip_source(iface, af_inet['addr'])})
+            ip = self._get_ips(iface)
+            log.debug('IP res: {}'.format(ip))
+            sources = {}
+            sources[netifaces.AF_INET] = []
+            sources[netifaces.AF_INET6] = []
+            for i in range(len(ip[netifaces.AF_INET])):
+                sources[netifaces.AF_INET].append(self._get_ip_source(iface, ip[netifaces.AF_INET][i]))
+            for i in range(len(ip[netifaces.AF_INET6])):
+                sources[netifaces.AF_INET6].append(self._get_ip_source(iface, ip[netifaces.AF_INET6][i]))
+            ip.update({'sources': sources})
             results = dict_merge(results, {iface: {'ip': ip}})
 
         self.results = results
+        log.debug('probe results: {}'.format(results))
         return results
