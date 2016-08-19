@@ -1,4 +1,4 @@
-probert (0.0.6) UNRELEASED; urgency=medium
+probert (0.0.6) yakkety; urgency=medium
 
   [ Ryan Harper ]
   * Initial release.
@@ -6,4 +6,4 @@ probert (0.0.6) UNRELEASED; urgency=medium
   [ Mathieu Trudel-Lapierre ]
   * Port to pyudev 0.18.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 19 Aug 2016 10:59:54 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 19 Aug 2016 11:01:18 -0400
