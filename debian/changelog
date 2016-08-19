@@ -1,17 +1,9 @@
-probert (0.0.4-0ubuntu1) xenial; urgency=medium
+probert (0.0.6) UNRELEASED; urgency=medium
 
-  * Add in empty ifname fix
-
- -- Ryan Harper <ryan.harper@canonical.com>  Mon, 04 Jan 2016 11:43:10 -0600
-
-probert (0.0.3-0ubuntu1) wily; urgency=medium
-
-  * Version bump for PPA builds
-
- -- Ryan Harper <ryan.harper@canonical.com>  Wed, 23 Sep 2015 17:12:13 -0500
-
-probert (0.0.1-0ubuntu1) wily; urgency=medium
-
+  [ Ryan Harper ]
   * Initial release.
 
- -- Ryan Harper <ryan.harper@canonical.com>  Wed, 23 Sep 2015 11:41:51 -0500
+  [ Mathieu Trudel-Lapierre ]
+  * Port to pyudev 0.18.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 19 Aug 2016 10:59:54 -0400

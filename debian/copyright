@@ -1,6 +1,6 @@
 Format: http://dep.debian.net/deps/dep5
-Upstream-Name: subiquity
-Source: https://github.com/CanonicalLtd/subiquity
+Upstream-Name: probert
+Source: https://github.com/CanonicalLtd/probert
 
 Files: *
 Copyright: Copyright 2015, Canonical Ltd., All Rights Reserved.
