@@ -1,5 +1,5 @@
-probert (0.0.6~xenial) UNRELEASED; urgency=medium
+probert (0.0.6~xenial) xenial; urgency=medium
 
   * Initial release.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 19 Aug 2016 10:49:09 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 19 Aug 2016 10:57:40 -0400
