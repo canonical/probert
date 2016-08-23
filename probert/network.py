@@ -24,6 +24,7 @@ import logging
 from probert.utils import (dict_merge,
                            get_dhclient_d,
                            parse_dhclient_leases_file,
+                           parse_networkd_lease_file,
                            parse_etc_network_interfaces,
                            udev_get_attribute)
 
@@ -392,6 +393,17 @@ class Network():
                     self._dhcp_leases.extend(
                         parse_dhclient_leases_file(lease_data))
 
+            netif_leases_d = '/run/systemd/netif/leases/'
+            netif = [file for file in os.listdir(netif_leases_d)]
+            for ifindex in netif:
+                if_file = os.path.join(netif_leases_d, ifindex)
+                netif_lease = None
+                with open(if_file, 'r') as lease_f:
+                    netif_lease = parse_networkd_lease_file(lease_f.read())
+                if netif_lease:
+                    netif_lease["interface"] = socket.if_indextoname(int(ifindex))
+                    self._dhcp_leases.append(netif_lease)
+
         return self._dhcp_leases
 
     def _get_etc_network_interfaces(self):
@@ -468,11 +480,19 @@ class Network():
             eni = self._get_etc_network_interfaces()
             manual_source = False
             if dhcp['active']:
-                if ip['addr'] == dhcp['lease']['fixed-address']:
+                if ('fixed-address' in dhcp['lease'] \
+                        and ip['addr'] == dhcp['lease']['fixed-address'] ) \
+                        or ('address' in dhcp['lease'] \
+                            and ip['addr'] == dhcp['lease']['address']):
+                    server_addr = "unknown"
+                    if 'options' in dhcp['lease']:
+                        server_addr = dhcp['lease']['options']['dhcp-server-identifier']
+                    elif 'server_address' in dhcp['lease']:
+                        server_addr = dhcp['lease']['server_address']
                     source.update({
                         'method': 'dhcp',
                         'provider':
-                        dhcp['lease']['options']['dhcp-server-identifier'],
+                        server_addr,
                         'config': dhcp})
                 else:
                     manual_source = True
