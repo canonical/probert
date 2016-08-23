@@ -1,3 +1,9 @@
+probert (0.0.7) UNRELEASED; urgency=medium
+
+  * Parse networkd leases.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 23 Aug 2016 15:23:41 -0400
+
 probert (0.0.6~xenial) xenial; urgency=medium
 
   * Initial release.

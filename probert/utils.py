@@ -108,6 +108,17 @@ def parse_dhclient_leases_file(leasedata):
             re.findall(r'{([^{}]*)}', leasedata.replace('"', ''))]
 
 
+def parse_networkd_lease_file(leasedata):
+    """Parses systemd/networkd/netif lease data, returns dict"""
+    lease = {}
+    for line in leasedata.split('\n'):
+        if line.startswith('#') or len(line) < 1:
+            continue
+        keyvalue = line.split('=')
+        lease[keyvalue[0].lower()] = keyvalue[1]
+    return lease
+
+
 def get_dhclient_d():
     # find lease files directory
     supported_dirs = ["/var/lib/dhcp", "/var/lib/dhclient"]
