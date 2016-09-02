@@ -1,3 +1,9 @@
+probert (0.0.8~xenial) UNRELEASED; urgency=medium
+
+  * Do not crash if there is no /etc/network/interfaces file.
+
+ -- Michael Hudson-Doyle <michael.hudson@ubuntu.com>  Fri, 02 Sep 2016 14:18:45 +1200
+
 probert (0.0.7~xenial) xenial; urgency=medium
 
   * Parse networkd leases.

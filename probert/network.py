@@ -409,8 +409,11 @@ class Network():
     def _get_etc_network_interfaces(self):
         if not self._etc_network_interfaces:
             eni = '/etc/network/interfaces'
-            with open(eni, 'r') as fp:
-                contents = fp.read().strip()
+            try:
+                with open(eni, 'r') as fp:
+                    contents = fp.read().strip()
+            except FileNotFoundError:
+                return self._etc_network_interfaces
             parse_etc_network_interfaces(self._etc_network_interfaces,
                                          contents,
                                          os.path.dirname(eni))
