@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import array
 import fcntl
 import os
 import netifaces
@@ -31,8 +32,11 @@ from probert.utils import (dict_merge,
 
 log = logging.getLogger('probert.network')
 
-# Soeckt configuration controls (sockios.h)
+# Socket configuration controls
+# sockios.h
 SIOCGIFFLAGS = 0x8913          # get flags
+# wireless.h
+SIOCGIWESSID = 0x8B1B          # get ESSID
 
 # Standard interface flags (net/if.h)
 IFF_UP = 0x1                   # Interface is up.
@@ -295,6 +299,19 @@ class Network():
                                                          'utf=8')))[16:18])
         return (flags & typ) != 0
 
+    def _get_essid(self, ifname):
+        """Return the ESSID for an interface, or None if not connected."""
+        ifname = ifname.encode('latin-1')
+        essid = array.array('b', bytes(32))
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        essid_p, _ = essid.buffer_info()
+        request = ifname.ljust(16, b'\0') + struct.pack("PHH", essid_p, 32, 0)
+        fcntl.ioctl(sock.fileno(), SIOCGIWESSID, request)
+        name = essid.tostring().rstrip(b"\0")
+        if name:
+            return name.decode('latin-1')
+        return None
+
     def _get_bonding(self, ifname):
         ''' return bond structure for iface
            'bond': {
@@ -526,6 +543,9 @@ class Network():
                 'bond': self._get_bonding(iface),
                 'bridge': self._get_bridging(iface),
             }
+
+            if results[iface]['type'] == 'wlan':
+                results[iface]['essid'] = self._get_essid(iface)
 
             hardware = dict(device)
             hardware.update(
