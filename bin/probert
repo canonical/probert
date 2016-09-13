@@ -28,7 +28,7 @@ def parse_options(argv):
         description='probert - Hardware prober for all',
         prog='probert')
     parser.add_argument('--all', action='store_true',
-                        default=False,
+                        default=True,
                         dest='probe_all',
                         help='Probe all hardware types.')
     parser.add_argument('--storage', action='store_true',
@@ -48,6 +48,9 @@ def main():
     logger = logging.getLogger('probert')
     logger.info("Starting probert v{}".format(VERSION))
     logger.info("Arguments passed: {}".format(sys.argv))
+
+    if opts.probe_all and (opts.probe_storage or opts.probe_network):
+        opts.probe_all = False
 
     p = prober.Prober(opts)
     p.probe()
