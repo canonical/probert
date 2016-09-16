@@ -89,6 +89,7 @@ class NetworkInfo():
         self.type = self.raw['type']
         self.bond = self.raw['bond']
         self.bridge = self.raw['bridge']
+        self.flags = self.raw['flags']
 
     def _get_hwvalues(self, keys, missing='Unknown value'):
         for key in keys:
@@ -546,6 +547,7 @@ class Network():
                 'type': self._get_iface_type(iface),
                 'bond': self._get_bonding(iface),
                 'bridge': self._get_bridging(iface),
+                'flags': self._iface_flags(iface),
             }
 
             if results[iface]['type'] == 'wlan':
