@@ -143,6 +143,7 @@ class Network():
         self.context = pyudev.Context()
         self._dhcp_leases = []
         self._etc_network_interfaces = {}
+        self._if_flags = {}
 
     # these methods extract data from results dictionary
     def get_interfaces(self):
@@ -287,17 +288,20 @@ class Network():
             return None
 
     def _iface_is_slave(self, ifname):
-        return self._is_iface_flags(ifname, IFF_SLAVE)
+        return (self._iface_flags(ifname) & IFF_SLAVE) != 0
 
     def _iface_is_master(self, ifname):
-        return self._is_iface_flags(ifname, IFF_MASTER)
+        return (self._iface_flags(ifname) & IFF_MASTER) != 0
 
-    def _is_iface_flags(self, ifname, typ):
+    def _iface_flags(self, ifname):
+        if ifname in self._if_flags:
+            return self._if_flags[ifname]
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         flags, = struct.unpack('H', fcntl.ioctl(s.fileno(), SIOCGIFFLAGS,
                                struct.pack('256s', bytes(ifname[:15],
                                                          'utf=8')))[16:18])
-        return (flags & typ) != 0
+        self._if_flags[ifname] = flags
+        return flags
 
     def _get_essid(self, ifname):
         """Return the ESSID for an interface, or None if not connected."""
