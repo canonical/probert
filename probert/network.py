@@ -541,6 +541,7 @@ class Network():
 
     def probe(self):
         results = {}
+        self._if_flags.clear()
         for device in self.context.list_devices(subsystem='net'):
             iface = device['INTERFACE']
             results[iface] = {
