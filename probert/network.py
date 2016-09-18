@@ -90,6 +90,10 @@ class NetworkInfo():
         self.bond = self.raw['bond']
         self.bridge = self.raw['bridge']
         self.flags = self.raw['flags']
+        # This is the logic ip from iproute2 uses to determine whether
+        # to show NO-CARRIER or not. It only really makes sense for a
+        # wired connection.
+        self.is_connected = (not (self.flags & IFF_UP)) or (self.flags & IFF_RUNNING)
 
     def _get_hwvalues(self, keys, missing='Unknown value'):
         for key in keys:
