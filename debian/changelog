@@ -1,3 +1,9 @@
+probert (0.0.9~xenial-2) xenial; urgency=medium
+
+  * Expose interface flags to clients. 
+
+ -- Michael Hudson-Doyle <michael.hudson@ubuntu.com>  Tue, 20 Sep 2016 13:11:37 +1200
+
 probert (0.0.9~xenial) xenial; urgency=medium
 
   [ Michael Hudson-Doyle ]
