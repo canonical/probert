@@ -89,6 +89,11 @@ class NetworkInfo():
         self.type = self.raw['type']
         self.bond = self.raw['bond']
         self.bridge = self.raw['bridge']
+        self.flags = self.raw['flags']
+        # This is the logic ip from iproute2 uses to determine whether
+        # to show NO-CARRIER or not. It only really makes sense for a
+        # wired connection.
+        self.is_connected = (not (self.flags & IFF_UP)) or (self.flags & IFF_RUNNING)
 
     def _get_hwvalues(self, keys, missing='Unknown value'):
         for key in keys:
@@ -143,6 +148,7 @@ class Network():
         self.context = pyudev.Context()
         self._dhcp_leases = []
         self._etc_network_interfaces = {}
+        self._if_flags = {}
 
     # these methods extract data from results dictionary
     def get_interfaces(self):
@@ -287,17 +293,20 @@ class Network():
             return None
 
     def _iface_is_slave(self, ifname):
-        return self._is_iface_flags(ifname, IFF_SLAVE)
+        return (self._iface_flags(ifname) & IFF_SLAVE) != 0
 
     def _iface_is_master(self, ifname):
-        return self._is_iface_flags(ifname, IFF_MASTER)
+        return (self._iface_flags(ifname) & IFF_MASTER) != 0
 
-    def _is_iface_flags(self, ifname, typ):
+    def _iface_flags(self, ifname):
+        if ifname in self._if_flags:
+            return self._if_flags[ifname]
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         flags, = struct.unpack('H', fcntl.ioctl(s.fileno(), SIOCGIFFLAGS,
                                struct.pack('256s', bytes(ifname[:15],
                                                          'utf=8')))[16:18])
-        return (flags & typ) != 0
+        self._if_flags[ifname] = flags
+        return flags
 
     def _get_essid(self, ifname):
         """Return the ESSID for an interface, or None if not connected."""
@@ -536,12 +545,14 @@ class Network():
 
     def probe(self):
         results = {}
+        self._if_flags.clear()
         for device in self.context.list_devices(subsystem='net'):
             iface = device['INTERFACE']
             results[iface] = {
                 'type': self._get_iface_type(iface),
                 'bond': self._get_bonding(iface),
                 'bridge': self._get_bridging(iface),
+                'flags': self._iface_flags(iface),
             }
 
             if results[iface]['type'] == 'wlan':
