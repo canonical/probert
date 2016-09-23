@@ -1,9 +1,14 @@
-probert (0.0.8) UNRELEASED; urgency=medium
+probert (0.0.9) yakkety; urgency=medium
 
+  [ Michael Hudson-Doyle ]
   * Do not crash if there is no /etc/network/interfaces file.
   * Look for the current essid for wlan interfaces
+  * Expose more interface flags, including whether there is a carrier.
 
- -- Michael Hudson-Doyle <michael.hudson@ubuntu.com>  Fri, 02 Sep 2016 14:18:45 +1200
+  [ Mathieu Trudel-Lapierre ]
+  * Default action is now to list all (network and storage) devices.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 23 Sep 2016 15:27:00 -0400
 
 probert (0.0.7) yakkety; urgency=medium
 
