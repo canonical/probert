@@ -315,7 +315,12 @@ class Network():
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         essid_p, _ = essid.buffer_info()
         request = ifname.ljust(16, b'\0') + struct.pack("PHH", essid_p, 32, 0)
-        fcntl.ioctl(sock.fileno(), SIOCGIWESSID, request)
+        try:
+            fcntl.ioctl(sock.fileno(), SIOCGIWESSID, request)
+        except PermissionError:
+            # Some devices do not support SIOCGIWESSID, see
+            # https://bugs.launchpad.net/bugs/1627031
+            return None
         name = essid.tostring().rstrip(b"\0")
         if name:
             return name.decode('latin-1')
