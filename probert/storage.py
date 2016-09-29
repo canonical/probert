@@ -137,7 +137,15 @@ class Storage():
         except (KeyError, AttributeError):
             return "0"
 
-    def _get_device_size(self, device, is_partition=False):
+    def _get_parent_device(self, storage, device):
+        device_dir = os.path.join('/sys/class/block', os.path.basename(device))
+        if storage[device]['DEVTYPE'] == 'partition':
+            parent_dev = os.path.basename(re.split('(?:p|-part)[\d+]', device)[0])
+        else:
+            parent_dev = os.path.basename(device)
+        return parent_dev
+
+    def _get_device_size(self, storage, device):
         ''' device='/dev/sda' '''
         device_dir = os.path.join('/sys/class/block', os.path.basename(device))
         blockdev_size = os.path.join(device_dir, 'size')
@@ -146,7 +154,7 @@ class Storage():
 
         logsize_base = device_dir
         if not os.path.exists(os.path.join(device_dir, 'queue')):
-            parent_dev = os.path.basename(re.split('[\d+]', device)[0])
+            parent_dev = self._get_parent_device(storage, device)
             logsize_base = os.path.join('/sys/class/block', parent_dev)
 
         logical_size = os.path.join(logsize_base, 'queue',
@@ -164,9 +172,9 @@ class Storage():
                               for key in device.attributes.available_attributes])
                 # update the size attr as it may only be the number
                 # of blocks rather than size in bytes.
-                attrs['size'] = \
-                    str(self._get_device_size(device['DEVNAME']))
                 storage[device['DEVNAME']] = dict(device)
+                attrs['size'] = \
+                    str(self._get_device_size(storage, device['DEVNAME']))
                 storage[device['DEVNAME']].update({'attrs': attrs})
 
         self.results = storage
