@@ -1,3 +1,12 @@
+probert (0.0.10) yakkety; urgency=medium
+
+  * New release 0.0.10:
+    - Do not crash if SIOCGIWESSID is not supported by a wireless device.
+      (LP: #1627031)
+    - Parse lease files from NetworkManager's networkd dhcp feature.
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 04 Oct 2016 16:37:39 -0400
+
 probert (0.0.9) yakkety; urgency=medium
 
   [ Michael Hudson-Doyle ]
