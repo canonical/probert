@@ -1,8 +1,10 @@
-probert (0.0.10~xenial) UNRELEASED; urgency=medium
+probert (0.0.10~xenial) xenial; urgency=medium
 
-  *
+  * New release 0.0.10:
+    - Do not crash if SIOCGIWESSID is not supported by a wireless device.
+    - Parse lease files from NetworkManager's networkd dhcp feature.
 
- -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Fri, 23 Sep 2016 15:23:58 -0400
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 04 Oct 2016 16:41:52 -0400
 
 probert (0.0.9~xenial-2) xenial; urgency=medium
 
