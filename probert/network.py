@@ -435,6 +435,20 @@ class Network():
                     netif_lease["interface"] = socket.if_indextoname(int(ifindex))
                     self._dhcp_leases.append(netif_lease)
 
+            # Use network-manager snap lease location
+            network_manager_leases_d = '/run/NetworkManager/dhcp/'
+            leases = [file for file in os.listdir(network_manager_leases_d)]
+            for index in leases:
+                lease_file = os.path.join(network_manager_leases_d, index)
+                nm_lease = None
+                with open(lease_file, 'r') as lease_f:
+                    # network-manager lease files use the same format as
+                    # neworkd
+                    nm_lease = parse_networkd_lease_file(lease_f.read())
+                if nm_lease:
+                    nm_lease["interface"] = socket.if_indextoname(int(ifindex))
+                    self._dhcp_leases.append(nm_lease)
+
         return self._dhcp_leases
 
     def _get_etc_network_interfaces(self):
