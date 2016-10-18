@@ -447,7 +447,7 @@ class Network():
                         # neworkd
                         nm_lease = parse_networkd_lease_file(lease_f.read())
                     if nm_lease:
-                        nm_lease["interface"] = socket.if_indextoname(int(ifindex))
+                        nm_lease["interface"] = socket.if_indextoname(int(index))
                         self._dhcp_leases.append(nm_lease)
 
         return self._dhcp_leases
