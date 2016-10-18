@@ -1,3 +1,10 @@
+probert (0.0.11~xenial) UNRELEASED; urgency=medium
+
+  [ Scott Sweeney ]
+  * probert/network.py: Fix typo in index variable name. (LP: #1634430)
+
+ -- Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>  Tue, 18 Oct 2016 14:40:33 -0400
+
 probert (0.0.10~xenial) xenial; urgency=medium
 
   * New release 0.0.10:
