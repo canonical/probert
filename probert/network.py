@@ -447,7 +447,10 @@ class Network():
                         # neworkd
                         nm_lease = parse_networkd_lease_file(lease_f.read())
                     if nm_lease:
-                        nm_lease["interface"] = socket.if_indextoname(int(index))
+                        # lease file names are
+                        # 'internal[6]-<uuid>-<iface_name>.lease'
+                        iface_name = index.split('-').pop().split('.')[0]
+                        nm_lease["interface"] = iface_name
                         self._dhcp_leases.append(nm_lease)
 
         return self._dhcp_leases
