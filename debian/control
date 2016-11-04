@@ -5,7 +5,10 @@ Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Ryan Harper <ryan.harper@canonical.com>
 Build-Depends: debhelper (>= 9),
                dh-python,
+               libnl-genl-3-dev,
+               libnl-route-3-dev,
                pep8,
+               pkg-config,
                pyflakes,
                python3-all,
                python3-coverage,
@@ -22,14 +25,14 @@ Vcs-Browser: https://github.com/CanonicalLtd/probert
 Vcs-Git: https://github.com/CanonicalLtd/probert.git
 
 Package: probert
-Architecture: all
+Architecture: any
 Depends: python3-all,
          python3-netifaces,
          python3-pyudev,
          python3-yaml,
          ${misc:Depends},
          ${python3:Depends},
-         ${python:Depends}
+         ${shlibs:Depends}
 Description: Hardware probing tool
  This package provides a tool for probing host hardware information
  and emitting a JSON report.
