@@ -149,10 +149,11 @@ static void observe_route_change(
 		struct rtnl_nexthop* nh = rtnl_route_nexthop_n(route, 0);
 		ifindex = rtnl_route_nh_get_ifindex(nh);
 	}
-
 	data = Py_BuildValue(
-		"{sB ss si si}",
+		"{sB sB sI sy si}",
 		"family", rtnl_route_get_family(route),
+		"type", rtnl_route_get_type(route),
+		"table", rtnl_route_get_table(route),
 		"dst", cdst,
 		"ifindex", ifindex);
 	if (data == NULL) {
