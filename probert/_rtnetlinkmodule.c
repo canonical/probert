@@ -5,6 +5,7 @@
 #include <netlink/cache.h>
 #include <netlink/route/addr.h>
 #include <netlink/route/link.h>
+#include <netlink/route/route.h>
 
 #define NL_CB_me NL_CB_DEFAULT
 
@@ -123,6 +124,59 @@ static void _e_addr(struct nl_object *ob, void *data) {
 	observe_addr_change(NL_ACT_NEW, (struct rtnl_addr *)ob, (struct Listener*)data);
 }
 
+static void observe_route_change(
+	int act,
+	struct rtnl_route *route,
+	struct Listener* listener)
+{
+	if (listener->exc_typ != NULL || listener->observer == Py_None) {
+		return;
+	}
+	PyObject *data;
+	char *cdst;
+	char dstbuf[64];
+	struct nl_addr* dst = rtnl_route_get_dst(route);
+	if (dst == NULL || nl_addr_get_len(dst) == 0) {
+		cdst = "default";
+	} else {
+		cdst = nl_addr2str(dst, dstbuf, sizeof(dstbuf));
+	}
+
+	int ifindex = -1;
+	int nnexthops = rtnl_route_get_nnexthops(route);
+	if (nnexthops > 0) {
+		// Bit cheaty to ignore multipath but....
+		struct rtnl_nexthop* nh = rtnl_route_nexthop_n(route, 0);
+		ifindex = rtnl_route_nh_get_ifindex(nh);
+	}
+
+	data = Py_BuildValue(
+		"{sB ss si si}",
+		"family", rtnl_route_get_family(route),
+		"dst", cdst,
+		"ifindex", ifindex);
+	if (data == NULL) {
+		goto exit;
+	}
+	PyObject *r = PyObject_CallMethod(listener->observer, "route_change", "sO", act2str(act), data);
+	Py_XDECREF(r);
+
+  exit:
+	Py_XDECREF(data);
+	if (PyErr_Occurred()) {
+		PyErr_Fetch(&listener->exc_typ, &listener->exc_val, &listener->exc_tb);
+	}
+}
+
+static void _cb_route(struct nl_cache *cache, struct nl_object *ob, int act,
+                    void *data) {
+	observe_route_change(act, (struct rtnl_route *)ob, (struct Listener*)data);
+}
+
+static void _e_route(struct nl_object *ob, void *data) {
+	observe_route_change(NL_ACT_NEW, (struct rtnl_route *)ob, (struct Listener*)data);
+}
+
 static void
 listener_dealloc(PyObject *self) {
 	struct Listener* v = (struct Listener*)self;
@@ -202,7 +256,7 @@ maybe_restore(struct Listener* listener) {
 static PyObject*
 listener_start(PyObject *self, PyObject* args)
 {
-	struct nl_cache *link_cache, *addr_cache;
+	struct nl_cache *link_cache, *addr_cache, *route_cache;
 	struct Listener* listener = (struct Listener*)self;
 	int r;
 
@@ -232,8 +286,22 @@ listener_start(PyObject *self, PyObject* args)
 		return NULL;
 	}
 
+	r = rtnl_route_alloc_cache(NULL, AF_UNSPEC, 0, &route_cache);
+	if (r < 0) {
+		PyErr_Format(PyExc_MemoryError, "rtnl_route_alloc_cache failed %d\n", r);
+		return NULL;
+	}
+
+	r = nl_cache_mngr_add_cache(listener->mngr, route_cache, _cb_route, listener);
+	if (r < 0) {
+		nl_cache_free(route_cache);
+		PyErr_Format(PyExc_RuntimeError, "nl_cache_mngr_add_cache failed %d\n", r);
+		return NULL;
+	}
+
 	nl_cache_foreach(link_cache, _e_link, self);
 	nl_cache_foreach(addr_cache, _e_addr, self);
+	nl_cache_foreach(route_cache, _e_route, self);
 
 	return maybe_restore(listener);
 }

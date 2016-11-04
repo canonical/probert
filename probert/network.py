@@ -368,6 +368,9 @@ class UdevObserver:
             source = 'dhcp'
         link.ip_sources[ip] = source
 
+    def route_change(self, action, data):
+        log.debug('route_change %s %s', action, data)
+
     def wlan_event(self, arg):
         log.debug('wlan_event %s', arg)
         ifindex = arg['ifindex']
