@@ -1,6 +1,6 @@
 probert (0.0.12) UNRELEASED; urgency=medium
 
-  * Replace network problem with netlink-based version.
+  * Replace network probing with netlink-based version.
 
  -- Michael Hudson-Doyle <michael.hudson@ubuntu.com>  Fri, 04 Nov 2016 13:42:17 +1300
 
