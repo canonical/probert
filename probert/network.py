@@ -113,12 +113,9 @@ def _compute_type(iface):
 
 class NetworkInfo:
     def __init__(self, netlink_data, udev_data):
-        self.netlink_data = netlink_data
+        self.update_from_netlink_data(netlink_data)
         self.udev_data = udev_data
 
-        self.name = self.netlink_data.get('name').decode('utf-8', 'replace')
-        self.flags = self.netlink_data['flags']
-        self.ifindex = self.netlink_data['ifindex']
         self.hwaddr = self.udev_data['attrs']['address']
 
         self.type = _compute_type(self.name)
@@ -127,15 +124,21 @@ class NetworkInfo:
         self.bond = self._get_bonding()
         self.bridge = self._get_bridging()
 
-        # This is the logic ip from iproute2 uses to determine whether
-        # to show NO-CARRIER or not. It only really makes sense for a
-        # wired connection.
-        self.is_connected = (not (self.flags & IFF_UP)) or (self.flags & IFF_RUNNING)
 
         # Wifi only things (set from UdevObserver.wlan_event)
         self.ssid = None
         self.ssids = []
         self.scan_state = None
+
+    def update_from_netlink_data(self, netlink_data):
+        self.netlink_data = netlink_data
+        self.name = self.netlink_data.get('name', '').decode('utf-8', 'replace')
+        self.flags = self.netlink_data['flags']
+        self.ifindex = self.netlink_data['ifindex']
+        # This is the logic ip from iproute2 uses to determine whether
+        # to show NO-CARRIER or not. It only really makes sense for a
+        # wired connection.
+        self.is_connected = (not (self.flags & IFF_UP)) or (self.flags & IFF_RUNNING)
 
     def __repr__(self):
         return '<%s: %s>'%(self.__class__.__name__, self.ssid)
@@ -331,8 +334,10 @@ class UdevObserver:
                 self.del_link(ifindex)
             return
         if action == 'CHANGE':
-            # Not sure what to do here, don't want to overwrite self.links[ifindex] as that
-            # will lose addresses etc.
+            if ifindex in self.links:
+                dev = self.links[ifindex]
+                dev.update_from_netlink_data(data)
+            self.update_link(ifindex)
             return
         for k, v in data.items():
             if isinstance(data, bytes):
@@ -399,6 +404,9 @@ class UdevObserver:
             link.ssid = None
 
     def new_link(self, ifindex, link):
+        pass
+
+    def update_link(self, ifindex):
         pass
 
     def del_link(self, ifindex):
