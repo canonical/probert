@@ -50,6 +50,8 @@ def _compute_type(iface):
         print('No sysfs path to {}'.format(sysfs_path))
         return None
 
+    DEV_TYPE = '???'
+
     with open(os.path.join(sysfs_path, 'type')) as t:
         type_value = t.read().split('\n')[0]
     if type_value == '1':
