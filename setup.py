@@ -22,9 +22,10 @@ probert
 Hardware probing tool
 """
 
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
 
 import os
+import subprocess
 import sys
 
 import probert
@@ -34,15 +35,31 @@ if sys.argv[-1] == 'clean':
     os.system('rm -rf probert.egg-info build dist')
     sys.exit()
 
+def pkgconfig(package):
+    return {
+        'extra_compile_args': subprocess.check_output(['pkg-config', '--cflags', package]).decode('utf8').split(),
+        'extra_link_args': subprocess.check_output(['pkg-config', '--libs', package]).decode('utf8').split(),
+    }
+
 setup(name='probert',
       version=probert.__version__,
-      description="Hardware probin tool", 
+      description="Hardware probing tool",
       long_description=__doc__,
       author='Canonical Engineering',
-      author_email='ubuntu-dev@lists.ubuntu.com',
+      author_email='ubuntu-devel@lists.ubuntu.com',
       url='https://github.com/CanonicalLtd/probert',
       license="AGPLv3+",
       scripts=['bin/probert'],
+      ext_modules=[
+          Extension(
+            "probert._rtnetlink",
+            ['probert/_rtnetlinkmodule.c'],
+            **pkgconfig("libnl-route-3.0")),
+          Extension(
+            "probert._nl80211",
+            ['probert/_nl80211module.c'],
+            **pkgconfig("libnl-genl-3.0")),
+          ],
       packages=find_packages(),
       include_package_data=True,
 )

@@ -13,30 +13,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import array
-import fcntl
 import os
-import netifaces
-import pyudev
-import socket
-import struct
 import logging
 
-from probert.utils import (dict_merge,
-                           get_dhclient_d,
-                           parse_dhclient_leases_file,
-                           parse_networkd_lease_file,
-                           parse_etc_network_interfaces,
-                           udev_get_attribute)
+import pyudev
 
+from probert import _nl80211, _rtnetlink
 
 log = logging.getLogger('probert.network')
-
-# Socket configuration controls
-# sockios.h
-SIOCGIFFLAGS = 0x8913          # get flags
-# wireless.h
-SIOCGIWESSID = 0x8B1B          # get ESSID
 
 # Standard interface flags (net/if.h)
 IFF_UP = 0x1                   # Interface is up.
@@ -55,53 +39,117 @@ IFF_MULTICAST = 0x1000         # Supports multicast.
 IFF_PORTSEL = 0x2000           # Can set media type.
 IFF_AUTOMEDIA = 0x4000         # Auto media select active.
 
-BONDING_MODES = {
-    '0': 'balance-rr',
-    '1': 'active-backup',
-    '2': 'balance-xor',
-    '3': 'broadcast',
-    '4': '802.3ad',
-    '5': 'balance-tlb',
-    '6': 'balance-alb',
-}
+IFA_F_PERMANENT = 0x80
+
+def _compute_type(iface):
+    if not iface:
+        return '???'
+
+    sysfs_path = os.path.join('/sys/class/net', iface)
+    if not os.path.exists(sysfs_path):
+        print('No sysfs path to {}'.format(sysfs_path))
+        return None
+
+    DEV_TYPE = '???'
+
+    with open(os.path.join(sysfs_path, 'type')) as t:
+        type_value = t.read().split('\n')[0]
+    if type_value == '1':
+        DEV_TYPE = 'eth'
+        if os.path.isdir(os.path.join(sysfs_path, 'wireless')) or \
+           os.path.islink(os.path.join(sysfs_path, 'phy80211')):
+            DEV_TYPE = 'wlan'
+        elif os.path.isdir(os.path.join(sysfs_path, 'bridge')):
+            DEV_TYPE = 'bridge'
+        elif os.path.isfile(os.path.join('/proc/net/vlan', iface)):
+            DEV_TYPE = 'vlan'
+        elif os.path.isdir(os.path.join(sysfs_path, 'bonding')):
+            DEV_TYPE = 'bond'
+        elif os.path.isfile(os.path.join(sysfs_path, 'tun_flags')):
+            DEV_TYPE = 'tap'
+        elif os.path.isdir(
+                os.path.join('/sys/devices/virtual/net', iface)):
+            if iface.startswith('dummy'):
+                DEV_TYPE = 'dummy'
+    elif type_value == '24':  # firewire ;; IEEE 1394 - RFC 2734
+        DEV_TYPE = 'eth'
+    elif type_value == '32':  # InfiniBand
+        if os.path.isdir(os.path.join(sysfs_path, 'bonding')):
+            DEV_TYPE = 'bond'
+        elif os.path.isdir(os.path.join(sysfs_path, 'create_child')):
+            DEV_TYPE = 'ib'
+        else:
+            DEV_TYPE = 'ibchild'
+    elif type_value == '512':
+        DEV_TYPE = 'ppp'
+    elif type_value == '768':
+        DEV_TYPE = 'ipip'      # IPIP tunnel
+    elif type_value == '769':
+        DEV_TYPE = 'ip6tnl'   # IP6IP6 tunnel
+    elif type_value == '772':
+        DEV_TYPE = 'lo'
+    elif type_value == '776':
+        DEV_TYPE = 'sit'      # sit0 device - IPv6-in-IPv4
+    elif type_value == '778':
+        DEV_TYPE = 'gre'      # GRE over IP
+    elif type_value == '783':
+        DEV_TYPE = 'irda'     # Linux-IrDA
+    elif type_value == '801':
+        DEV_TYPE = 'wlan_aux'
+    elif type_value == '65534':
+        DEV_TYPE = 'tun'
+
+    if iface.startswith('ippp') or iface.startswith('isdn'):
+        DEV_TYPE = 'isdn'
+    elif iface.startswith('mip6mnha'):
+        DEV_TYPE = 'mip6mnha'
+
+    if len(DEV_TYPE) == 0:
+        print('Failed to determine interface type for {}'.format(iface))
+        return None
+
+    return DEV_TYPE
 
 
-class NetworkInfo():
-    ''' properties:
-        .type = eth
-        .name = eth7
-        .vendor = Innotec
-        .model = SuperSonicEtherRocket
-        .driver = sser
-        .devpath = /devices
-        .hwaddr = aa:bb:cc:dd:ee:ff
-        .ip = { dictionary of addresses }
-        .is_virtual =
-        .raw = {raw dictionary}
-    '''
-    def __init__(self, probe_data):
-        [self.name] = probe_data
-        self.raw = probe_data.get(self.name)
 
-        self.hwinfo = self.raw['hardware']
-        self.hwaddr = self.hwinfo['attrs']['address']
-        self.ip = self.raw['ip']
-        self.type = self.raw['type']
-        self.bond = self.raw['bond']
-        self.bridge = self.raw['bridge']
-        self.flags = self.raw['flags']
+
+class NetworkInfo:
+    def __init__(self, netlink_data, udev_data):
+        self.update_from_netlink_data(netlink_data)
+        self.udev_data = udev_data
+
+        self.hwaddr = self.udev_data['attrs']['address']
+
+        self.type = _compute_type(self.name)
+        self.ip = {}
+        self.ip_sources = {}
+        self.bond = self._get_bonding()
+        self.bridge = self._get_bridging()
+
+
+        # Wifi only things (set from UdevObserver.wlan_event)
+        self.ssid = None
+        self.ssids = []
+        self.scan_state = None
+
+    def update_from_netlink_data(self, netlink_data):
+        self.netlink_data = netlink_data
+        self.name = self.netlink_data.get('name', '').decode('utf-8', 'replace')
+        self.flags = self.netlink_data['flags']
+        self.ifindex = self.netlink_data['ifindex']
         # This is the logic ip from iproute2 uses to determine whether
         # to show NO-CARRIER or not. It only really makes sense for a
         # wired connection.
         self.is_connected = (not (self.flags & IFF_UP)) or (self.flags & IFF_RUNNING)
 
+    def __repr__(self):
+        return '<%s: %s>'%(self.__class__.__name__, self.ssid)
+
     def _get_hwvalues(self, keys, missing='Unknown value'):
         for key in keys:
             try:
-                return self.hwinfo[key]
+                return self.udev_data[key]
             except KeyError:
-                log.debug('Failed to get key '
-                          '{} from interface {}'.format(key, self.name))
                 pass
 
         return missing
@@ -141,192 +189,30 @@ class NetworkInfo():
     def is_virtual(self):
         return self.devpath.startswith('/devices/virtual/')
 
+    def _iface_is_master(self):
+        return bool(self.flags & IFF_MASTER) != 0
 
-class Network():
-    def __init__(self, results={}):
-        self.results = results
-        self.context = pyudev.Context()
-        self._dhcp_leases = []
-        self._etc_network_interfaces = {}
-        self._if_flags = {}
+    def _iface_is_slave(self):
+        return bool(self.flags & IFF_SLAVE) != 0
 
-    # these methods extract data from results dictionary
-    def get_interfaces(self):
+    def _get_slave_iface_list(self):
         try:
-            return self.results.get('network').keys()
-        except (KeyError, AttributeError):
-            return []
-
-    def get_routes(self):
-        """ returns list of gateways (routes) on the system """
-        return netifaces.gateways()
-
-    def get_ips(self, iface):
-        try:
-            log.debug("get MATT: {}".format(self.results.get('network').get(iface).get('ip')))
-            return self.results.get('network').get(iface).get('ip')
-        except (KeyError, AttributeError):
-            return []
-
-    def get_hwaddr(self, iface):
-        try:
-            hwinfo = self.results.get('network').get(iface).get('hardware')
-            return hwinfo.get('attrs').get('address')
-        except (KeyError, AttributeError):
-            return "00:00:00:00:00:00"
-
-    def get_iface_type(self, iface):
-        try:
-            return self.results.get('network').get(iface).get('type')
-        except (KeyError, AttributeError):
-            return None
-
-    def get_bond(self, iface):
-        try:
-            return self.results.get('network').get(iface).get('bonds')
-        except (KeyError, AttributeError):
-            return None
-
-    # the methods below will all probe the host system
-    def _get_interfaces(self):
-        """ returns list of string interface names """
-        return netifaces.interfaces()
-
-    def _get_ips(self, iface):
-        """ returns list of dictionary with keys: addr, netmask, broadcast """
-        ips = { netifaces.AF_INET: netifaces.ifaddresses(iface).get(netifaces.AF_INET, []),
-                netifaces.AF_INET6: netifaces.ifaddresses(iface).get(netifaces.AF_INET6, [])
-              }
-        return ips
-
-    def _get_hwaddr(self, iface):
-        """ returns dictionary with keys: addr, broadcast """
-        [linkinfo] = netifaces.ifaddresses(iface)[netifaces.AF_LINK]
-        try:
-            return linkinfo.get('addr')
-        except AttributeError:
-            return None
-
-    def _get_iface_type(self, iface):
-        if len(iface) < 1:
-            print('Invalid iface={}'.format(iface))
-            return None
-
-        sysfs_path = os.path.join('/sys/class/net', iface)
-        if not os.path.exists(sysfs_path):
-            print('No sysfs path to {}'.format(sysfs_path))
-            return None
-
-        with open(os.path.join(sysfs_path, 'type')) as t:
-            type_value = t.read().split('\n')[0]
-        if type_value == '1':
-            DEV_TYPE = 'eth'
-            if os.path.isdir(os.path.join(sysfs_path, 'wireless')) or \
-               os.path.islink(os.path.join(sysfs_path, 'phy80211')):
-                DEV_TYPE = 'wlan'
-            elif os.path.isdir(os.path.join(sysfs_path, 'bridge')):
-                DEV_TYPE = 'bridge'
-            elif os.path.isfile(os.path.join('/proc/net/vlan', iface)):
-                DEV_TYPE = 'vlan'
-            elif os.path.isdir(os.path.join(sysfs_path, 'bonding')):
-                DEV_TYPE = 'bond'
-            elif os.path.isfile(os.path.join(sysfs_path, 'tun_flags')):
-                DEV_TYPE = 'tap'
-            elif os.path.isdir(
-                    os.path.join('/sys/devices/virtual/net', iface)):
-                if iface.startswith('dummy'):
-                    DEV_TYPE = 'dummy'
-        elif type_value == '24':  # firewire ;; IEEE 1394 - RFC 2734
-            DEV_TYPE = 'eth'
-        elif type_value == '32':  # InfiniBand
-            if os.path.isdir(os.path.join(sysfs_path, 'bonding')):
-                DEV_TYPE = 'bond'
-            elif os.path.isdir(os.path.join(sysfs_path, 'create_child')):
-                DEV_TYPE = 'ib'
-            else:
-                DEV_TYPE = 'ibchild'
-        elif type_value == '512':
-            DEV_TYPE = 'ppp'
-        elif type_value == '768':
-            DEV_TYPE = 'ipip'      # IPIP tunnel
-        elif type_value == '769':
-            DEV_TYPE = 'ip6tnl'   # IP6IP6 tunnel
-        elif type_value == '772':
-            DEV_TYPE = 'lo'
-        elif type_value == '776':
-            DEV_TYPE = 'sit'      # sit0 device - IPv6-in-IPv4
-        elif type_value == '778':
-            DEV_TYPE = 'gre'      # GRE over IP
-        elif type_value == '783':
-            DEV_TYPE = 'irda'     # Linux-IrDA
-        elif type_value == '801':
-            DEV_TYPE = 'wlan_aux'
-        elif type_value == '65534':
-            DEV_TYPE = 'tun'
-
-        if iface.startswith('ippp') or iface.startswith('isdn'):
-            DEV_TYPE = 'isdn'
-        elif iface.startswith('mip6mnha'):
-            DEV_TYPE = 'mip6mnha'
-
-        if len(DEV_TYPE) == 0:
-            print('Failed to determine interface type for {}'.format(iface))
-            return None
-
-        return DEV_TYPE
-
-    def _get_slave_iface_list(self, ifname):
-        try:
-            if self._iface_is_master(ifname):
-                bond = open('/sys/class/net/%s/bonding/slaves' % ifname).read()
+            if self._iface_is_master():
+                bond = open('/sys/class/net/%s/bonding/slaves' % self.name).read()
                 return bond.split()
         except IOError:
             return []
 
-    def _get_bond_mode(self, ifname):
+    def _get_bond_mode(self, ):
         try:
-            if self._iface_is_master(ifname):
+            if self._iface_is_master():
                 bond_mode = \
-                    open('/sys/class/net/%s/bonding/mode' % ifname).read()
+                    open('/sys/class/net/%s/bonding/mode' % self.name).read()
                 return bond_mode.split()
         except IOError:
             return None
 
-    def _iface_is_slave(self, ifname):
-        return (self._iface_flags(ifname) & IFF_SLAVE) != 0
-
-    def _iface_is_master(self, ifname):
-        return (self._iface_flags(ifname) & IFF_MASTER) != 0
-
-    def _iface_flags(self, ifname):
-        if ifname in self._if_flags:
-            return self._if_flags[ifname]
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        flags, = struct.unpack('H', fcntl.ioctl(s.fileno(), SIOCGIFFLAGS,
-                               struct.pack('256s', bytes(ifname[:15],
-                                                         'utf=8')))[16:18])
-        self._if_flags[ifname] = flags
-        return flags
-
-    def _get_essid(self, ifname):
-        """Return the ESSID for an interface, or None if not connected."""
-        ifname = ifname.encode('latin-1')
-        essid = array.array('b', bytes(32))
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        essid_p, _ = essid.buffer_info()
-        request = ifname.ljust(16, b'\0') + struct.pack("PHH", essid_p, 32, 0)
-        try:
-            fcntl.ioctl(sock.fileno(), SIOCGIWESSID, request)
-        except PermissionError:
-            # Some devices do not support SIOCGIWESSID, see
-            # https://bugs.launchpad.net/bugs/1627031
-            return None
-        name = essid.tostring().rstrip(b"\0")
-        if name:
-            return name.decode('latin-1')
-        return None
-
-    def _get_bonding(self, ifname):
+    def _get_bonding(self):
         ''' return bond structure for iface
            'bond': {
               'is_master': [True|False]
@@ -335,10 +221,10 @@ class Network():
               'mode': in BONDING_MODES.keys() or BONDING_MODES.values()
             }
         '''
-        is_master = self._iface_is_master(ifname)
-        is_slave = self._iface_is_slave(ifname)
-        slaves = self._get_slave_iface_list(ifname)
-        mode = self._get_bond_mode(ifname)
+        is_master = self._iface_is_master()
+        is_slave = self._iface_is_slave()
+        slaves = self._get_slave_iface_list()
+        mode = self._get_bond_mode()
         if mode:
             mode_name = mode[0]
         else:
@@ -349,32 +235,31 @@ class Network():
             'slaves': slaves,
             'mode': mode_name
         }
-        log.debug('bond info on {}: {}'.format(ifname, bond))
         return bond
 
-    def _iface_is_bridge(self, ifname):
-        bridge_path = os.path.join('/sys/class/net', ifname, 'bridge')
+    def _iface_is_bridge(self, ):
+        bridge_path = os.path.join('/sys/class/net', self.name, 'bridge')
         return os.path.exists(bridge_path)
 
-    def _iface_is_bridge_port(self, ifname):
-        bridge_port = os.path.join('/sys/class/net', ifname, 'brport')
+    def _iface_is_bridge_port(self):
+        bridge_port = os.path.join('/sys/class/net', self.name, 'brport')
         return os.path.exists(bridge_port)
 
-    def _get_bridge_iface_list(self, ifname):
-        if self._iface_is_bridge(ifname):
-            bridge_path = os.path.join('/sys/class/net', ifname, 'brif')
+    def _get_bridge_iface_list(self):
+        if self._iface_is_bridge():
+            bridge_path = os.path.join('/sys/class/net', self.name, 'brif')
             return os.listdir(bridge_path)
 
         return []
 
-    def _get_bridge_options(self, ifname):
+    def _get_bridge_options(self):
         invalid_attrs = ['flush', 'bridge']  # needs root access, not useful
 
         options = {}
-        if self._iface_is_bridge(ifname):
-            bridge_path = os.path.join('/sys/class/net', ifname, 'bridge')
-        elif self._iface_is_bridge_port(ifname):
-            bridge_path = os.path.join('/sys/class/net', ifname, 'brport')
+        if self._iface_is_bridge():
+            bridge_path = os.path.join('/sys/class/net', self.name, 'bridge')
+        elif self._iface_is_bridge_port():
+            bridge_path = os.path.join('/sys/class/net', self.name, 'brport')
         else:
             return options
 
@@ -382,11 +267,11 @@ class Network():
                                  if attr not in invalid_attrs]:
             bridge_attr_file = os.path.join(bridge_path, bridge_attr_name)
             with open(bridge_attr_file) as bridge_attr:
-                options.update({bridge_attr_name: bridge_attr.read().strip()})
+                options[bridge_attr_name] = bridge_attr.read().strip()
 
         return options
 
-    def _get_bridging(self, ifname):
+    def _get_bridging(self):
         ''' return bridge structure for iface
            'bridge': {
               'is_bridge': [True|False],
@@ -397,205 +282,167 @@ class Network():
               },
             }
         '''
-        is_bridge = self._iface_is_bridge(ifname)
-        is_port = self._iface_is_bridge_port(ifname)
-        interfaces = self._get_bridge_iface_list(ifname)
-        options = self._get_bridge_options(ifname)
+        is_bridge = self._iface_is_bridge()
+        is_port = self._iface_is_bridge_port()
+        interfaces = self._get_bridge_iface_list()
+        options = self._get_bridge_options()
         bridge = {
             'is_bridge': is_bridge,
             'is_port': is_port,
             'interfaces': interfaces,
             'options': options,
         }
-        log.debug('bridge info on {}: {}'.format(ifname, bridge))
         return bridge
 
-    def _get_dhcp_leases(self):
-        if not self._dhcp_leases:
-            lease_d = get_dhclient_d()
-            if lease_d:
-                lease_files = [file for file in os.listdir(lease_d)
-                               if file.endswith('.leases') or
-                               file.endswith('.lease')]
 
-            for lf in [os.path.join(lease_d, f) for f in lease_files]:
-                with open(lf, 'r') as lease_f:
-                    lease_data = lease_f.read()
-                    self._dhcp_leases.extend(
-                        parse_dhclient_leases_file(lease_data))
+def udev_get_attributes(device):
+    r = {}
+    for key in device.attributes:
+        val = device.attributes.get(key)
+        if isinstance(val, bytes):
+            val = val.decode('utf-8', 'replace')
+        r[key] = val
+    return r
 
-            netif_leases_d = '/run/systemd/netif/leases/'
-            netif = [file for file in os.listdir(netif_leases_d)]
-            for ifindex in netif:
-                if_file = os.path.join(netif_leases_d, ifindex)
-                netif_lease = None
-                with open(if_file, 'r') as lease_f:
-                    netif_lease = parse_networkd_lease_file(lease_f.read())
-                if netif_lease:
-                    netif_lease["interface"] = socket.if_indextoname(int(ifindex))
-                    self._dhcp_leases.append(netif_lease)
 
-            # Use network-manager snap lease location
-            network_manager_leases_d = '/run/NetworkManager/dhcp/'
-            if os.path.exists(network_manager_leases_d):
-                leases = [file for file in os.listdir(network_manager_leases_d)]
-                for index in leases:
-                    lease_file = os.path.join(network_manager_leases_d, index)
-                    nm_lease = None
-                    with open(lease_file, 'r') as lease_f:
-                        # network-manager lease files use the same format as
-                        # neworkd
-                        nm_lease = parse_networkd_lease_file(lease_f.read())
-                    if nm_lease:
-                        nm_lease["interface"] = socket.if_indextoname(int(index))
-                        self._dhcp_leases.append(nm_lease)
+class UdevObserver:
 
-        return self._dhcp_leases
+    def __init__(self):
+        self.links = {}
+        self.context = pyudev.Context()
 
-    def _get_etc_network_interfaces(self):
-        if not self._etc_network_interfaces:
-            eni = '/etc/network/interfaces'
-            try:
-                with open(eni, 'r') as fp:
-                    contents = fp.read().strip()
-            except FileNotFoundError:
-                return self._etc_network_interfaces
-            parse_etc_network_interfaces(self._etc_network_interfaces,
-                                         contents,
-                                         os.path.dirname(eni))
+    def start(self):
+        self.rtlistener = _rtnetlink.listener(self)
+        self.rtlistener.start()
 
-        return self._etc_network_interfaces
+        self.wlan_listener = _nl80211.listener(self)
+        self.wlan_listener.start()
 
-    def _get_dhcp_lease(self, iface):
-        ''' Using iface name look on system for indicators that iface might
-            have been configured with DHCP
-
-            Heuristics:
-                [ -e /var/lib/dhcp/dhclient.<iface>.leases ]
-                if grep -q <iface> /var/lib/dhcp/dhclient.leases; then
-                   if iface_lease is not expired
-                pgrep dhclient
-
-            return dhcp-server-identifier if iface used dhcp, else None
-        '''
-        # TODO find the most recent lease
-        for lease in self._get_dhcp_leases():
-            if 'interface' in lease and lease['interface'] == iface:
-                return lease
-
-        return None
-
-    def _get_dhcp(self, ifname):
-        ''' return dhcp structure for iface
-           'dhcp': {
-              'active': [True|False],
-              'lease': lease_record
+        self._fdmap =  {
+            self.rtlistener.fileno(): self.rtlistener.data_ready,
+            self.wlan_listener.fileno(): self.wlan_listener.data_ready,
             }
-        '''
-        active = False
-        lease = self._get_dhcp_lease(ifname)
-        if lease:
-            active = True
-        dhcp = {
-            'active': active,
-            'lease': lease,
-        }
-        log.debug('dhcp info on {}: {}'.format(ifname, dhcp))
-        return dhcp
+        return list(self._fdmap)
 
-    def _get_ip_source(self, ifname, ip):
-        '''Determine the interface's ip source
+    def data_ready(self, fd):
+        self._fdmap[fd]()
 
-           'ip': {
-               'address': ,
-               ...
-               'source':  {
-                  'method': [dhcp|static],
-                  'provider': <dhcp server ip>|<local config>
-                  'config': <dhcp_dict> | <eni_config>
-               }
-           }
+    def link_change(self, action, data):
+        log.debug('link_change %s %s', action, data)
+        for k, v in data.items():
+            if isinstance(data, bytes):
+                data[k] = data.decode('utf-8', 'replace')
+        ifindex = data['ifindex']
+        if action == 'DEL':
+            if ifindex in self.links:
+                del self.links[ifindex]
+                self.del_link(ifindex)
+            return
+        if action == 'CHANGE':
+            if ifindex in self.links:
+                dev = self.links[ifindex]
+                # Trigger a scan when a wlan device goes up
+                # Not sure if this is required as devices seem to scan as soon
+                # as they go up? (in which case this fails with EBUSY, so it's
+                # just spam in the logs).
+                if dev.type == 'wlan' and (not (dev.flags & IFF_UP)) and (data['flags'] & IFF_UP):
+                    try:
+                        self.wlan_listener.trigger_scan(ifindex)
+                    except RuntimeError:
+                        log.exception('on-up trigger_scan failed')
+                dev.update_from_netlink_data(data)
+            self.update_link(ifindex)
+            return
+        udev_devices = list(self.context.list_devices(IFINDEX=str(ifindex)))
+        if len(udev_devices) == 0:
+            # Has disappeared already?
+            return
+        udev_device = udev_devices[0]
+        udev_data = dict(udev_device)
+        udev_data['attrs'] = udev_get_attributes(udev_device)
+        link = NetworkInfo(data, udev_data)
+        self.links[data['ifindex']] = link
+        self.new_link(ifindex, link)
 
-           probert inspects the following sources:
-              /var/lib/dhcp/*.leases
-              /etc/network/interfaces
-           As others are added probert will include
-           config details from those locations if the
-           interface and ip match.
-        '''
-        source = {}
-        if ip:
-            dhcp = self._get_dhcp(ifname)
-            eni = self._get_etc_network_interfaces()
-            manual_source = False
-            if dhcp['active']:
-                if ('fixed-address' in dhcp['lease'] \
-                        and ip['addr'] == dhcp['lease']['fixed-address'] ) \
-                        or ('address' in dhcp['lease'] \
-                            and ip['addr'] == dhcp['lease']['address']):
-                    server_addr = "unknown"
-                    if 'options' in dhcp['lease']:
-                        server_addr = dhcp['lease']['options']['dhcp-server-identifier']
-                    elif 'server_address' in dhcp['lease']:
-                        server_addr = dhcp['lease']['server_address']
-                    source.update({
-                        'method': 'dhcp',
-                        'provider':
-                        server_addr,
-                        'config': dhcp})
-                else:
-                    manual_source = True
-            elif ifname in eni:
-                ifcfg = eni[ifname]
-                source.update({
-                    'method': ifcfg.get('method', 'manual'),
-                    'provider': 'local config',
-                    'config': ifcfg})
+    def addr_change(self, action, data):
+        log.debug('addr_change %s %s', action, data)
+        link = self.links.get(data['ifindex'])
+        if link is None:
+            return
+        ip = data['local'].decode('latin-1')
+        family_ips = link.ip.setdefault(data['family'], [])
+        if action == 'DEL':
+            if ip in family_ips:
+                family_ips.remove(ip)
+            link.ip_sources.pop(ip, None)
+            return
+        elif action == 'NEW' and ip not in family_ips:
+            family_ips.append(ip)
+        if data.get('flags', 0) & IFA_F_PERMANENT:
+            source = 'static'
+        else:
+            source = 'dhcp'
+        link.ip_sources[ip] = source
+
+    def route_change(self, action, data):
+        log.debug('route_change %s %s', action, data)
+
+    def wlan_event(self, arg):
+        log.debug('wlan_event %s', arg)
+        ifindex = arg['ifindex']
+        if ifindex < 0 or ifindex not in self.links:
+            return
+        link = self.links[ifindex]
+        if arg['cmd'] == 'TRIGGER_SCAN':
+            link.scan_state = 'scanning'
+        if arg['cmd'] == 'NEW_SCAN_RESULTS' and 'ssids' in arg:
+            ssids = set()
+            for (ssid, status) in arg['ssids']:
+                ssids.add(ssid)
+                if status != "no status":
+                    link.ssid = ssid
+            link.ssids = sorted(ssids)
+            link.scan_state = None
+        if arg['cmd'] == 'NEW_INTERFACE' or arg['cmd'] == 'ASSOCIATE':
+            if len(arg.get('ssids', [])) > 0:
+                link.ssid = arg['ssids'][0][0]
+        if arg['cmd'] == 'NEW_INTERFACE':
+            if link.flags & IFF_UP:
+                try:
+                    self.wlan_listener.trigger_scan(ifindex)
+                except RuntimeError: # Can't trigger a scan as non-root, that's OK.
+                    log.exception('initial trigger_scan failed')
             else:
-               manual_source = True
+                try:
+                    self.rtlistener.set_link_flags(ifindex, IFF_UP)
+                except RuntimeError:
+                    log.exception('set_link_flags failed')
+        if arg['cmd'] == 'DISCONNECT':
+            link.ssid = None
 
-            if manual_source:
-                source.update({
-                    'method': 'manual',
-                    'provider': None,
-                    'config': None})
+    def new_link(self, ifindex, link):
+        pass
 
-        log.debug('ip source info on {}: {}'.format(ifname, source))
-        return source
+    def update_link(self, ifindex):
+        pass
 
-    def probe(self):
-        results = {}
-        self._if_flags.clear()
-        for device in self.context.list_devices(subsystem='net'):
-            iface = device['INTERFACE']
-            results[iface] = {
-                'type': self._get_iface_type(iface),
-                'bond': self._get_bonding(iface),
-                'bridge': self._get_bridging(iface),
-                'flags': self._iface_flags(iface),
-            }
+    def del_link(self, ifindex):
+        pass
 
-            if results[iface]['type'] == 'wlan':
-                results[iface]['essid'] = self._get_essid(iface)
 
-            hardware = dict(device)
-            hardware.update(
-                {'attrs': dict([(key, udev_get_attribute(device, key))
-                                for key in device.attributes.available_attributes])})
-            results = dict_merge(results, {iface: {'hardware': hardware}})
+if __name__ == '__main__':
+    import pprint
+    import select
+    c = UdevObserver()
+    fds = c.start()
 
-            ip = self._get_ips(iface)
-            log.debug('IP res: {}'.format(ip))
-            sources = {}
-            sources[netifaces.AF_INET] = []
-            sources[netifaces.AF_INET6] = []
-            for i in range(len(ip[netifaces.AF_INET])):
-                sources[netifaces.AF_INET].append(self._get_ip_source(iface, ip[netifaces.AF_INET][i]))
-            for i in range(len(ip[netifaces.AF_INET6])):
-                sources[netifaces.AF_INET6].append(self._get_ip_source(iface, ip[netifaces.AF_INET6][i]))
-            ip.update({'sources': sources})
-            results = dict_merge(results, {iface: {'ip': ip}})
+    pprint.pprint(c.links)
 
-        self.results = results
-        log.debug('probe results: {}'.format(results))
-        return results
+    poll_ob = select.epoll()
+    for fd in fds:
+        poll_ob.register(fd, select.EPOLLIN)
+    while True:
+        events = poll_ob.poll()
+        for (fd, e) in events:
+            c.data_ready(fd)
+        pprint.pprint(c.links)
