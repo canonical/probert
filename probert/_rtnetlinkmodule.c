@@ -29,6 +29,7 @@ static char *act2str(int act) {
 struct Listener {
 	PyObject_HEAD
 	struct nl_cache_mngr *mngr;
+	struct nl_cache *link_cache;
 	PyObject *observer;
 	PyObject *exc_typ, *exc_val, *exc_tb;
 };
@@ -257,19 +258,20 @@ maybe_restore(struct Listener* listener) {
 static PyObject*
 listener_start(PyObject *self, PyObject* args)
 {
-	struct nl_cache *link_cache, *addr_cache, *route_cache;
+	struct nl_cache *addr_cache, *route_cache;
 	struct Listener* listener = (struct Listener*)self;
 	int r;
 
-	r = rtnl_link_alloc_cache(NULL, AF_UNSPEC, &link_cache);
+	r = rtnl_link_alloc_cache(NULL, AF_UNSPEC, &listener->link_cache);
 	if (r < 0) {
 		PyErr_Format(PyExc_MemoryError, "rtnl_link_alloc_cache failed %d\n", r);
 		return NULL;
 	}
 
-	r = nl_cache_mngr_add_cache(listener->mngr, link_cache, _cb_link, listener);
+	r = nl_cache_mngr_add_cache(listener->mngr, listener->link_cache, _cb_link, listener);
 	if (r < 0) {
-		nl_cache_free(link_cache);
+		nl_cache_free(listener->link_cache);
+		listener->link_cache = NULL;
 		PyErr_Format(PyExc_RuntimeError, "nl_cache_mngr_add_cache failed %d\n", r);
 		return NULL;
 	}
@@ -300,7 +302,7 @@ listener_start(PyObject *self, PyObject* args)
 		return NULL;
 	}
 
-	nl_cache_foreach(link_cache, _e_link, self);
+	nl_cache_foreach(listener->link_cache, _e_link, self);
 	nl_cache_foreach(addr_cache, _e_addr, self);
 	nl_cache_foreach(route_cache, _e_route, self);
 
@@ -322,10 +324,52 @@ listener_data_ready(PyObject *self, PyObject* args)
 	return maybe_restore(listener);
 }
 
+static PyObject*
+listener_set_link_flags(PyObject *self, PyObject* args, PyObject* kw)
+{
+	int ifindex, flags;
+
+	char *kwlist[] = {"ifindex", "flags", 0};
+
+	if (!PyArg_ParseTupleAndKeywords(args, kw, "ii:set_link_flags", kwlist, &ifindex, &flags))
+		return NULL;
+	struct Listener* listener = (struct Listener*)self;
+	struct rtnl_link *link = rtnl_link_get(listener->link_cache, ifindex);
+	if (link == NULL) {
+		PyErr_SetString(PyExc_RuntimeError, "link not found");
+		return NULL;
+	}
+	struct nl_sock* sk = nl_socket_alloc();
+	if (sk == NULL) {
+		rtnl_link_put(link);
+		PyErr_SetString(PyExc_MemoryError, "nl_socket_alloc() failed");
+		return NULL;
+	}
+	int r = nl_connect(sk, NETLINK_ROUTE);
+	if (r < 0) {
+		rtnl_link_put(link);
+		nl_socket_free(sk);
+		PyErr_Format(PyExc_RuntimeError, "nl_connect failed %d", r);
+		return NULL;
+	}
+	rtnl_link_set_flags(link, flags);
+	r = rtnl_link_change(sk, link, link, 0);
+	rtnl_link_put(link);
+	nl_socket_free(sk);
+	if (r < 0) {
+		PyErr_Format(PyExc_RuntimeError, "rtnl_link_change failed %d", r);
+		return NULL;
+	}
+	Py_RETURN_NONE;
+}
+
+
+
 static PyMethodDef ListenerMethods[] = {
 	{"start", listener_start, METH_NOARGS, "XXX."},
 	{"fileno", listener_fileno, METH_NOARGS, "XXX."},
 	{"data_ready", listener_data_ready, METH_NOARGS, "XXX."},
+	{"set_link_flags", (PyCFunction)listener_set_link_flags, METH_VARARGS, "XXX."},
 	{},
 };
 

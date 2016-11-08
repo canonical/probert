@@ -327,6 +327,9 @@ class UdevObserver:
 
     def link_change(self, action, data):
         log.debug('link_change %s %s', action, data)
+        for k, v in data.items():
+            if isinstance(data, bytes):
+                data[k] = data.decode('utf-8', 'replace')
         ifindex = data['ifindex']
         if action == 'DEL':
             if ifindex in self.links:
@@ -336,12 +339,18 @@ class UdevObserver:
         if action == 'CHANGE':
             if ifindex in self.links:
                 dev = self.links[ifindex]
+                # Trigger a scan when a wlan device goes up
+                # Not sure if this is required as devices seem to scan as soon
+                # as they go up? (in which case this fails with EBUSY, so it's
+                # just spam in the logs).
+                if dev.type == 'wlan' and (not (dev.flags & IFF_UP)) and (data['flags'] & IFF_UP):
+                    try:
+                        self.wlan_listener.trigger_scan(ifindex)
+                    except RuntimeError:
+                        log.exception('on-up trigger_scan failed')
                 dev.update_from_netlink_data(data)
             self.update_link(ifindex)
             return
-        for k, v in data.items():
-            if isinstance(data, bytes):
-                data[k] = data.decode('utf-8', 'replace')
         udev_devices = list(self.context.list_devices(IFINDEX=str(ifindex)))
         if len(udev_devices) == 0:
             # Has disappeared already?
@@ -396,10 +405,16 @@ class UdevObserver:
             if len(arg.get('ssids', [])) > 0:
                 link.ssid = arg['ssids'][0][0]
         if arg['cmd'] == 'NEW_INTERFACE':
-            try:
-                self.wlan_listener.trigger_scan(ifindex)
-            except RuntimeError: # Can't trigger a scan as non-root, that's OK.
-                pass
+            if link.flags & IFF_UP:
+                try:
+                    self.wlan_listener.trigger_scan(ifindex)
+                except RuntimeError: # Can't trigger a scan as non-root, that's OK.
+                    log.exception('initial trigger_scan failed')
+            else:
+                try:
+                    self.rtlistener.set_link_flags(ifindex, IFF_UP)
+                except RuntimeError:
+                    log.exception('set_link_flags failed')
         if arg['cmd'] == 'DISCONNECT':
             link.ssid = None
 

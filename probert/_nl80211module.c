@@ -108,7 +108,7 @@ static int family_handler(struct nl_msg *msg, void *arg)
 }
 
 static int send_and_recv(
-	struct nl_sock *genl_sock,
+	struct nl_sock *sock,
 	struct nl_msg *msg,
 	int (*valid_handler)(struct nl_msg *, void *),
 	void *valid_data)
@@ -120,7 +120,7 @@ static int send_and_recv(
 	if (!cb)
 		goto out;
 
-	err = nl_send_auto(genl_sock, msg);
+	err = nl_send_auto(sock, msg);
 	if (err < 0)
 		goto out;
 
@@ -135,7 +135,7 @@ static int send_and_recv(
 	}
 
 	while (err > 0) {
-		int res = nl_recvmsgs(genl_sock, cb);
+		int res = nl_recvmsgs(sock, cb);
 		if (res < 0 && err > 0) {
 			err = res;
 		}
