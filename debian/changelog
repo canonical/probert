@@ -1,4 +1,4 @@
-probert (0.0.12) UNRELEASED; urgency=medium
+probert (0.0.12) zesty; urgency=medium
 
   * Replace network probing with netlink-based version.
 
