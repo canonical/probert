@@ -4,6 +4,8 @@ import itertools
 import os
 import re
 
+import pyudev
+
 NET_CONFIG_OPTIONS = [
     "address", "netmask", "broadcast", "network", "metric", "gateway",
     "pointtopoint", "media", "mtu", "hostname", "leasehours", "leasetime",
@@ -39,12 +41,24 @@ def dict_merge(onto, source):
     return target
 
 
-# pyudev device
-def udev_get_attribute(device, key):
-    val = device.attributes.get(key)
-    if isinstance(val, bytes):
-        return val.decode('utf-8', 'replace')
-    return val
+if pyudev.__version_info__ < (0, 18):
+    def udev_get_attributes(device):
+        r = {}
+        for key in device.attributes:
+            val = device.attributes.get(key)
+            if isinstance(val, bytes):
+                val = val.decode('utf-8', 'replace')
+            r[key] = val
+        return r
+else:
+    def udev_get_attributes(device):
+        r = {}
+        for key in device.available_attributes:
+            val = device.attributes.get(key)
+            if isinstance(val, bytes):
+                val = val.decode('utf-8', 'replace')
+            r[key] = val
+        return r
 
 
 # split lists into N lists by predicate

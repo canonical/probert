@@ -34,14 +34,3 @@ class ProbertTestUtils(testtools.TestCase):
         }
         test_result = utils.dict_merge(r1, r2)
         self.assertEqual(sorted(combined), sorted(test_result))
-
-
-    def test_utils_udev_get_attribute(self):
-        class DummyDev:
-            def __init__(self, key, value):
-                self.attributes = {key: value}
-
-        key = 'size'
-        value = '10000'
-        device = DummyDev(key, str.encode(value, 'utf-8'))
-        self.assertEqual(value, utils.udev_get_attribute(device, key))
