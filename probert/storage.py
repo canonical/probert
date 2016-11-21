@@ -151,8 +151,9 @@ class Storage():
 
         logical_size = os.path.join(logsize_base, 'queue',
                                     'logical_block_size')
-        with open(logical_size) as s:
-            size *= int(s.read().strip())
+        if os.path.exists(logical_size):
+            with open(logical_size) as s:
+                size *= int(s.read().strip())
 
         return size
 
