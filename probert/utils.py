@@ -53,7 +53,7 @@ if pyudev.__version_info__ < (0, 18):
 else:
     def udev_get_attributes(device):
         r = {}
-        for key in device.available_attributes:
+        for key in device.attributes.available_attributes:
             val = device.attributes.get(key)
             if isinstance(val, bytes):
                 val = val.decode('utf-8', 'replace')
