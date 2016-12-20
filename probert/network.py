@@ -19,6 +19,7 @@ import logging
 import pyudev
 
 from probert import _nl80211, _rtnetlink
+from probert.utils import udev_get_attributes
 
 log = logging.getLogger('probert.network')
 
@@ -142,8 +143,6 @@ class NetworkInfo:
         # wired connection.
         self.is_connected = (not (self.flags & IFF_UP)) or (self.flags & IFF_RUNNING)
 
-    def __repr__(self):
-        return '<%s: %s>'%(self.__class__.__name__, self.ssid)
 
     def _get_hwvalues(self, keys, missing='Unknown value'):
         for key in keys:
@@ -295,14 +294,34 @@ class NetworkInfo:
         return bridge
 
 
-def udev_get_attributes(device):
-    r = {}
-    for key in device.attributes:
-        val = device.attributes.get(key)
-        if isinstance(val, bytes):
-            val = val.decode('utf-8', 'replace')
-        r[key] = val
-    return r
+class Network:
+
+    def __init__(self):
+        pass
+
+    def probe(self):
+        results = {}
+        observer = UdevObserver()
+        observer.start()
+        for l in observer.links.values():
+            results[l.name] = {
+                'udev_data' : l.udev_data,
+                'hwaddr' : l.hwaddr,
+                'type' : l.type,
+                'ip' : l.ip,
+                'ip_sources' : l.ip_sources,
+            }
+            if l.type == 'wlan':
+                results[l.name]['ssid'] = l.ssid.decode("utf-8")
+                results[l.name]['ssids'] = l.ssids
+                results[l.name]['scan_state'] = l.scan_state
+            if l.type == 'bridge':
+                results[l.name]['bridge'] = l.bridge
+            if l.type == 'bond':
+                results[l.name]['bond'] = l.bond
+
+        print(results)
+        return results
 
 
 class UdevObserver:
