@@ -334,13 +334,19 @@ class UdevObserver:
         self.rtlistener = _rtnetlink.listener(self)
         self.rtlistener.start()
 
-        self.wlan_listener = _nl80211.listener(self)
-        self.wlan_listener.start()
-
         self._fdmap =  {
             self.rtlistener.fileno(): self.rtlistener.data_ready,
-            self.wlan_listener.fileno(): self.wlan_listener.data_ready,
             }
+
+        try:
+            self.wlan_listener = _nl80211.listener(self)
+            self.wlan_listener.start()
+            self._fdmap.update({
+                self.wlan_listener.fileno(): self.wlan_listener.data_ready,
+                })
+        except RuntimeError:
+            log.debug('could not start wlan_listener')
+
         return list(self._fdmap)
 
     def data_ready(self, fd):
