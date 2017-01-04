@@ -1,3 +1,10 @@
+probert (0.0.13) zesty; urgency=medium
+
+  * Work with both zesty and xenial versions of pyudev.
+  * Don't crash if we can't start the wlan listener. (LP: #1652262)
+
+ -- Michael Hudson-Doyle <michael.hudson@ubuntu.com>  Thu, 05 Jan 2017 09:18:25 +1300
+
 probert (0.0.12) zesty; urgency=medium
 
   * Replace network probing with netlink-based version.
