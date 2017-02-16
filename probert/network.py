@@ -124,6 +124,7 @@ class NetworkInfo:
         self.type = _compute_type(self.name)
         self.ip = {}
         self.ip_sources = {}
+        self.ip_scopes = {}
         self.bond = self._get_bonding()
         self.bridge = self._get_bridging()
 
@@ -324,6 +325,15 @@ class Network:
         return results
 
 
+_scope_str = {
+    0: 'global',
+	200: "site",
+	253: "link",
+	254: "host",
+	255: "nowhere",
+}
+
+
 class UdevObserver:
 
     def __init__(self):
@@ -400,6 +410,7 @@ class UdevObserver:
             if ip in family_ips:
                 family_ips.remove(ip)
             link.ip_sources.pop(ip, None)
+            link.ip_scopes.pop(ip, None)
             return
         elif action == 'NEW' and ip not in family_ips:
             family_ips.append(ip)
@@ -408,6 +419,7 @@ class UdevObserver:
         else:
             source = 'dhcp'
         link.ip_sources[ip] = source
+        link.ip_scopes[ip] = _scope_str.get(data['scope'], str(data['scope']))
 
     def route_change(self, action, data):
         log.debug('route_change %s %s', action, data)
