@@ -13,8 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
+import ipaddress
 import logging
+import os
 
 import pyudev
 
@@ -112,6 +113,27 @@ def _compute_type(iface):
     return DEV_TYPE
 
 
+_scope_str = {
+    0: 'global',
+	200: "site",
+	253: "link",
+	254: "host",
+	255: "nowhere",
+}
+
+
+class Address:
+
+    def __init__(self, netlink_data):
+        self.address = ipaddress.ip_interface(netlink_data['local'].decode('latin-1'))
+        self.ip = self.address.ip
+        self.family = netlink_data['family']
+        if netlink_data.get('flags', 0) & IFA_F_PERMANENT:
+            self.source = 'static'
+        else:
+            self.source = 'dhcp'
+        scope = netlink_data['scope']
+        self.scope = str(_scope_str.get(scope))
 
 
 class NetworkInfo:
@@ -122,9 +144,7 @@ class NetworkInfo:
         self.hwaddr = self.udev_data['attrs']['address']
 
         self.type = _compute_type(self.name)
-        self.ip = {}
-        self.ip_sources = {}
-        self.ip_scopes = {}
+        self.addresses = {}
         self.bond = self._get_bonding()
         self.bridge = self._get_bridging()
 
@@ -325,15 +345,6 @@ class Network:
         return results
 
 
-_scope_str = {
-    0: 'global',
-	200: "site",
-	253: "link",
-	254: "host",
-	255: "nowhere",
-}
-
-
 class UdevObserver:
 
     def __init__(self):
@@ -405,21 +416,10 @@ class UdevObserver:
         if link is None:
             return
         ip = data['local'].decode('latin-1')
-        family_ips = link.ip.setdefault(data['family'], [])
         if action == 'DEL':
-            if ip in family_ips:
-                family_ips.remove(ip)
-            link.ip_sources.pop(ip, None)
-            link.ip_scopes.pop(ip, None)
+            link.addresses.pop(ip, None)
             return
-        elif action == 'NEW' and ip not in family_ips:
-            family_ips.append(ip)
-        if data.get('flags', 0) & IFA_F_PERMANENT:
-            source = 'static'
-        else:
-            source = 'dhcp'
-        link.ip_sources[ip] = source
-        link.ip_scopes[ip] = _scope_str.get(data['scope'], str(data['scope']))
+        link.addresses[ip] = Address(data)
 
     def route_change(self, action, data):
         log.debug('route_change %s %s', action, data)
