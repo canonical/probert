@@ -89,10 +89,11 @@ static void observe_addr_change(
 	}
 	PyObject *data;
 	data = Py_BuildValue(
-		"{si sI si}",
+		"{si sI si si}",
 		"ifindex", rtnl_addr_get_ifindex(addr),
 		"flags", rtnl_addr_get_flags(addr),
-		"family", rtnl_addr_get_family(addr));
+		"family", rtnl_addr_get_family(addr),
+		"scope", rtnl_addr_get_scope(addr));
 	if (data == NULL) {
 		goto exit;
 	}
