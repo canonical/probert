@@ -1,3 +1,10 @@
+probert (0.0.14) zesty; urgency=medium
+
+  * Store all information about an address in an object.
+  * Record the scope of an address.
+
+ -- Michael Hudson-Doyle <michael.hudson@ubuntu.com>  Fri, 17 Feb 2017 15:15:17 +1300
+
 probert (0.0.13) zesty; urgency=medium
 
   * Work with both zesty and xenial versions of pyudev.
