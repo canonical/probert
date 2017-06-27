@@ -329,8 +329,8 @@ class Network:
                 'udev_data' : l.udev_data,
                 'hwaddr' : l.hwaddr,
                 'type' : l.type,
-                'ip' : l.ip,
-                'ip_sources' : l.ip_sources,
+                'ip' : list(l.addresses.keys()),
+                'ip_sources' :  list(set([a.source for a in l.addresses.values()])),
             }
             if l.type == 'wlan':
                 results[l.name]['ssid'] = l.ssid.decode("utf-8")
@@ -341,7 +341,6 @@ class Network:
             if l.type == 'bond':
                 results[l.name]['bond'] = l.bond
 
-        print(results)
         return results
 
 
