@@ -49,7 +49,7 @@ def _compute_type(iface):
 
     sysfs_path = os.path.join('/sys/class/net', iface)
     if not os.path.exists(sysfs_path):
-        print('No sysfs path to {}'.format(sysfs_path))
+        log.debug('No sysfs path to {}'.format(sysfs_path))
         return None
 
     DEV_TYPE = '???'
@@ -397,6 +397,11 @@ class UdevObserver:
                     except RuntimeError:
                         log.exception('on-up trigger_scan failed')
                 dev.update_from_netlink_data(data)
+                # If a device appears and is immediately renamed, the
+                # initial _compute_type can fail to find the sysfs
+                # directory. Have another go now.
+                if dev.type is None:
+                    dev.type = _compute_type(dev.name)
             self.update_link(ifindex)
             return
         udev_devices = list(self.context.list_devices(IFINDEX=str(ifindex)))
