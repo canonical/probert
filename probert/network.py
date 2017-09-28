@@ -16,6 +16,7 @@
 import ipaddress
 import logging
 import os
+import socket
 
 import pyudev
 
@@ -156,9 +157,12 @@ class NetworkInfo:
 
     def update_from_netlink_data(self, netlink_data):
         self.netlink_data = netlink_data
-        self.name = self.netlink_data.get('name', '').decode('utf-8', 'replace')
         self.flags = self.netlink_data['flags']
         self.ifindex = self.netlink_data['ifindex']
+        try:
+            self.name = socket.if_indextoname(self.ifindex)
+        except OSError:
+            self.name = "???"
         # This is the logic ip from iproute2 uses to determine whether
         # to show NO-CARRIER or not. It only really makes sense for a
         # wired connection.
