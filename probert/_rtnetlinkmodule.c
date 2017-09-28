@@ -364,13 +364,51 @@ listener_set_link_flags(PyObject *self, PyObject* args, PyObject* kw)
 	Py_RETURN_NONE;
 }
 
+static PyObject*
+listener_unset_link_flags(PyObject *self, PyObject* args, PyObject* kw)
+{
+	int ifindex, flags;
 
+	char *kwlist[] = {"ifindex", "flags", 0};
+
+	if (!PyArg_ParseTupleAndKeywords(args, kw, "ii:unset_link_flags", kwlist, &ifindex, &flags))
+		return NULL;
+	struct Listener* listener = (struct Listener*)self;
+	struct rtnl_link *link = rtnl_link_get(listener->link_cache, ifindex);
+	if (link == NULL) {
+		PyErr_SetString(PyExc_RuntimeError, "link not found");
+		return NULL;
+	}
+	struct nl_sock* sk = nl_socket_alloc();
+	if (sk == NULL) {
+		rtnl_link_put(link);
+		PyErr_SetString(PyExc_MemoryError, "nl_socket_alloc() failed");
+		return NULL;
+	}
+	int r = nl_connect(sk, NETLINK_ROUTE);
+	if (r < 0) {
+		rtnl_link_put(link);
+		nl_socket_free(sk);
+		PyErr_Format(PyExc_RuntimeError, "nl_connect failed %d", r);
+		return NULL;
+	}
+	rtnl_link_unset_flags(link, flags);
+	r = rtnl_link_change(sk, link, link, 0);
+	rtnl_link_put(link);
+	nl_socket_free(sk);
+	if (r < 0) {
+		PyErr_Format(PyExc_RuntimeError, "rtnl_link_change failed %d", r);
+		return NULL;
+	}
+	Py_RETURN_NONE;
+}
 
 static PyMethodDef ListenerMethods[] = {
 	{"start", listener_start, METH_NOARGS, "XXX."},
 	{"fileno", listener_fileno, METH_NOARGS, "XXX."},
 	{"data_ready", listener_data_ready, METH_NOARGS, "XXX."},
 	{"set_link_flags", (PyCFunction)listener_set_link_flags, METH_VARARGS, "XXX."},
+	{"unset_link_flags", (PyCFunction)listener_unset_link_flags, METH_VARARGS, "XXX."},
 	{},
 };
 
