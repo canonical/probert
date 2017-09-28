@@ -407,8 +407,8 @@ static PyMethodDef ListenerMethods[] = {
 	{"start", listener_start, METH_NOARGS, "XXX."},
 	{"fileno", listener_fileno, METH_NOARGS, "XXX."},
 	{"data_ready", listener_data_ready, METH_NOARGS, "XXX."},
-	{"set_link_flags", (PyCFunction)listener_set_link_flags, METH_VARARGS, "XXX."},
-	{"unset_link_flags", (PyCFunction)listener_unset_link_flags, METH_VARARGS, "XXX."},
+	{"set_link_flags", (PyCFunction)listener_set_link_flags, METH_VARARGS|METH_KEYWORDS, "XXX."},
+	{"unset_link_flags", (PyCFunction)listener_unset_link_flags, METH_VARARGS|METH_KEYWORDS, "XXX."},
 	{},
 };
 
