@@ -28,16 +28,10 @@ def parse_options(argv):
         description='probert - Hardware prober for all',
         prog='probert')
     parser.add_argument('--all', action='store_true',
-                        default=True,
-                        dest='probe_all',
                         help='Probe all hardware types.')
     parser.add_argument('--storage', action='store_true',
-                        default=False,
-                        dest='probe_storage',
                         help='Probe storage hardware.')
     parser.add_argument('--network', action='store_true',
-                        default=False,
-                        dest='probe_network',
                         help='Probe network hardware.')
     return parser.parse_args(argv)
 
@@ -49,11 +43,13 @@ def main():
     logger.info("Starting probert v{}".format(VERSION))
     logger.info("Arguments passed: {}".format(sys.argv))
 
-    if opts.probe_all and (opts.probe_storage or opts.probe_network):
-        opts.probe_all = False
-
-    p = prober.Prober(opts)
-    p.probe()
+    p = prober.Prober()
+    if opts.all or (not opts.storage and not opts.network):
+        p.probe_all()
+    if opts.network:
+        p.probe_network()
+    if opts.storage:
+        p.probe_storage()
     results = p.get_results()
     print(json.dumps(results, indent=4, sort_keys=False))
 

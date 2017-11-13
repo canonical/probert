@@ -321,20 +321,25 @@ class NetworkInfo:
 
 class Network:
 
-    def __init__(self):
-        pass
-
     def probe(self):
         results = {}
         observer = UdevObserver()
         observer.start()
         for l in observer.links.values():
+            addresses = []
+            for a in l.addresses.values():
+                addresses.append({
+                    'ip': str(a.ip),
+                    'address': str(a.address),
+                    'family': a.family,
+                    'source': a.source,
+                    'scope': a.scope,
+                    })
             results[l.name] = {
                 'udev_data' : l.udev_data,
                 'hwaddr' : l.hwaddr,
                 'type' : l.type,
-                'ip' : l.ip,
-                'ip_sources' : l.ip_sources,
+                'addresses' : addresses,
             }
             if l.type == 'wlan':
                 results[l.name]['ssid'] = l.ssid.decode("utf-8")
