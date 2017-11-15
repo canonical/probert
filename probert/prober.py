@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from probert.storage import Storage
-from probert.network import Network
+from probert.network import NetworkProber
 
 
 class Prober():
@@ -29,7 +29,7 @@ class Prober():
         self._results['storage'] = Storage().probe()
 
     def probe_network(self):
-        self._results['network'] = Network().probe()
+        self._results['network'] = NetworkProber().probe()
 
     def get_results(self):
         return self._results
