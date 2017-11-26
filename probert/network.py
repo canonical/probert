@@ -583,6 +583,9 @@ class UdevObserver(NetworkObserver):
 
     def route_change(self, action, data):
         log.debug('route_change %s %s', action, data)
+        for k, v in data.items():
+            if isinstance(v, bytes):
+                data[k] = v.decode('utf-8', 'replace')
         self.receiver.route_change(action, data)
 
     def trigger_scan(self, ifindex):
@@ -633,14 +636,16 @@ class StoredDataObserver:
 
     def __init__(self, saved_data, receiver):
         self.saved_data = saved_data
-        for data in self.saved_data:
+        for data in self.saved_data['links']:
             jsonschema.validate(data, link_schema)
         self.receiver = receiver
 
     def start(self):
-        for data in self.saved_data:
+        for data in self.saved_data['links']:
             link = Link.from_saved_data(data)
             self.receiver.new_link(link.ifindex, link)
+        for data in self.saved_data['routes']:
+            self.receiver.route_change("NEW", data)
         return []
 
     def trigger_scan(self, ifindex):
@@ -653,18 +658,25 @@ class StoredDataObserver:
 class NetworkProber:
 
     def probe(self):
-        class LinkCollectingReceiver(TrivialEventReceiver):
+        class CollectingReceiver(TrivialEventReceiver):
             def __init__(self):
                 self.all_links = set()
+                self.route_data = []
             def new_link(self, ifindex, link):
                 self.all_links.add(link)
-        collector = LinkCollectingReceiver()
+            def route_change(self, action, data):
+                self.route_data.append(data)
+        collector = CollectingReceiver()
         observer = UdevObserver(collector)
         observer.start()
-        results = []
+        results = {
+            'links': [],
+            'routes': [],
+            }
         for link in collector.all_links:
-            results.append(link.serialize())
-
+            results['links'].append(link.serialize())
+        for route_data in collector.route_data:
+            results['routes'].append(route_data)
         return results
 
 
