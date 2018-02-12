@@ -42,52 +42,37 @@ class StorageInfo():
         self.type = self.raw['DEVTYPE']
         self.size = int(self.raw['attrs']['size'])
 
-    def _get_hwvalues(self, keys, missing='Unknown value'):
+    def _get_hwvalues(self, keys):
         for key in keys:
             try:
                 return self.raw[key]
             except KeyError:
-                log.debug('Failed to get key '
-                          '{} from interface {}'.format(key, self.name))
-                pass
+                log.debug('Failed to get key {} from interface {}'.format(key, self.name))
 
-        return missing
+        return None
 
     @property
     def vendor(self):
         ''' Some disks don't have ID_VENDOR_* instead the vendor
             is encoded in the model: SanDisk_A223JJ3J3 '''
-        keys = [
-            'ID_VENDOR_FROM_DATABASE',
-            'ID_VENDOR',
-            'ID_VENDOR_ID'
-        ]
-        v = self._get_hwvalues(keys=keys, missing='Unknown Vendor')
-        if v == 'Unknown Vendor':
-            v = self.model.split('_')[0]
+        v = self._get_hwvalues(['ID_VENDOR_FROM_DATABASE', 'ID_VENDOR', 'ID_VENDOR_ID'])
+        if v is None:
+            v = self.model
+            if v is not None:
+                return v.split('_')[0]
         return v
 
     @property
     def model(self):
-        keys = [
-            'ID_MODEL_FROM_DATABASE',
-            'ID_MODEL',
-            'ID_MODEL_ID'
-        ]
-        return self._get_hwvalues(keys=keys, missing='Unknown Model')
+        return self._get_hwvalues(['ID_MODEL_FROM_DATABASE', 'ID_MODEL', 'ID_MODEL_ID'])
 
     @property
     def serial(self):
-        keys = [
-            'ID_SERIAL',
-            'ID_SERIAL_SHORT'
-        ]
-        return self._get_hwvalues(keys=keys, missing='Unknown Serial')
+        return self._get_hwvalues(['ID_SERIAL', 'ID_SERIAL_SHORT'])
 
     @property
     def devpath(self):
-        keys = ['DEVPATH']
-        return self._get_hwvalues(keys=keys, missing='Unknown devpath')
+        return self._get_hwvalues(['DEVPATH'])
 
     @property
     def is_virtual(self):
