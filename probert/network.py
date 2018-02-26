@@ -362,6 +362,14 @@ class Link:
         self.bridge = bridge
         self.wlan = wlan
 
+    def mark_as_wlan(self):
+        if self.wlan is None:
+            self.wlan = {
+                'visible_ssids': [],
+                'ssid': None,
+                'scan_state': None,
+            }
+
     def serialize(self):
         r = {
             "addresses": [a.serialize() for a in self.addresses.values()],
@@ -597,6 +605,7 @@ class UdevObserver(NetworkObserver):
         if ifindex < 0 or ifindex not in self._links:
             return
         link = self._links[ifindex]
+        link.mark_as_wlan()
         if arg['cmd'] == 'TRIGGER_SCAN':
             link.wlan['scan_state'] = 'scanning'
         if arg['cmd'] == 'NEW_SCAN_RESULTS' and 'ssids' in arg:
@@ -609,11 +618,6 @@ class UdevObserver(NetworkObserver):
             link.wlan['visible_ssids'] = sorted(ssids)
             link.wlan['scan_state'] = None
         if arg['cmd'] == 'NEW_INTERFACE':
-            link.wlan = {
-                'visible_ssids': [],
-                'ssid': None,
-                'scan_state': None,
-            }
             if link.flags & IFF_UP:
                 try:
                     self.trigger_scan(ifindex)
