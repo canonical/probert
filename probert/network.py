@@ -14,6 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import abc
+from collections import OrderedDict
+import contextlib
 import ipaddress
 import jsonschema
 import logging
@@ -502,6 +504,69 @@ class TrivialEventReceiver(NetworkEventReceiver):
     def route_change(self, action, data):
         pass
 
+# Coalescing netlink events
+#
+# If the client of this library delays calling UdevObserver.data_ready
+# until the udev queue is idle (which is a good idea, but cannot be
+# implemented here because delaying inherently depends on the event
+# loop the client is using), several netlink events might be seen for
+# any interface -- the poster child for this being when an interface
+# is renamed by a udev rule. The netlink data that comes with the NEW
+# event in this case can be out of date by the time the event is
+# processed, so what the @coalesce generator does is to collapse a
+# series of calls for one object into one, e.g. NEW + CHANGE becomes
+# NEW but with the data from the change event, NEW + DEL is dropped
+# entirely, etc. @nocoalesce doesn't combine any events but makes sure
+# that those events are not processed wildly out of order with the
+# events that are coalesced.
+
+def coalesce(*keys):
+    # "keys" defines which events are coalesced, ifindex is enough for
+    # link events but ifindex + address is needed for address events.
+    def decorator(func):
+        def w(self, action, data):
+            log.debug('event for %s: %s %s', func.__name__, action, data)
+            key = (func.__name__,)
+            for k in keys:
+                key += (data[k],)
+            if key in self._calls:
+                prev_meth, prev_action, prev_data = self._calls[key]
+                if action == 'NEW': # this clearly shouldn't happen, but take the new data just in case
+                    self._calls[key] = (func, action, data)
+                elif action == 'CHANGE':
+                    # If the object appeared and then changed before we
+                    # looked at it all, just pretend it was a NEW object
+                    # with the changed data. (the other cases for
+                    # prev_action work out ok, although DEL followed by
+                    # CHANGE is obviously not something we expect)
+                    self._calls[key] = (func, prev_action, data)
+                elif action == 'DEL':
+                    if prev_action == 'NEW':
+                        # link disappeared before we did anything with it. forget about it.
+                        del self._calls[key]
+                    else:
+                        # Otherwise just pass on the DEL and forget the previous action whatever it was.
+                        self._calls[key] = (func, action, data)
+            else:
+                self._calls[key] = (func, action, data)
+        return w
+    return decorator
+
+def nocoalesce(func):
+    def w(self, action, data):
+        self._calls[object()] = (func, action, data)
+    return w
+
+
+@contextlib.contextmanager
+def CoalescedCalls(obj):
+    obj._calls = OrderedDict()
+    try:
+        yield
+    finally:
+        for meth, action, data in obj._calls.values():
+            meth(obj, action, data)
+        obj._calls = None
 
 class UdevObserver(NetworkObserver):
     """Use udev/netlink to observe network changes."""
@@ -513,10 +578,12 @@ class UdevObserver(NetworkObserver):
             receiver = TrivialEventReceiver()
         assert isinstance(receiver, NetworkEventReceiver)
         self.receiver = receiver
+        self._calls = None
 
     def start(self):
         self.rtlistener = _rtnetlink.listener(self)
-        self.rtlistener.start()
+        with CoalescedCalls(self):
+            self.rtlistener.start()
 
         self._fdmap =  {
             self.rtlistener.fileno(): self.rtlistener.data_ready,
@@ -534,8 +601,10 @@ class UdevObserver(NetworkObserver):
         return list(self._fdmap)
 
     def data_ready(self, fd):
-        self._fdmap[fd]()
+        with CoalescedCalls(self):
+            self._fdmap[fd]()
 
+    @coalesce('ifindex')
     def link_change(self, action, data):
         log.debug('link_change %s %s', action, data)
         for k, v in data.items():
@@ -578,6 +647,7 @@ class UdevObserver(NetworkObserver):
         self._links[ifindex] = link
         self.receiver.new_link(ifindex, link)
 
+    @coalesce('ifindex', 'local')
     def addr_change(self, action, data):
         log.debug('addr_change %s %s', action, data)
         link = self._links.get(data['ifindex'])
@@ -589,6 +659,7 @@ class UdevObserver(NetworkObserver):
             return
         link.addresses[ip] = Address.from_probe_data(data)
 
+    @nocoalesce
     def route_change(self, action, data):
         log.debug('route_change %s %s', action, data)
         for k, v in data.items():
