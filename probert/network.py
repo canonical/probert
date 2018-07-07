@@ -634,6 +634,7 @@ class UdevObserver(NetworkObserver):
                 # directory. Have another go now.
                 if dev.type is None:
                     dev.type = _compute_type(dev.name)
+                dev.bond = _get_bonding(dev.name, dev.netlink_data['flags'])
             self.receiver.update_link(ifindex)
             return
         udev_devices = list(self.context.list_devices(IFINDEX=str(ifindex)))
