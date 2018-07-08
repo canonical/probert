@@ -5,6 +5,7 @@
 #include <netlink/cache.h>
 #include <netlink/route/addr.h>
 #include <netlink/route/link.h>
+#include <netlink/route/link/vlan.h>
 #include <netlink/route/route.h>
 
 #define NL_CB_me NL_CB_DEFAULT
@@ -43,12 +44,18 @@ static void observe_link_change(
 		return;
 	}
 	PyObject *data;
+
+	int is_vlan;
+
+	is_vlan = rtnl_link_is_vlan(link);
+
 	data = Py_BuildValue(
-		"{si sI sI si}",
+		"{si sI sI si sN}",
 		"ifindex", rtnl_link_get_ifindex(link),
 		"flags", rtnl_link_get_flags(link),
 		"arptype", rtnl_link_get_arptype(link),
-		"family", rtnl_link_get_family(link));
+		"family", rtnl_link_get_family(link),
+		"is_vlan", PyBool_FromLong(is_vlan));
 	if (data == NULL) {
 		goto exit;
 	}
@@ -59,6 +66,21 @@ static void observe_link_change(
 			goto exit;
 		}
 		Py_DECREF(ob);
+	}
+	if (is_vlan) {
+		PyObject* v;
+		v = PyLong_FromLong(rtnl_link_vlan_get_id(link));
+		if (v == NULL || PyDict_SetItemString(data, "vlan_id", v) < 0) {
+			Py_XDECREF(v);
+			goto exit;
+		}
+		Py_DECREF(v);
+		v = PyLong_FromLong(rtnl_link_get_link(link));
+		if (v == NULL || PyDict_SetItemString(data, "vlan_link", v) < 0) {
+			Py_XDECREF(v);
+			goto exit;
+		}
+		Py_DECREF(v);
 	}
 	PyObject *r = PyObject_CallMethod(listener->observer, "link_change", "sO", act2str(act), data);
 	Py_XDECREF(r);
