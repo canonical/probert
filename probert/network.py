@@ -205,8 +205,6 @@ def _compute_type(iface, arptype):
             DEV_TYPE = 'wlan'
         elif os.path.isdir(os.path.join(sysfs_path, 'bridge')):
             DEV_TYPE = 'bridge'
-        elif os.path.isfile(os.path.join('/proc/net/vlan', iface)):
-            DEV_TYPE = 'vlan'
         elif os.path.isdir(os.path.join(sysfs_path, 'bonding')):
             DEV_TYPE = 'bond'
         elif os.path.isfile(os.path.join(sysfs_path, 'tun_flags')):
@@ -360,9 +358,13 @@ class Link:
         # can't use netlink_data['name'] to go poking about in
         # /sys/class/net.
         name = socket.if_indextoname(netlink_data['ifindex'])
+        if netlink_data['is_vlan']:
+            typ = 'vlan'
+        else:
+            typ = _compute_type(name, netlink_data['arptype'])
         return cls(
             addresses={},
-            type=_compute_type(name, netlink_data['arptype']),
+            type=typ,
             udev_data=udev_data,
             netlink_data=netlink_data,
             bond=_get_bonding(name, netlink_data['flags']),
