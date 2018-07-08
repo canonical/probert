@@ -58,6 +58,19 @@ BOND_MODES = [
     "balance-alb",
     ]
 
+XMIT_HASH_POLICIES = [
+    "layer2",
+    "layer2+3",
+    "layer3+4",
+    "encap2+3",
+    "encap3+4",
+    ]
+
+LACP_RATES = [
+    "slow",
+    "fast",
+    ]
+
 # This json schema describes the links as they are serialized onto
 # disk by probert --network. It also describes the format of some of
 # the attributes of Link instances.
@@ -99,6 +112,18 @@ link_schema = {
                 "mode": {
                     "oneOf": [
                         {"type": "string", "enum": BOND_MODES},
+                        {"type": "null"},
+                        ],
+                    },
+                "xmit_hash_policy": {
+                    "oneOf": [
+                        {"type": "string", "enum": XMIT_HASH_POLICIES},
+                        {"type": "null"},
+                        ],
+                    },
+                "lacp_rate": {
+                    "oneOf": [
+                        {"type": "string", "enum": LACP_RATES},
                         {"type": "null"},
                         ],
                     },
@@ -248,25 +273,22 @@ def _get_bonding(ifname, flags):
         except IOError:
             return []
 
-    def _get_bond_mode():
+    def _get_bond_param(param):
         try:
             if _iface_is_master():
-                bond_mode = \
-                    open('/sys/class/net/%s/bonding/mode' % ifname).read()
-                return bond_mode.split()
+                bond_param = \
+                    open('/sys/class/net/%s/bonding/%s' % (ifname, param)).read().split()
+                return bond_param[0] if bond_param else None
         except IOError:
             return None
 
-    mode = _get_bond_mode()
-    if mode:
-        mode_name = mode[0]
-    else:
-        mode_name = None
     return {
         'is_master': _iface_is_master(),
         'is_slave': _iface_is_slave(),
         'slaves': _get_slave_iface_list(),
-        'mode': mode_name
+        'mode': _get_bond_param('mode'),
+        'xmit_hash_policy':  _get_bond_param('xmit_hash_policy'),
+        'lacp_rate':  _get_bond_param('lacp_rate'),
     }
 
 
