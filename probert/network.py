@@ -105,6 +105,12 @@ link_schema = {
             "properties": {
                 "is_master": {"type": "boolean"},
                 "is_slave": {"type": "boolean"},
+                "master": {
+                    "oneOf": [
+                        {"type": "string"},
+                        {"type": "null"},
+                        ],
+                    },
                 "slaves": {
                     "type": "array",
                     "items": {"type": "string"},
@@ -271,6 +277,16 @@ def _get_bonding(ifname, flags):
         except IOError:
             return []
 
+    def _get_bond_master():
+        try:
+            if _iface_is_slave():
+                master = os.readlink('/sys/class/net/%s/master' % ifname)
+                return os.path.basename(master)
+            else:
+                return None
+        except IOError:
+            return None
+
     def _get_bond_param(param):
         try:
             if _iface_is_master():
@@ -283,6 +299,7 @@ def _get_bonding(ifname, flags):
     return {
         'is_master': _iface_is_master(),
         'is_slave': _iface_is_slave(),
+        'master': _get_bond_master(),
         'slaves': _get_slave_iface_list(),
         'mode': _get_bond_param('mode'),
         'xmit_hash_policy':  _get_bond_param('xmit_hash_policy'),
