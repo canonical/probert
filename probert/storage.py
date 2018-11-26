@@ -68,7 +68,7 @@ class StorageInfo():
 
     @property
     def serial(self):
-        return self._get_hwvalues(['ID_SERIAL', 'ID_SERIAL_SHORT'])
+        return self._get_hwvalues(['ID_SERIAL', 'ID_SERIAL_SHORT', 'DM_UUID'])
 
     @property
     def devpath(self):
