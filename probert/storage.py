@@ -83,6 +83,31 @@ class StorageInfo():
         return self.devpath.startswith('/devices/virtual/')
 
 
+def as_config(device):
+    if device['DEVTYPE'] == 'disk':
+        name = os.path.basename(device['DEVNAME'])
+        return {
+            'id': 'disk-%s' % name,
+            'type': 'disk',
+            'ptable': 'unknown',
+            'serial': device.get('ID_SERIAL', 'unknown'),
+            'path': device['DEVNAME'],
+        }
+    elif device['DEVTYPE'] == 'partition':
+        name = os.path.basename(device['DEVNAME'])
+        partmatch = re.search(r'[0-9]+', name)
+        partnum = name[partmatch.start():partmatch.end()]
+        parent = name.split(partnum)[0]
+        return {
+            'id': 'partition-%s' % name,
+            'type': 'partition',
+            'number': partnum,
+            'device': 'disk-%s' % parent,
+            'flags': 'unknown',
+            'size': device['attrs']['size'],
+        }
+
+
 class Storage():
     def __init__(self, results={}):
         self.results = results
@@ -146,7 +171,24 @@ class Storage():
         return storage
 
     def export(self):
-        return {'version': 1, 'config': {}}
+        cfg = {'version': 1, 'config': []}
+        disks = []
+        partitions = []
+        filesystems = []
+        for device, info in self.results.items():
+            cfg = as_config(info)
+            if cfg['type'] == 'disk':
+                disks.append(cfg)
+            elif cfg['type'] == 'partition':
+                partitions.append(cfg)
+
+        ordered_cfg = []
+        for disk in disks:
+            ordered_cfg.append(disk)
+        for part in partitions:
+            ordered_cfg.append(part)
+
+        return {'version': 1, 'config': ordered_cfg}
 
 
 def read_sys_block_size(device):
