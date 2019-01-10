@@ -33,6 +33,8 @@ def parse_options(argv):
                         help='Probe storage hardware.')
     parser.add_argument('--network', action='store_true',
                         help='Probe network hardware.')
+    parser.add_argument('--export-config', action='store_true',
+                        help='Print probed data in Curti config format.')
     return parser.parse_args(argv)
 
 
@@ -50,7 +52,10 @@ def main():
         p.probe_network()
     if opts.storage:
         p.probe_storage()
-    results = p.get_results()
+    if opts.export_config:
+        results = p.export_config()
+    else:
+        results = p.get_results()
     print(json.dumps(results, indent=4, sort_keys=False))
 
 

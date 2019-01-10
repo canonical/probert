@@ -20,16 +20,24 @@ from probert.network import NetworkProber
 class Prober():
     def __init__(self):
         self._results = {}
+        self._config = {}
 
     def probe_all(self):
         self.probe_storage()
         self.probe_network()
 
     def probe_storage(self):
-        self._results['storage'] = Storage().probe()
+        self._storage = Storage()
+        self._results['storage'] = self._storage.probe()
+        self._config['storage'] = self._storage.export()
 
     def probe_network(self):
-        self._results['network'] = NetworkProber().probe()
+        self._network = NetworkProber()
+        self._results['network'] = self._network.probe()
+        self._config['network'] = self._network.export()
 
     def get_results(self):
         return self._results
+
+    def export_config(self):
+        return self._config

@@ -145,6 +145,9 @@ class Storage():
         self.results = storage
         return storage
 
+    def export(self):
+        return {'version': 1, 'config': {}}
+
 
 def read_sys_block_size(device):
     device_dir = os.path.join('/sys/class/block', os.path.basename(device))
