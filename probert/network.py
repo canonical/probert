@@ -824,6 +824,7 @@ class NetworkProber:
         return {'version': 2, 'ethernets': {}, 'wifis': {}, 'bonds': {},
                 'bridges': {}, 'vlans': {}}
 
+
 if __name__ == '__main__':
     import pprint
     import select
