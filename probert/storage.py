@@ -18,7 +18,7 @@ import os
 import re
 import pyudev
 
-from probert.utils import udev_get_attributes
+from probert.utils import udev_get_attributes, read_sys_block_size
 
 log = logging.getLogger('probert.storage')
 
@@ -84,6 +84,8 @@ class StorageInfo():
 
 
 def as_config(device):
+    if 'DEVTYPE' not in device:
+        return {}
     if device['DEVTYPE'] == 'disk':
         name = os.path.basename(device['DEVNAME'])
         return {
@@ -176,11 +178,16 @@ class Storage():
         partitions = []
         for device, info in self.results.items():
             cfg = as_config(info)
+            if not cfg:
+                continue
             if cfg['type'] == 'disk':
                 disks.append(cfg)
             elif cfg['type'] == 'partition':
                 partitions.append(cfg)
 
+        # FIXME: this needs id relations, that is once we add mdadm and other
+        # composed devices then partitions make occur after the device is
+        # composed.
         ordered_cfg = []
         for disk in disks:
             ordered_cfg.append(disk)
@@ -188,22 +195,3 @@ class Storage():
             ordered_cfg.append(part)
 
         return {'version': 1, 'config': ordered_cfg}
-
-
-def read_sys_block_size(device):
-    device_dir = os.path.join('/sys/class/block', os.path.basename(device))
-    blockdev_size = os.path.join(device_dir, 'size')
-    with open(blockdev_size) as d:
-        size = int(d.read().strip())
-
-    logsize_base = device_dir
-    if not os.path.exists(os.path.join(device_dir, 'queue')):
-        parent_dev = os.path.basename(re.split('[\d+]', device)[0])
-        logsize_base = os.path.join('/sys/class/block', parent_dev)
-
-    logical_size = os.path.join(logsize_base, 'queue', 'logical_block_size')
-    if os.path.exists(logical_size):
-        with open(logical_size) as s:
-            size *= int(s.read().strip())
-
-    return size

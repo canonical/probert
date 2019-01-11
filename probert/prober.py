@@ -13,8 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from probert.storage import Storage
+from probert.lvm import LVM
 from probert.network import NetworkProber
+from probert.storage import Storage
 
 
 class Prober():
@@ -25,11 +26,17 @@ class Prober():
     def probe_all(self):
         self.probe_storage()
         self.probe_network()
+        self.probe_lvm()
 
     def probe_storage(self):
         self._storage = Storage()
         self._results['storage'] = self._storage.probe()
         self._config['storage'] = self._storage.export()
+
+    def probe_lvm(self):
+        self._lvm = LVM()
+        self._results['lvm'] = self._lvm.probe(report=True)
+        self._config['lvm'] = self._lvm.export()
 
     def probe_network(self):
         self._network = NetworkProber()

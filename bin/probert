@@ -31,6 +31,8 @@ def parse_options(argv):
                         help='Probe all hardware types.')
     parser.add_argument('--storage', action='store_true',
                         help='Probe storage hardware.')
+    parser.add_argument('--lvm', action='store_true',
+                        help='Probe for LVM devices.')
     parser.add_argument('--network', action='store_true',
                         help='Probe network hardware.')
     parser.add_argument('--export-config', action='store_true',
@@ -50,6 +52,8 @@ def main():
         p.probe_all()
     if opts.network:
         p.probe_network()
+    if opts.lvm:
+        p.probe_lvm()
     if opts.storage:
         p.probe_storage()
     if opts.export_config:

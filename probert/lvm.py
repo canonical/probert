@@ -15,10 +15,11 @@
 
 import logging
 import json
+import os
 import pyudev
 import subprocess
 
-from probert.storage import read_sys_block_size
+from probert.utils import read_sys_block_size
 
 log = logging.getLogger('probert.lvm')
 
@@ -76,9 +77,11 @@ class PvInfo():
 
 def probe_lvm_report():
     try:
-        output, _err = subprocess.check_output(['lvm', 'fullreport',
-                                                '--nosufix', '--units', 'B',
-                                                '--reportformat', 'json'])
+        cmd = ['lvm', 'fullreport', '--nosuffix', '--units', 'B',
+               '--reportformat', 'json']
+        result = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL)
+        output = result.stdout.decode('utf-8')
     except subprocess.CalledProcessError as e:
         log.error('Failed to probe LVM devices on system:', e)
         return None
@@ -107,8 +110,8 @@ def dmsetup_info(devname):
         'subsystem,vg_name,lv_name,blkdevname,uuid,blkdevs_used'.split(','))
     try:
         output = subprocess.check_output(
-            ['sudo', 'dmsetup', 'info', devname, '-C', '-o', fields,
-             '--noheading', '--separator', _SEP])
+            ['sudo', 'dmsetup', 'info', devname, '-C', '-o',
+             ','.join(fields), '--noheading', '--separator', _SEP])
     except subprocess.CalledProcessError as e:
         log.error('Failed to probe dmsetup info:', e)
         return None
@@ -117,30 +120,130 @@ def dmsetup_info(devname):
     return info
 
 
+def lvmetad_running():
+    return os.path.exists(os.environ.get('LVM_LVMETAD_PIDFILE',
+                                         '/run/lvmetad.pid'))
+
+
+def lvm_scan(activate=True):
+    for cmd in [['pvscan'], ['vgscan', '--mknodes']]:
+        if lvmetad_running():
+            cmd.append('--cache')
+        try:
+            subprocess.run(cmd, stdout=subprocess.DEVNULL,
+                           stderr=subprocess.DEVNULL)
+        except subprocess.CalledProcessError as e:
+            log.error('Failed lvm_scan command %s: %s', cmd, e)
+
+
+def activate_volgroups():
+    """
+    Activate available volgroups and logical volumes within.
+    # found
+    % vgchange -ay
+      1 logical volume(s) in volume group "vg1sdd" now active
+
+    # none found (no output)
+    % vgchange -ay
+    """
+
+    # vgchange handles syncing with udev by default
+    # see man 8 vgchange and flag --noudevsync
+    result = subprocess.run(['vgchange', '--activate=y'], check=False,
+                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    if result.stdout:
+        log.info(result.stdout)
+
+
+def extract_lvm_partition(probe_data):
+    lv_id = "%s/%s" % (probe_data['DM_VG_NAME'], probe_data['DM_LV_NAME'])
+    return (lv_id, {'fullname': lv_id,
+                    'name': probe_data['DM_LV_NAME'],
+                    'volgroup': probe_data['DM_VG_NAME'],
+                    'size': read_sys_block_size(probe_data['DEVNAME'])})
+
+
+def extract_lvm_volgroup(probe_data):
+    vg_id = probe_data['vg_name']
+    return (vg_id, {'name': vg_id,
+                    'devices':
+                        ['disk-%s' % d
+                         for d in probe_data['blkdevs_used'].split(',')]})
+
+
+def as_config(lv_type, lvmconf):
+    if lv_type == 'vgs':
+        return {'id': 'lvmvol-%s' % lvmconf.get('name'),
+                'type': 'lvm_volgroup',
+                'name': lvmconf.get('name'),
+                'devices': lvmconf.get('devices')}
+    if lv_type == 'lvs':
+        return {'id': 'lvmpart-%s' % lvmconf.get('name'),
+                'type': 'lvm_partition',
+                'name': lvmconf.get('name'),
+                'volgroup': 'lvmvol-%s' % lvmconf.get('volgroup'),
+                'size': str(lvmconf.get('size'))}
+    return None
+
+
 class LVM():
     def __init__(self, results={}):
         self.results = results
+        self.context = None
+
+    def probe(self, report=False):
+        lvols = {}
+        vgroups = {}
+        pvols = {}
+
+        # scan and activate lvm vgs/lvs
+        lvm_scan()
+        activate_volgroups()
+
+        # read udev afte probing
         self.context = pyudev.Context()
 
-    def probe(self):
-        lvols = []
-        vgroups = []
-        pvols = []
-        report = probe_lvm_report()
+        report = probe_lvm_report() if report else {}
         for device in self.context.list_devices(subsystem='block'):
             if 'DM_UUID' in device and device['DM_UUID'].startswith('LVM'):
-                # dm_info = dmsetup_info(device['DEVNAME'])
-                new_lv = {
-                    'lv_full_name': '%s/%s' % (device['DM_VG_NAME'],
-                                               device['DM_LV_NAME']),
-                    'lv_size': read_sys_block_size(device['DEVNAME']),
-                }
-                lvols.append(new_lv)
+                (lv_id, new_lv) = extract_lvm_partition(device)
+                if lv_id not in lvols:
+                    lvols[lv_id] = new_lv
+                else:
+                    log.error('Found duplicate logical volume: %s', lv_id)
+                    continue
 
-        storage = {
+                dm_info = dmsetup_info(device['DEVNAME'])
+                (vg_id, new_vg) = extract_lvm_volgroup(dm_info)
+                if vg_id not in vgroups:
+                    vgroups[vg_id] = new_vg
+                else:
+                    log.error('Found duplicate volume group: %s', vg_id)
+                    continue
+
+                if vg_id not in pvols:
+                    pvols[vg_id] = new_vg.get('devices')
+
+        lvm = {
             'lvm': {
                 'lvs': lvols, 'vgs': vgroups, 'pvs': pvols,
                 'report': report,
             }
         }
-        self.results = storage
+        self.results = lvm
+        return lvm
+
+    def export(self):
+        sconfig = {'lvs': [], 'vgs': []}
+        lvm_config = self.results.get('lvm', {})
+        for lv_type, lv_confs in lvm_config.items():
+            for lv_id, lv_conf in lv_confs.items():
+                cfg = as_config(lv_type, lv_conf)
+                if cfg:
+                    sconfig[lv_type].append(cfg)
+
+        ordered_config = []
+        for ltype in ['vgs', 'lvs']:
+            ordered_config.extend(sconfig[ltype])
+
+        return {'version': 1, 'config': ordered_config}
