@@ -174,7 +174,6 @@ class Storage():
         cfg = {'version': 1, 'config': []}
         disks = []
         partitions = []
-        filesystems = []
         for device, info in self.results.items():
             cfg = as_config(info)
             if cfg['type'] == 'disk':
