@@ -242,3 +242,8 @@ def read_sys_block_size(device):
             size *= int(s.read().strip())
 
     return size
+
+
+def read_sys_block_slaves(device):
+    device_dir = os.path.join('/sys/class/block', os.path.basename(device))
+    return os.listdir(os.path.join(device_dir, 'slaves'))
