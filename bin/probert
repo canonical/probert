@@ -35,6 +35,8 @@ def parse_options(argv):
                         help='Probe for LVM devices.')
     parser.add_argument('--network', action='store_true',
                         help='Probe network hardware.')
+    parser.add_argument('--raid', action='store_true',
+                        help='Probe for RAID devices.')
     parser.add_argument('--export-config', action='store_true',
                         help='Print probed data in Curti config format.')
     return parser.parse_args(argv)
@@ -48,12 +50,15 @@ def main():
     logger.info("Arguments passed: {}".format(sys.argv))
 
     p = prober.Prober()
-    if opts.all or (not opts.storage and not opts.network):
+    probe_opts = [opts.lvm, opts.network, opts.raid, opts.storage]
+    if opts.all or not any(probe_opts):
         p.probe_all()
     if opts.network:
         p.probe_network()
     if opts.lvm:
         p.probe_lvm()
+    if opts.raid:
+        p.probe_raid()
     if opts.storage:
         p.probe_storage()
     if opts.export_config:

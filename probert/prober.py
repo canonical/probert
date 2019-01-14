@@ -15,6 +15,7 @@
 
 from probert.lvm import LVM
 from probert.network import NetworkProber
+from probert.raid import MDADM
 from probert.storage import Storage
 
 
@@ -27,6 +28,7 @@ class Prober():
         self.probe_storage()
         self.probe_network()
         self.probe_lvm()
+        self.probe_raid()
 
     def probe_storage(self):
         self._storage = Storage()
@@ -42,6 +44,11 @@ class Prober():
         self._network = NetworkProber()
         self._results['network'] = self._network.probe()
         self._config['network'] = self._network.export()
+
+    def probe_raid(self):
+        self._raid = MDADM()
+        self._results['raid'] = self._raid.probe(report=True)
+        self._config['raid'] = self._raid.export()
 
     def get_results(self):
         return self._results
