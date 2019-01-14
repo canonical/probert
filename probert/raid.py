@@ -18,7 +18,6 @@ import pyudev
 import subprocess
 
 from probert.utils import (read_sys_block_size,
-                           read_sys_block_slaves,
                            udev_get_attributes)
 
 log = logging.getLogger('probert.raid')
@@ -36,28 +35,52 @@ def mdadm_assemble(scan=True, ignore_errors=True):
     return
 
 
-def get_mdadm_array_members(md_device, detail):
+def get_mdadm_array_spares(md_device, detail):
 
-    md_devices = int(detail.get('MD_DEVICES'))
+    def role_key_to_dev(rolekey):
+        # MD_DEVICE_dev_dm_5_ROLE=spare -> MD_DEVICE_dev_dm_5_DEV
+        devname_mangled = rolekey.split('MD_DEVICE_')[1].split('_ROLE')[0]
+        return 'MD_DEVICE_%s_DEV' % devname_mangled
+
+    return [detail[role_key_to_dev(key)]
+            for key in detail.keys() if key.startswith('MD_DEVICE_') and
+            key.endswith('_ROLE') and detail[key] == 'spare']
+
+
+def get_mdadm_array_members(md_device, detail):
+    ''' extract array devices and spares from mdadm --detail --export output
+
+    MD_LEVEL=raid5
+    MD_DEVICES=3
+    MD_METADATA=1.2
+    MD_UUID=7fe1895e:34dcb6dc:d1bcbb9c:f3e05134
+    MD_NAME=s1lp6:raid5-2406-2407-2408-2409
+    MD_DEVICE_ev_dm_5_ROLE=spare
+    MD_DEVICE_ev_dm_5_DEV=/dev/dm-5
+    MD_DEVICE_ev_dm_3_ROLE=1
+    MD_DEVICE_ev_dm_3_DEV=/dev/dm-3
+    MD_DEVICE_ev_dm_4_ROLE=2
+    MD_DEVICE_ev_dm_4_DEV=/dev/dm-4
+    MD_DEVICE_ev_dm_2_ROLE=0
+    MD_DEVICE_ev_dm_2_DEV=/dev/dm-2
+
+    returns (['/dev/dm2', '/dev/dm-3', '/dev/dm-4'], ['/dev/dm-5'])
+    '''
     md_device_keys = [key for key in detail.keys()
                       if key.startswith('MD_DEVICE_') and key.endswith('_DEV')]
-    if len(md_device_keys) != md_devices:
-        log.warning('mdadm: mismatch on expected number of array members:'
-                    ' device(%s) expected(%s) found(%s)',
-                    md_device, md_devices, len(md_device_keys))
-
-    expected_devices = sorted(['/dev/' + dev
-                               for dev in read_sys_block_slaves(md_device)])
-    found_devices = sorted([detail[key] for key in md_device_keys])
-    if found_devices != expected_devices:
-        log.warning('mdadm: mismatch on expected array members:'
-                    ' device(%s) expected(%s) != found(%s)',
-                    md_device, expected_devices, found_devices)
-
-    return found_devices
+    spares = sorted(get_mdadm_array_spares(md_device, detail))
+    devices = sorted([detail[key] for key in md_device_keys
+                      if detail[key] not in spares])
+    return (devices, spares)
 
 
 def extract_mdadm_raid_name(conf):
+    ''' return the raid array name, removing homehost if present.
+
+    MD_NAME=s1lp6:raid5-2406-2407-2408-2409
+
+    returns 'raid5-2406-2407-2408-2409'
+    '''
     raid_name = conf.get('MD_NAME')
     if ':' in raid_name:
         _, raid_name = raid_name.split(':')
@@ -67,12 +90,13 @@ def extract_mdadm_raid_name(conf):
 def as_config(devname, conf):
     if conf.get('MD_LEVEL') in SUPPORTED_RAID_TYPES:
         raid_name = extract_mdadm_raid_name(conf)
+        devices, spares = get_mdadm_array_members(devname, conf)
         return {'id': 'mdadm-%s' % raid_name,
                 'type': 'raid',
                 'name': raid_name,
                 'raidlevel': conf.get('MD_LEVEL'),
-                'devices': get_mdadm_array_members(devname, conf),
-                'spare_devices': None}
+                'devices': devices,
+                'spare_devices': spares}
 
     return None
 
