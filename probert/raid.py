@@ -120,13 +120,12 @@ class MDADM():
                 attrs['size'] = str(read_sys_block_size(devname))
                 raids[devname] = dict(device)
 
-        self.results = {'raid': raids}
+        self.results = raids
         return self.results
 
     def export(self):
         raids = []
-        raid_config = self.results.get('raid', {})
-        for devname, conf in raid_config.items():
+        for devname, conf in self.results.items():
             cfg = as_config(devname, conf)
             if cfg:
                 raids.append(cfg)
