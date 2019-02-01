@@ -186,64 +186,47 @@ def as_config(lv_type, lvmconf):
     return None
 
 
-class LVM():
-    def __init__(self, results={}):
-        self.results = results
-        self.context = None
+def probe(context=None, report=False):
+    # scan and activate lvm vgs/lvs
+    lvm_scan()
+    activate_volgroups()
 
-    def probe(self, report=False):
-        lvols = {}
-        vgroups = {}
-        pvols = {}
+    # ignore supplied context, we need to read udev after scan/vgchange
+    context = pyudev.Context()
 
-        # scan and activate lvm vgs/lvs
-        lvm_scan()
-        activate_volgroups()
+    lvols = {}
+    vgroups = {}
+    pvols = {}
+    report = probe_lvm_report() if report else {}
 
-        # read udev afte probing
-        self.context = pyudev.Context()
+    for device in context.list_devices(subsystem='block'):
+        if 'DM_UUID' in device and device['DM_UUID'].startswith('LVM'):
+            (lv_id, new_lv) = extract_lvm_partition(device)
+            if lv_id not in lvols:
+                lvols[lv_id] = new_lv
+            else:
+                log.error('Found duplicate logical volume: %s', lv_id)
+                continue
 
-        report = probe_lvm_report() if report else {}
-        for device in self.context.list_devices(subsystem='block'):
-            if 'DM_UUID' in device and device['DM_UUID'].startswith('LVM'):
-                (lv_id, new_lv) = extract_lvm_partition(device)
-                if lv_id not in lvols:
-                    lvols[lv_id] = new_lv
-                else:
-                    log.error('Found duplicate logical volume: %s', lv_id)
-                    continue
+            dm_info = dmsetup_info(device['DEVNAME'])
+            (vg_id, new_vg) = extract_lvm_volgroup(dm_info)
+            if vg_id not in vgroups:
+                vgroups[vg_id] = new_vg
+            else:
+                log.error('Found duplicate volume group: %s', vg_id)
+                continue
 
-                dm_info = dmsetup_info(device['DEVNAME'])
-                (vg_id, new_vg) = extract_lvm_volgroup(dm_info)
-                if vg_id not in vgroups:
-                    vgroups[vg_id] = new_vg
-                else:
-                    log.error('Found duplicate volume group: %s', vg_id)
-                    continue
+            if vg_id not in pvols:
+                pvols[vg_id] = new_vg.get('devices')
 
-                if vg_id not in pvols:
-                    pvols[vg_id] = new_vg.get('devices')
+    lvm = {}
+    if lvols:
+        lvm.update({'logical_volumes': lvols})
+    if pvols:
+        lvm.update({'physical_volumes': pvols})
+    if vgroups:
+        lvm.update({'volume_groups': vgroups})
+    if report:
+        lvm.update({'report': report})
 
-        lvm = {
-            'lvm': {
-                'lvs': lvols, 'vgs': vgroups, 'pvs': pvols,
-                'report': report,
-            }
-        }
-        self.results = lvm
-        return lvm
-
-    def export(self):
-        sconfig = {'lvs': [], 'vgs': []}
-        lvm_config = self.results.get('lvm', {})
-        for lv_type, lv_confs in lvm_config.items():
-            for lv_id, lv_conf in lv_confs.items():
-                cfg = as_config(lv_type, lv_conf)
-                if cfg:
-                    sconfig[lv_type].append(cfg)
-
-        ordered_config = []
-        for ltype in ['vgs', 'lvs']:
-            ordered_config.extend(sconfig[ltype])
-
-        return {'version': 1, 'config': ordered_config}
+    return lvm

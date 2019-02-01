@@ -42,9 +42,17 @@ def get_mdadm_array_spares(md_device, detail):
         devname_mangled = rolekey.split('MD_DEVICE_')[1].split('_ROLE')[0]
         return 'MD_DEVICE_%s_DEV' % devname_mangled
 
-    return [detail[role_key_to_dev(key)]
-            for key in detail.keys() if key.startswith('MD_DEVICE_') and
-            key.endswith('_ROLE') and detail[key] == 'spare']
+    def keymatch(key, data, role):
+        prefix = key.startswith('MD_DEVICE_')
+        suffix = key.endswith('_ROLE')
+        matches = data.get(key) == role
+        return (prefix and suffix and matches)
+
+    def get_dev_from_key(key, data):
+        return data.get(role_key_to_dev(key))
+
+    return [get_dev_from_key(key, detail) for key in detail.keys()
+            if keymatch(key)]
 
 
 def get_mdadm_array_members(md_device, detail):
@@ -101,33 +109,26 @@ def as_config(devname, conf):
     return None
 
 
-class MDADM():
-    def __init__(self, results={}):
-        self.results = results
-        self.context = None
+def probe(context=None, report=False):
+    mdadm_assemble()
 
-    def probe(self, report=False):
-        mdadm_assemble()
+    # ignore passed context, must read udev after assembling mdadm devices
+    context = pyudev.Context()
 
-        # read udev afte probing
-        self.context = pyudev.Context()
+    raids = {}
+    for device in context.list_devices(subsystem='block'):
+        if 'MD_NAME' in device:
+            devname = device['DEVNAME']
+            attrs = udev_get_attributes(device)
+            attrs['size'] = str(read_sys_block_size(devname))
 
-        raids = {}
-        for device in self.context.list_devices(subsystem='block'):
-            if 'MD_NAME' in device:
-                devname = device['DEVNAME']
-                attrs = udev_get_attributes(device)
-                attrs['size'] = str(read_sys_block_size(devname))
-                raids[devname] = dict(device)
+            raid_name = extract_mdadm_raid_name(device)
+            devices, spares = get_mdadm_array_members(devname, device)
 
-        self.results = raids
-        return self.results
+            cfg = dict(device)
+            cfg.update({'raidlevel': device['MD_LEVEL'],
+                        'devices': devices,
+                        'spare_devices': spares})
+            raids[raid_name] = cfg
 
-    def export(self):
-        raids = []
-        for devname, conf in self.results.items():
-            cfg = as_config(devname, conf)
-            if cfg:
-                raids.append(cfg)
-
-        return {'version': 1, 'config': raids}
+    return raids

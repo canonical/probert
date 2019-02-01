@@ -19,6 +19,7 @@ import re
 import pyudev
 
 from probert.utils import udev_get_attributes, read_sys_block_size
+from probert import bcache, filesystem, lvm, raid, zfs
 
 log = logging.getLogger('probert.storage')
 
@@ -88,13 +89,14 @@ def as_config(device):
         return {}
     if device['DEVTYPE'] == 'disk':
         name = os.path.basename(device['DEVNAME'])
-        return {
+        disk = {
             'id': 'disk-%s' % name,
             'type': 'disk',
-            'ptable': 'unknown',
-            'serial': device.get('ID_SERIAL', 'unknown'),
             'path': device['DEVNAME'],
         }
+        if 'ID_SERIAL' in device:
+            disk.update({'serial': device['ID_SERIAL']})
+        return disk
     elif device['DEVTYPE'] == 'partition':
         name = os.path.basename(device['DEVNAME'])
         partmatch = re.search(r'[0-9]+', name)
@@ -105,15 +107,34 @@ def as_config(device):
             'type': 'partition',
             'number': partnum,
             'device': 'disk-%s' % parent,
-            'flags': 'unknown',
             'size': device['attrs']['size'],
         }
 
 
-class Storage():
-    def __init__(self, results={}):
+def blockdev_probe(context=None):
+        if not context:
+            context = pyudev.Context()
+
+        blockdev = {}
+        for device in context.list_devices(subsystem='block'):
+            if device['MAJOR'] not in ["1", "7"]:
+                attrs = udev_get_attributes(device)
+                # update the size attr as it may only be the number
+                # of blocks rather than size in bytes.
+                attrs['size'] = \
+                    str(read_sys_block_size(device['DEVNAME']))
+                blockdev[device['DEVNAME']] = dict(device)
+                blockdev[device['DEVNAME']].update({'attrs': attrs})
+
+        return blockdev
+
+
+class Blockdev():
+    def __init__(self, context=None, results={}):
         self.results = results
-        self.context = pyudev.Context()
+        self.context = context
+        if not self.context:
+            self.context = pyudev.Context()
 
     def get_devices_by_key(self, keyname, value):
         try:
@@ -157,20 +178,9 @@ class Storage():
         ''' device='/dev/sda' '''
         return read_sys_block_size(device)
 
-    def probe(self):
-        storage = {}
-        for device in self.context.list_devices(subsystem='block'):
-            if device['MAJOR'] not in ["1", "7"]:
-                attrs = udev_get_attributes(device)
-                # update the size attr as it may only be the number
-                # of blocks rather than size in bytes.
-                attrs['size'] = \
-                    str(self._get_device_size(device['DEVNAME']))
-                storage[device['DEVNAME']] = dict(device)
-                storage[device['DEVNAME']].update({'attrs': attrs})
-
-        self.results = storage
-        return storage
+    def probe(self, context=None):
+        self.results = blockdev_probe(context=self.context)
+        return self.results
 
     def export(self):
         cfg = {'version': 1, 'config': []}
@@ -195,3 +205,44 @@ class Storage():
             ordered_cfg.append(part)
 
         return {'version': 1, 'config': ordered_cfg}
+
+
+class Storage():
+    probe_map = {
+        'bcache': bcache.probe,
+        'blockdev': blockdev_probe,
+        'filesystem': filesystem.probe,
+        'lvm': lvm.probe,
+        'mounts': None,
+        'raid': raid.probe,
+        'zfs': zfs.probe
+    }
+
+    def __init__(self, results={}):
+        self.results = results
+        self.context = pyudev.Context()
+
+    def _get_probe_types(self):
+        return {ptype for ptype, pfunc in self.probe_map.items() if pfunc}
+
+    def probe(self, probe_types=None):
+        default_probes = self._get_probe_types()
+        if not probe_types:
+            to_probe = default_probes
+        else:
+            to_probe = probe_types.intersection(default_probes)
+
+        if len(to_probe) == 0:
+            not_avail = probe_types.difference(default_probes)
+            print('Requsted probes not available: %s' % probe_types)
+            print('Valid probe types: %s' % default_probes)
+            print('Unavilable probe types: %s' % not_avail)
+            return self.results
+
+        probed_data = {}
+        for ptype in to_probe:
+            pfunc = self.probe_map[ptype]
+            probed_data[ptype] = pfunc(context=self.context)
+
+        self.results = probed_data
+        return probed_data

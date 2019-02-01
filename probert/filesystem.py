@@ -1,4 +1,4 @@
-# Copyright 2015 Canonical, Ltd.
+# Copyright 2019 Canonical, Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -13,26 +13,25 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from probert.network import NetworkProber
-from probert.storage import Storage
+import logging
+import pyudev
+
+log = logging.getLogger('probert.filesystems')
 
 
-class Prober():
-    def __init__(self):
-        self._results = {}
-        self._config = {}
+def get_device_filesystem(device):
+    # extract ID_FS_* keys into dict, dropping leading ID_FS
+    return {k.replace('ID_FS_', ''): v
+            for k, v in device.items() if k.startswith('ID_FS_')}
 
-    def probe_all(self):
-        self.probe_storage()
-        self.probe_network()
 
-    def probe_storage(self):
-        self._storage = Storage()
-        self._results['storage'] = self._storage.probe()
+def probe(context=None):
+    filesystems = {}
+    if not context:
+        context = pyudev.Context()
 
-    def probe_network(self):
-        self._network = NetworkProber()
-        self._results['network'] = self._network.probe()
+    for device in context.list_devices(subsystem='block'):
+        if device['MAJOR'] not in ["1", "7"]:
+            filesystems[device['DEVNAME']] = get_device_filesystem(device)
 
-    def get_results(self):
-        return self._results
+    return filesystems
