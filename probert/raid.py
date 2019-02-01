@@ -52,7 +52,7 @@ def get_mdadm_array_spares(md_device, detail):
         return data.get(role_key_to_dev(key))
 
     return [get_dev_from_key(key, detail) for key in detail.keys()
-            if keymatch(key)]
+            if keymatch(key, detail, 'spare')]
 
 
 def get_mdadm_array_members(md_device, detail):

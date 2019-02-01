@@ -120,7 +120,7 @@ def zdb_asdict(data=None):
         try:
             result = subprocess.run(cmd, stdout=subprocess.PIPE,
                                     stderr=subprocess.DEVNULL)
-        except subprocess.ProcessExecutionError:
+        except (subprocess.CalledProcessError, FileNotFoundError):
             # zdb returns non-zero if there are no devices
             return {}
 
@@ -134,7 +134,7 @@ def zfs_list_filesystems(raw_output=False):
     try:
         result = subprocess.run(cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.DEVNULL)
-    except subprocess.ProcessExecutionError:
+    except subprocess.CalledProcessError:
         return []
 
     data = result.stdout.decode('utf-8')
