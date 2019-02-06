@@ -19,6 +19,7 @@ import subprocess
 
 log = logging.getLogger('probert.mount')
 
+
 def findmnt(data=None):
     if not data:
         cmd = ['findmnt', '--bytes', '--json']
@@ -30,15 +31,14 @@ def findmnt(data=None):
 
         data = result.stdout.decode('utf-8')
 
+    mounts = {}
     try:
         mounts = json.loads(data)
     except json.decoder.JSONDecodeError as e:
         log.error('Failed to load findmnt json output:', e)
-        return None
 
     return mounts
 
 
 def probe(context=None):
-    mounts  = findmnt()
-    return mounts.get('filesystems', {})
+    return findmnt().get('filesystems', {})
