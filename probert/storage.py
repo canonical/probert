@@ -19,7 +19,7 @@ import re
 import pyudev
 
 from probert.utils import udev_get_attributes, read_sys_block_size
-from probert import bcache, filesystem, lvm, mount, raid, zfs
+from probert import bcache, filesystem, lvm, mount, multipath, raid, zfs
 
 log = logging.getLogger('probert.storage')
 
@@ -214,6 +214,7 @@ class Storage():
         'filesystem': filesystem.probe,
         'lvm': lvm.probe,
         'mount': mount.probe,
+        'multipath': multipath.probe,
         'raid': raid.probe,
         'zfs': zfs.probe
     }
