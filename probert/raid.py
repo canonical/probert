@@ -31,6 +31,8 @@ def mdadm_assemble(scan=True, ignore_errors=True):
         subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError as e:
         log.error('Failed mdadm_assemble command %s: %s', cmd, e)
+    except FileNotFoundError as e:
+        log.error('Failed mdadm_assemble, mdadm command not found: %s', e)
 
     return
 
