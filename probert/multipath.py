@@ -18,15 +18,15 @@ import logging
 import subprocess
 
 MPath = namedtuple("MPath", ('device', 'serial', 'multipath', 'host_wwnn',
-                             'target_wwnn', 'host_wwpn', 'host_wwpn',
+                             'target_wwnn', 'host_wwpn', 'target_wwpn',
                              'host_adapter'))
 MMap = namedtuple("MMap", ('multipath', 'sysfs', 'paths'))
 log = logging.getLogger('probert.multipath')
 
 
 def multipath_show_paths():
-    path_format = "%d %z %m %N %n %R %r %a".split()
-    cmd = ['multipathd', 'show', 'paths', 'raw', 'format'] + path_format
+    path_format = "%d %z %m %N %n %R %r %a"
+    cmd = ['multipathd', 'show', 'paths', 'raw', 'format', path_format]
     try:
         result = subprocess.run(cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.DEVNULL)
@@ -36,14 +36,14 @@ def multipath_show_paths():
     data = result.stdout.decode('utf-8')
     paths = []
     for line in data.splitlines():
-        paths.append(MPath(*line.split()))
+        paths.append(MPath(*line.split())._asdict())
 
     return paths
 
 
 def multipath_show_maps():
     maps_format = "%w %d %N"
-    cmd = ['multipathd', 'show', 'maps', 'raw', 'format'] + maps_format
+    cmd = ['multipathd', 'show', 'maps', 'raw', 'format', maps_format]
     try:
         result = subprocess.run(cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.DEVNULL)
@@ -53,7 +53,7 @@ def multipath_show_maps():
     data = result.stdout.decode('utf-8')
     maps = []
     for line in data.splitlines():
-        maps.append(MMap(*line.split()))
+        maps.append(MMap(*line.split())._asdict())
 
     return maps
 
@@ -65,6 +65,6 @@ def probe(context=None):
         results.update({'maps': maps})
     paths = multipath_show_paths()
     if paths:
-        results.update({'paths': maps})
+        results.update({'paths': paths})
 
     return results
