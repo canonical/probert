@@ -95,6 +95,56 @@ def probe_lvm_report():
     return lvm_report
 
 
+def _lvm_report(cmd, report_key):
+    """ [pvs --reportformat=json -o foo,bar] report_key='pv'
+     {
+         "report": [
+             {
+                 "pv": [
+                     {"pv_name":"/dev/md0", "vg_name":"vg0",
+                      "pv_fmt":"lvm2", "pv_attr":"a--",
+                      "pv_size":"<9.99g", "pv_free":"<6.99g"},
+                     {"pv_name":"/dev/md1", "vg_name":"vg0",
+                      "pv_fmt":"lvm2", "pv_attr":"a--",
+                      "pv_size":"<9.99g", "pv_free":"<9.99g"}
+                 ]
+             }
+         ]
+     }
+    """
+    def _flatten_list(data):
+        return [y for x in data for y in x]
+
+
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL)
+        output = result.stdout.decode('utf-8')
+    except subprocess.CalledProcessError as e:
+        log.error('Failed to probe LVM devices on system:', e)
+        return None
+
+    try:
+        reports = json.loads(output)
+    except json.decoder.JSONDecodeError as e:
+        log.error('Failed to load LVM json report:', e)
+        return None
+
+    return _flatten_list([report.get(report_key)
+            for report in reports.get('report', []) if report_key in report])
+
+
+def probe_pvs_report():
+    return _lvm_report(['pvs', '--reportformat=json'], 'pv')
+
+def probe_vgs_report():
+    report_cmd = ['vgs', '--reportformat=json', '--units=B', '-o', 'vg_name,pv_name,pv_uuid,vg_size']
+    return _lvm_report(report_cmd, 'vg')
+
+def probe_lvs_report():
+    return _lvm_report('lvs', 'lv')
+
+
 def dmsetup_info(devname):
     ''' returns dict of info about device mapper dev.
 
@@ -160,15 +210,29 @@ def extract_lvm_partition(probe_data):
     return (lv_id, {'fullname': lv_id,
                     'name': probe_data['DM_LV_NAME'],
                     'volgroup': probe_data['DM_VG_NAME'],
-                    'size': read_sys_block_size(probe_data['DEVNAME'])})
+                    'size': "%sB" % read_sys_block_size(probe_data['DEVNAME'])})
 
 
-def extract_lvm_volgroup(probe_data):
-    vg_id = probe_data['vg_name']
-    return (vg_id, {'name': vg_id,
-                    'devices':
-                        ['disk-%s' % d
-                         for d in probe_data['blkdevs_used'].split(',')]})
+def extract_lvm_volgroup(vg_name, report_data):
+    """
+    [
+        {"vg_name":"vg0", "pv_name":"/dev/md0",
+         "pv_uuid":"p3oDow-dRHp-L8jq-t6gQ-67tv-B8B6-JWLKZP",
+         "vg_size":"21449670656B"},
+        {"vg_name":"vg0", "pv_name":"/dev/md1",
+         "pv_uuid":"pRR5Zn-c4a9-teVZ-TFaU-yDxf-FSDo-cORcEq",
+         "vg_size":"21449670656B"}
+    ]
+    """
+    devices = set()
+    for report in report_data:
+        if report['vg_name'] == vg_name:
+            size = report['vg_size']
+            devices.add(report.get('pv_name'))
+
+    return (vg_name, {'name': vg_name,
+                      'devices': list(devices),
+                      'size': size})
 
 
 def as_config(lv_type, lvmconf):
@@ -198,6 +262,7 @@ def probe(context=None, report=False):
     vgroups = {}
     pvols = {}
     report = probe_lvm_report() if report else {}
+    vg_report = probe_vgs_report()
 
     for device in context.list_devices(subsystem='block'):
         if 'DM_UUID' in device and device['DM_UUID'].startswith('LVM'):
@@ -208,8 +273,8 @@ def probe(context=None, report=False):
                 log.error('Found duplicate logical volume: %s', lv_id)
                 continue
 
-            dm_info = dmsetup_info(device['DEVNAME'])
-            (vg_id, new_vg) = extract_lvm_volgroup(dm_info)
+            vg_name = device['DM_VG_NAME']
+            (vg_id, new_vg) = extract_lvm_volgroup(vg_name, vg_report)
             if vg_id not in vgroups:
                 vgroups[vg_id] = new_vg
             else:
@@ -217,7 +282,8 @@ def probe(context=None, report=False):
                 continue
 
             if vg_id not in pvols:
-                pvols[vg_id] = new_vg.get('devices')
+                pvols[vg_id] = new_vg['devices']
+
 
     lvm = {}
     if lvols:
