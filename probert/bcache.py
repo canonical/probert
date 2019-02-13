@@ -36,7 +36,8 @@ def superblock_asdict(device=None, data=None):
         if not line:
             continue
         values = [val for val in line.split('\t') if val]
-        bcache_super.update({values[0]: values[1]})
+        if len(values) == 2:
+            bcache_super.update({values[0]: values[1]})
 
     return bcache_super
 
@@ -109,7 +110,7 @@ def probe(context=None):
         if is_bcache_device(device):
             devpath = device['DEVNAME']
             sb = superblock_asdict(devpath)
-            bkey = sb['dev.uuid']
+            bkey = sb.get('dev.uuid', 'not available')
             bconfig = {'blockdev': devpath, 'superblock': sb}
             if is_backing(devpath):
                 backing[bkey] = bconfig
