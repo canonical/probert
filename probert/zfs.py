@@ -16,6 +16,7 @@
 from collections import namedtuple
 import logging
 import operator
+import os
 import re
 import subprocess
 from functools import reduce
@@ -114,14 +115,16 @@ def parse_zdb_output(data):
 
 
 def zdb_asdict(data=None):
-    """ Convert output from bcache-super-show into a dictionary"""
+    """ Convert output from zdb into a dictionary"""
     if not data:
         cmd = ['zdb']
+        # exported, altroot, and uncached pools need -e
+        if not os.path.exists('/etc/zfs/zpool.cache'):
+            cmd.append('-e')
         try:
             result = subprocess.run(cmd, stdout=subprocess.PIPE,
                                     stderr=subprocess.DEVNULL)
         except (subprocess.CalledProcessError, FileNotFoundError):
-            # zdb returns non-zero if there are no devices
             return {}
 
         data = result.stdout.decode('utf-8')
