@@ -131,6 +131,6 @@ def probe(context=None, report=False):
             cfg.update({'raidlevel': device['MD_LEVEL'],
                         'devices': devices,
                         'spare_devices': spares})
-            raids[raid_name] = cfg
+            raids[devname] = cfg
 
     return raids
