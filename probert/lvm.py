@@ -115,7 +115,6 @@ def _lvm_report(cmd, report_key):
     def _flatten_list(data):
         return [y for x in data for y in x]
 
-
     try:
         result = subprocess.run(cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.DEVNULL)
@@ -131,15 +130,19 @@ def _lvm_report(cmd, report_key):
         return None
 
     return _flatten_list([report.get(report_key)
-            for report in reports.get('report', []) if report_key in report])
+                          for report in reports.get('report', [])
+                          if report_key in report])
 
 
 def probe_pvs_report():
     return _lvm_report(['pvs', '--reportformat=json'], 'pv')
 
+
 def probe_vgs_report():
-    report_cmd = ['vgs', '--reportformat=json', '--units=B', '-o', 'vg_name,pv_name,pv_uuid,vg_size']
+    report_cmd = ['vgs', '--reportformat=json', '--units=B',
+                  '-o', 'vg_name,pv_name,pv_uuid,vg_size']
     return _lvm_report(report_cmd, 'vg')
+
 
 def probe_lvs_report():
     return _lvm_report('lvs', 'lv')
@@ -207,10 +210,11 @@ def activate_volgroups():
 
 def extract_lvm_partition(probe_data):
     lv_id = "%s/%s" % (probe_data['DM_VG_NAME'], probe_data['DM_LV_NAME'])
-    return (lv_id, {'fullname': lv_id,
-                    'name': probe_data['DM_LV_NAME'],
-                    'volgroup': probe_data['DM_VG_NAME'],
-                    'size': "%sB" % read_sys_block_size(probe_data['DEVNAME'])})
+    return (
+        lv_id, {'fullname': lv_id,
+                'name': probe_data['DM_LV_NAME'],
+                'volgroup': probe_data['DM_VG_NAME'],
+                'size': "%sB" % read_sys_block_size(probe_data['DEVNAME'])})
 
 
 def extract_lvm_volgroup(vg_name, report_data):
@@ -283,7 +287,6 @@ def probe(context=None, report=False):
 
             if vg_id not in pvols:
                 pvols[vg_id] = new_vg['devices']
-
 
     lvm = {}
     if lvols:

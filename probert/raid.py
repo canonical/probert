@@ -123,10 +123,7 @@ def probe(context=None, report=False):
             devname = device['DEVNAME']
             attrs = udev_get_attributes(device)
             attrs['size'] = str(read_sys_block_size(devname))
-
-            raid_name = extract_mdadm_raid_name(device)
             devices, spares = get_mdadm_array_members(devname, device)
-
             cfg = dict(device)
             cfg.update({'raidlevel': device['MD_LEVEL'],
                         'devices': devices,
