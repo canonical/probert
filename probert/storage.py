@@ -47,7 +47,9 @@ class StorageInfo():
             try:
                 return self.raw[key]
             except KeyError:
-                log.debug('Failed to get key {} from interface {}'.format(key, self.name))
+                log.debug(
+                    'Failed to get key {} from interface {}'.format(key,
+                                                                    self.name))
 
         return None
 
@@ -55,7 +57,8 @@ class StorageInfo():
     def vendor(self):
         ''' Some disks don't have ID_VENDOR_* instead the vendor
             is encoded in the model: SanDisk_A223JJ3J3 '''
-        v = self._get_hwvalues(['ID_VENDOR_FROM_DATABASE', 'ID_VENDOR', 'ID_VENDOR_ID'])
+        v = self._get_hwvalues(['ID_VENDOR_FROM_DATABASE', 'ID_VENDOR',
+                                'ID_VENDOR_ID'])
         if v is None:
             v = self.model
             if v is not None:
@@ -64,7 +67,8 @@ class StorageInfo():
 
     @property
     def model(self):
-        return self._get_hwvalues(['ID_MODEL_FROM_DATABASE', 'ID_MODEL', 'ID_MODEL_ID'])
+        return self._get_hwvalues(['ID_MODEL_FROM_DATABASE', 'ID_MODEL',
+                                   'ID_MODEL_ID'])
 
     @property
     def serial(self):
