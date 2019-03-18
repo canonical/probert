@@ -41,4 +41,8 @@ def findmnt(data=None):
 
 
 def probe(context=None):
+    """The probert uses the util-linux 'findmnt' command which
+       dumps a JSON tree of detailed information about _all_
+       mounts in the current linux system.
+    """
     return findmnt().get('filesystems', {})
