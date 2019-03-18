@@ -97,21 +97,14 @@ def extract_mdadm_raid_name(conf):
     return raid_name
 
 
-def as_config(devname, conf):
-    if conf.get('MD_LEVEL') in SUPPORTED_RAID_TYPES:
-        raid_name = extract_mdadm_raid_name(conf)
-        devices, spares = get_mdadm_array_members(devname, conf)
-        return {'id': 'mdadm-%s' % raid_name,
-                'type': 'raid',
-                'name': raid_name,
-                'raidlevel': conf.get('MD_LEVEL'),
-                'devices': devices,
-                'spare_devices': spares}
-
-    return None
-
-
 def probe(context=None, report=False):
+    """Initiate an mdadm assemble to awaken existing MDADM devices.
+       For each md block device, extract required information needed
+       to describe the array for recreation or reuse as needed.
+
+       mdadm tooling provides information about the raid type,
+       the members, the size, the name, uuids, metadata version.
+    """
     mdadm_assemble()
 
     # ignore passed context, must read udev after assembling mdadm devices
