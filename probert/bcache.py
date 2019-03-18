@@ -100,6 +100,23 @@ def is_bcache_device(device):
 
 
 def probe(context=None):
+    """Probe the system for bcache devices.  Bcache devices
+       are registered with the kernel upon module load and when
+       devices are hot/cold plugged.  There are two portions to
+       a bcache, the backing device which holds data and the cache
+       device which cached data from the backing device.  A backing
+       device encodes a specific cache_set UUID in the backing device
+       which is used to bind both device in the kernel and create a
+       new block device, bcacheN.
+
+       For each block device which has a bcache superblock embedded,
+       extract and examine the superblock to determine which type of
+       bcache device (backing, caching) and the relevant UUIDs and
+       build (if possible) the pairing of caches to backing.
+
+       This probe reports the devices separately but enough information
+       is included to re-assemble joined bcache devices if desired.
+    """
     backing = {}
     caching = {}
     bcache = {'backing': backing, 'caching': caching}
@@ -117,6 +134,6 @@ def probe(context=None):
             elif is_caching(devpath):
                 caching[bkey] = bconfig
             else:
-                print('WARK: %s is not bcache?' % devpath)
+                log.error('bcache.probe: %s is not bcache' % devpath)
 
     return bcache
