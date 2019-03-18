@@ -84,127 +84,25 @@ class StorageInfo():
         return self.devpath.startswith('/devices/virtual/')
 
 
-def as_config(device):
-    if 'DEVTYPE' not in device:
-        return {}
-    if device['DEVTYPE'] == 'disk':
-        name = os.path.basename(device['DEVNAME'])
-        disk = {
-            'id': 'disk-%s' % name,
-            'type': 'disk',
-            'path': device['DEVNAME'],
-        }
-        if 'ID_SERIAL' in device:
-            disk.update({'serial': device['ID_SERIAL']})
-        return disk
-    elif device['DEVTYPE'] == 'partition':
-        name = os.path.basename(device['DEVNAME'])
-        partmatch = re.search(r'[0-9]+', name)
-        partnum = name[partmatch.start():partmatch.end()]
-        parent = name.split(partnum)[0]
-        return {
-            'id': 'partition-%s' % name,
-            'type': 'partition',
-            'number': partnum,
-            'device': 'disk-%s' % parent,
-            'size': device['attrs']['size'],
-        }
-
-
 def blockdev_probe(context=None):
-        if not context:
-            context = pyudev.Context()
+    """ Non-class method for extracting relevant block
+        devices from pyudev.Context().
+    """
+    if not context:
+        context = pyudev.Context()
 
-        blockdev = {}
-        for device in context.list_devices(subsystem='block'):
-            if device['MAJOR'] not in ["1", "7"]:
-                attrs = udev_get_attributes(device)
-                # update the size attr as it may only be the number
-                # of blocks rather than size in bytes.
-                attrs['size'] = \
-                    str(read_sys_block_size(device['DEVNAME']))
-                blockdev[device['DEVNAME']] = dict(device)
-                blockdev[device['DEVNAME']].update({'attrs': attrs})
+    blockdev = {}
+    for device in context.list_devices(subsystem='block'):
+        if device['MAJOR'] not in ["1", "7"]:
+            attrs = udev_get_attributes(device)
+            # update the size attr as it may only be the number
+            # of blocks rather than size in bytes.
+            attrs['size'] = \
+                str(read_sys_block_size(device['DEVNAME']))
+            blockdev[device['DEVNAME']] = dict(device)
+            blockdev[device['DEVNAME']].update({'attrs': attrs})
 
-        return blockdev
-
-
-class Blockdev():
-    def __init__(self, context=None, results={}):
-        self.results = results
-        self.context = context
-        if not self.context:
-            self.context = pyudev.Context()
-
-    def get_devices_by_key(self, keyname, value):
-        try:
-            storage = self.results.get('storage')
-            return [device for device in storage.keys()
-                    if storage[device][keyname] == value]
-        except (KeyError, AttributeError):
-            return []
-
-    def get_devices(self):
-        try:
-            return self.results.get('storage').keys()
-        except (KeyError, AttributeError):
-            return []
-
-    def get_partitions(self, device):
-        ''' /dev/sda '''
-        try:
-            partitions = self.get_devices_by_key('DEVTYPE', 'partition')
-            return [part for part in partitions
-                    if part.startswith(device)]
-        except (KeyError, AttributeError):
-            return []
-
-    def get_disks(self):
-        try:
-            storage = self.results.get('storage')
-            return [disk for disk in self.get_devices_by_key('MAJOR', '8')
-                    if storage[disk]['DEVTYPE'] == 'disk']
-        except (KeyError, AttributeError):
-            return []
-
-    def get_device_size(self, device):
-        try:
-            hwinfo = self.results.get('storage').get(device)
-            return hwinfo.get('attrs').get('size')
-        except (KeyError, AttributeError):
-            return "0"
-
-    def _get_device_size(self, device, is_partition=False):
-        ''' device='/dev/sda' '''
-        return read_sys_block_size(device)
-
-    def probe(self, context=None):
-        self.results = blockdev_probe(context=self.context)
-        return self.results
-
-    def export(self):
-        cfg = {'version': 1, 'config': []}
-        disks = []
-        partitions = []
-        for device, info in self.results.items():
-            cfg = as_config(info)
-            if not cfg:
-                continue
-            if cfg['type'] == 'disk':
-                disks.append(cfg)
-            elif cfg['type'] == 'partition':
-                partitions.append(cfg)
-
-        # FIXME: this needs id relations, that is once we add mdadm and other
-        # composed devices then partitions make occur after the device is
-        # composed.
-        ordered_cfg = []
-        for disk in disks:
-            ordered_cfg.append(disk)
-        for part in partitions:
-            ordered_cfg.append(part)
-
-        return {'version': 1, 'config': ordered_cfg}
+    return blockdev
 
 
 class Storage():
