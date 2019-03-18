@@ -14,8 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-import os
-import re
 import pyudev
 
 from probert.utils import udev_get_attributes, read_sys_block_size
