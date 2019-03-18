@@ -179,6 +179,31 @@ def extract_lvm_volgroup(probe_data):
 
 
 def probe(context=None, report=False):
+    """ Probing for LVM devices requires initiating a kernel level scan
+        of block devices to look for physical volumes, volume groups and
+        logical volumes.  Once detected, the prober will activate any
+        volume groups detected.
+
+        The prober will refresh the udev context which brings in addition
+        information relating to LVM devices.
+
+        This prober relies on udev detecting devices via the 'DM_UUID'
+        field and for each of such devices, the prober records the
+        logical volume.
+
+        For each logical volume, the prober determines the hosting
+        volume_group and records detailed information about the group
+        including members.  The process is repeated to determine the
+        underlying physical volumes that are used to construct a
+        volume group.
+
+        Care is taken to handle scenarios where physical volumes are
+        not yet allocated to a volume group (such as a linear VG).
+
+        On newer systems (Disco+) the lvm2 software stack provides
+        a rich reporting data dump in JSON format.  On systems with
+        older LVM2 stacks, the LVM probe may be incomplete.
+    """
     # scan and activate lvm vgs/lvs
     lvm_scan()
     activate_volgroups()
