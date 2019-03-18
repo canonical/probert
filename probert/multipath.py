@@ -59,6 +59,15 @@ def multipath_show_maps():
 
 
 def probe(context=None):
+    """Query the multipath daemon for multipath maps and paths.
+
+       This data is useful for determining whether a specific block
+       device is part of a multipath and if so which device-mapper (dm)
+       blockdevice should be used.
+
+       This probe requires multipath module to be loaded and the multipath
+       daemon to be running.
+    """
     results = {}
     maps = multipath_show_maps()
     if maps:
