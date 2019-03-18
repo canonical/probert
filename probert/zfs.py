@@ -184,6 +184,19 @@ def is_zfs_device(device):
 
 
 def probe(context=None):
+    """The ZFS prober examines the ZFS Dubugger (zdb) output which
+    produces psuedo-json output.  This is converted to a dictionary
+    where for each zpool, we can extract the datasets and determine
+    which vdevs (linux block devices) are used to construct the the
+    zpool.
+
+    For each zpool and dataset, the prober further extracts all of
+    the pool and filesystem (dataset) properties and captures if
+    the values and whether they are local changes or defaults.
+
+    The resulting output includes the converted zdb dump and
+    a tree of datasets and their properties.
+    """
     zdb = zdb_asdict()
     zpools = {}
     for zpool, zdb_dump in zdb.items():
