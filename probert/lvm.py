@@ -123,6 +123,10 @@ def _lvm_report(cmd, report_key):
         log.error('Failed to probe LVM devices on system:', e)
         return None
 
+    if not output:
+        return
+
+    reports = {}
     try:
         reports = json.loads(output)
     except json.decoder.JSONDecodeError as e:
