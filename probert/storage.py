@@ -208,6 +208,19 @@ class Blockdev():
 
 
 class Storage():
+    """ The Storage class includes a map of storage types that
+        probert knows how to extract required information needed
+        for installation and use.  Each storage module included
+        provides a probe method which will prepare and probe the
+        environment for the specific type of storage devices.
+
+        The result of each probe is collected into a dictionary
+        which is collected in the class .results attribute.
+
+        The probe is non-destructive and read-only; however a
+        probe module may load additional modules if they are not
+        present.
+    """
     probe_map = {
         'bcache': bcache.probe,
         'blockdev': blockdev_probe,
