@@ -44,6 +44,10 @@ def get_device_filesystem(device):
 
 
 def probe(context=None):
+    """ Capture detected filesystems found on discovered block devices.
+        Filter the detected values via the host kernel's supported file
+        systems.
+    """
     filesystems = {}
     supported_fs = get_supported_filesystems()
     if not context:
