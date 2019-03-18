@@ -24,57 +24,6 @@ from probert.utils import read_sys_block_size
 log = logging.getLogger('probert.lvm')
 
 
-class LvInfo():
-    def __init__(self, lvname, vgname, lvsize):
-        self.type = 'lvm_partition'
-        self.name = lvname
-        self.vgname = vgname
-        self.size = lvsize
-        self.fullname = "%s/%s" % (self.name, self.vgname)
-        self.id = 'lvmpart-%s' % self.name
-
-    def as_config(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'size': self.size,
-            'type': self.type,
-            'volgroup': 'lvm_volgroup-%s' % self.volgroup
-        }
-
-
-class VgInfo():
-    def __init__(self, name, devices):
-        self.type = 'lvm_volgroup'
-        self.name = name
-        self.devices = devices
-        self.id = 'lvmvol-%s' % (self.name)
-
-    def as_config(self):
-        return {
-            'id': self.id,
-            'type': self.type,
-            'name': self.name,
-            'devices': self.devices,
-        }
-
-
-class PvInfo():
-    def __init__(self, name, devpath):
-        self.type = 'lvm_physdev'
-        self.name = name
-        self.devpath = devpath
-        self.id = 'lvmphysdev-%s' % self.name
-
-    def as_config(self):
-        return {
-            'id': self.id,
-            'type': self.type,
-            'name': self.name,
-            'devpath': self.devpath
-        }
-
-
 def probe_lvm_report():
     try:
         cmd = ['lvm', 'fullreport', '--nosuffix', '--units', 'B',
@@ -227,21 +176,6 @@ def extract_lvm_volgroup(probe_data):
                     'devices':
                         ['/dev/%s' % d
                          for d in probe_data['blkdevs_used'].split(',')]})
-
-
-def as_config(lv_type, lvmconf):
-    if lv_type == 'vgs':
-        return {'id': 'lvmvol-%s' % lvmconf.get('name'),
-                'type': 'lvm_volgroup',
-                'name': lvmconf.get('name'),
-                'devices': lvmconf.get('devices')}
-    if lv_type == 'lvs':
-        return {'id': 'lvmpart-%s' % lvmconf.get('name'),
-                'type': 'lvm_partition',
-                'name': lvmconf.get('name'),
-                'volgroup': 'lvmvol-%s' % lvmconf.get('volgroup'),
-                'size': str(lvmconf.get('size'))}
-    return None
 
 
 def probe(context=None, report=False):
