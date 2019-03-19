@@ -17,7 +17,6 @@
 class Prober():
     def __init__(self):
         self._results = {}
-        self._config = {}
 
     def probe_all(self):
         self.probe_storage()
