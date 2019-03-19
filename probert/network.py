@@ -820,10 +820,6 @@ class NetworkProber:
             results['routes'].append(route_data)
         return results
 
-    def export(self):
-        return {'version': 2, 'ethernets': {}, 'wifis': {}, 'bonds': {},
-                'bridges': {}, 'vlans': {}}
-
 
 if __name__ == '__main__':
     import pprint
