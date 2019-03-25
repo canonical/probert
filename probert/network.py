@@ -715,8 +715,10 @@ class UdevObserver(NetworkObserver):
         ip = data['local'].decode('latin-1')
         if action == 'DEL':
             link.addresses.pop(ip, None)
+            self.receiver.update_link(data['ifindex'])
             return
         link.addresses[ip] = Address.from_probe_data(data)
+        self.receiver.update_link(data['ifindex'])
 
     @nocoalesce
     def route_change(self, action, data):
