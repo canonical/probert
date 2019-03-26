@@ -54,6 +54,8 @@ def probe(context=None):
         context = pyudev.Context()
 
     for device in context.list_devices(subsystem='block'):
+        # Ignore block major=1 (ramdisk) and major=7 (loopback)
+        # these won't ever be used in recreating storage on target systems.
         if device['MAJOR'] not in ["1", "7"]:
             fs_info = get_device_filesystem(device)
             if fs_info and fs_info['TYPE'] in supported_fs:
