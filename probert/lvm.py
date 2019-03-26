@@ -24,26 +24,6 @@ from probert.utils import read_sys_block_size
 log = logging.getLogger('probert.lvm')
 
 
-def probe_lvm_report():
-    try:
-        cmd = ['lvm', 'fullreport', '--nosuffix', '--units', 'B',
-               '--reportformat', 'json']
-        result = subprocess.run(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL)
-        output = result.stdout.decode('utf-8')
-    except subprocess.CalledProcessError as e:
-        log.error('Failed to probe LVM devices on system:', e)
-        return None
-
-    try:
-        lvm_report = json.loads(output)
-    except json.decoder.JSONDecodeError as e:
-        log.error('Failed to load LVM json report:', e)
-        return None
-
-    return lvm_report
-
-
 def _lvm_report(cmd, report_key):
     """ [pvs --reportformat=json -o foo,bar] report_key='pv'
      {
@@ -214,7 +194,6 @@ def probe(context=None, report=False):
     lvols = {}
     vgroups = {}
     pvols = {}
-    report = probe_lvm_report() if report else {}
     vg_report = probe_vgs_report()
 
     for device in context.list_devices(subsystem='block'):
@@ -244,7 +223,5 @@ def probe(context=None, report=False):
         lvm.update({'physical_volumes': pvols})
     if vgroups:
         lvm.update({'volume_groups': vgroups})
-    if report:
-        lvm.update({'report': report})
 
     return lvm
