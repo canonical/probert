@@ -56,7 +56,7 @@ def parse_sb_version(sb_version):
     return version
 
 
-def is_backing(device, superblock=False):
+def is_backing(device):
     """ Test if device is a bcache backing device
 
     A runtime check for an active bcache backing device is to
@@ -65,17 +65,12 @@ def is_backing(device, superblock=False):
     However if a device is not active then read the superblock
     of the device and check that sb.version == 1"""
 
-    if not superblock:
-        sys_block = '/sys/class/block/%s' % os.path.basename(device)
-        bcache_sys_attr = os.path.join(sys_block, 'bcache', 'label')
-        return os.path.exists(bcache_sys_attr)
-    else:
-        bcache_super = superblock_asdict(device=device)
-        sb_version = parse_sb_version(bcache_super['sb.version'])
-        return bcache_super and sb_version == 1
+    sys_block = '/sys/class/block/%s' % os.path.basename(device)
+    bcache_sys_attr = os.path.join(sys_block, 'bcache', 'label')
+    return os.path.exists(bcache_sys_attr)
 
 
-def is_caching(device, superblock=False):
+def is_caching(device):
     """ Test if device is a bcache caching device
 
     A runtime check for an active bcache backing device is to
@@ -84,15 +79,10 @@ def is_caching(device, superblock=False):
     However if a device is not active then read the superblock
     of the device and check that sb.version == 3"""
 
-    if not superblock:
-        sys_block = '/sys/class/block/%s' % os.path.basename(device)
-        bcache_sys_attr = os.path.join(sys_block, 'bcache',
-                                       'cache_replacement_policy')
-        return os.path.exists(bcache_sys_attr)
-    else:
-        bcache_super = superblock_asdict(device=device)
-        sb_version = parse_sb_version(bcache_super['sb.version'])
-        return bcache_super and sb_version == 3
+    sys_block = '/sys/class/block/%s' % os.path.basename(device)
+    bcache_sys_attr = os.path.join(sys_block, 'bcache',
+                                   'cache_replacement_policy')
+    return os.path.exists(bcache_sys_attr)
 
 
 def is_bcache_device(device):
