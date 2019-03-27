@@ -1,12 +1,12 @@
 probert (0.0.15) UNRELEASED; urgency=medium
 
   * d/control:
-    - Update priority from extra to optional
     - Remove unneeded X-Python3-Version
     - Remove hard-coded Depends on python3-all
     - Remove Build-Depends on python3-all
     - Add Build-Depends on python3-testtools for testing
     - Bump Standards-Version to 4.3.0
+      - Update priority from extra to optional
   * d/rules:
     - Re-enable dh_auto_test
 
