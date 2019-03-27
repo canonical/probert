@@ -150,13 +150,26 @@ def extract_lvm_partition(probe_data):
                 'size': "%sB" % read_sys_block_size(probe_data['DEVNAME'])})
 
 
-def extract_lvm_volgroup(probe_data):
-    vg_id = probe_data['vg_name']
-    return (vg_id, {'name': vg_id,
-                    'devices':
-                        ['/dev/%s' % d
-                         for d in probe_data['blkdevs_used'].split(',')]})
+def extract_lvm_volgroup(vg_name, report_data):
+    """
+    [
+        {"vg_name":"vg0", "pv_name":"/dev/md0",
+         "pv_uuid":"p3oDow-dRHp-L8jq-t6gQ-67tv-B8B6-JWLKZP",
+         "vg_size":"21449670656B"},
+        {"vg_name":"vg0", "pv_name":"/dev/md1",
+         "pv_uuid":"pRR5Zn-c4a9-teVZ-TFaU-yDxf-FSDo-cORcEq",
+         "vg_size":"21449670656B"}
+    ]
+    """
+    devices = set()
+    for report in report_data:
+        if report['vg_name'] == vg_name:
+            size = report['vg_size']
+            devices.add(report.get('pv_name'))
 
+    return (vg_name, {'name': vg_name,
+                      'devices': list(devices),
+                      'size': size})
 
 def probe(context=None, report=False):
     """ Probing for LVM devices requires initiating a kernel level scan
