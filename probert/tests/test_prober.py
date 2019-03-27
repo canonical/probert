@@ -1,8 +1,7 @@
 import testtools
 import json
 import argparse
-
-from mock import patch
+from unittest.mock import patch
 
 from probert.prober import Prober
 from probert.storage import Storage
