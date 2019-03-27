@@ -9,6 +9,8 @@ probert (0.0.15) UNRELEASED; urgency=medium
       - Update priority from extra to optional
     - Remove python3-yaml from Build-Depends and Depends; it isn't actually
       used by the package
+    - Drop hard-coded Depends now that setup.py correctly expresses
+      dependencies
   * d/rules:
     - Re-enable dh_auto_test
 
