@@ -7,6 +7,7 @@ probert (0.0.15) disco; urgency=medium
   * d/control:
     - Update priority from extra to optional
     - Remove unneeded X-Python3-Version
+    - Remove hard-coded Depends on python3-all
 
  -- Michael Hudson-Doyle <mwhudson@debian.org>  Fri, 16 Mar 2018 14:14:34 +1300
 
