@@ -1,6 +1,11 @@
-probert (0.0.15) xenial; urgency=medium
+probert (0.0.15) disco; urgency=medium
 
+  [ Michael Hudson-Doyle ]
   * New stuff.
+
+  [ Daniel Watkins ]
+  * d/control:
+    - Update priority from extra to optional
 
  -- Michael Hudson-Doyle <mwhudson@debian.org>  Fri, 16 Mar 2018 14:14:34 +1300
 
