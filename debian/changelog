@@ -7,6 +7,8 @@ probert (0.0.15) UNRELEASED; urgency=medium
     - Add Build-Depends on python3-testtools for testing
     - Bump Standards-Version to 4.3.0
       - Update priority from extra to optional
+    - Remove python3-yaml from Build-Depends and Depends; it isn't actually
+      used by the package
   * d/rules:
     - Re-enable dh_auto_test
 
