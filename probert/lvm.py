@@ -81,31 +81,6 @@ def probe_lvs_report():
     return _lvm_report('lvs', 'lv')
 
 
-def dmsetup_info(devname):
-    ''' returns dict of info about device mapper dev.
-
-    {'blkdevname': 'dm-0',
-     'blkdevs_used': 'sdbr,sdbq,sdbp',
-     'lv_name': 'lv_srv',
-     'subsystem': 'LVM',
-     'uuid': 'LVM-lyrZxQgOcgVSlj81LvyUnvq4DW3uLLrfJLI5ieYZR9a2fSOGBK03KM78',
-     'vg_name': 'storage_vg_242x'}
-    '''
-    _SEP = '='
-    fields = (
-        'subsystem,vg_name,lv_name,blkdevname,uuid,blkdevs_used'.split(','))
-    try:
-        output = subprocess.check_output(
-            ['sudo', 'dmsetup', 'info', devname, '-C', '-o',
-             ','.join(fields), '--noheading', '--separator', _SEP])
-    except subprocess.CalledProcessError as e:
-        log.error('Failed to probe dmsetup info:', e)
-        return None
-    values = output.decode('utf-8').strip().split(_SEP)
-    info = dict(zip(fields, values))
-    return info
-
-
 def lvmetad_running():
     return os.path.exists(os.environ.get('LVM_LVMETAD_PIDFILE',
                                          '/run/lvmetad.pid'))
