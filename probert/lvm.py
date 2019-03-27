@@ -161,11 +161,29 @@ def extract_lvm_volgroup(vg_name, report_data):
          "vg_size":"21449670656B"}
     ]
     """
+    def _int(size_val):
+        if size_val and size_val.endswith('B'):
+            return int(size_val[:-1])
+        return 0
+
     devices = set()
+    size = None
     for report in report_data:
         if report['vg_name'] == vg_name:
-            size = report['vg_size']
+            vg_size = report['vg_size']
+            # set size to the largest size we find
+            if vg_size:
+                # unset, take current value
+                if not size:
+                    size = vg_size
+                # on set but mismatched values, keep the larger
+                elif size != vg_size:
+                    if _int(vg_size) > _int(size):
+                        size = vg_size
             devices.add(report.get('pv_name'))
+
+    if size is None:
+        size = '0B'
 
     return (vg_name, {'name': vg_name,
                       'devices': list(devices),
