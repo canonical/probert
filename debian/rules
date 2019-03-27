@@ -14,9 +14,6 @@ override_dh_python3:
 override_dh_installinit:
 	dh_installinit --no-start
 
-override_dh_auto_test:
-	@echo "No tests."
-
 get-orig-source:
 	python3 ./setup.py sdist
 	cp dist/*.tar.gz ../probert_${VERS}.orig.tar.gz

@@ -9,6 +9,9 @@ probert (0.0.15) disco; urgency=medium
     - Remove unneeded X-Python3-Version
     - Remove hard-coded Depends on python3-all
     - Remove Build-Depends on python3-all
+    - Add Build-Depends on python3-testtools for testing
+  * d/rules:
+    - Re-enable dh_auto_test
 
  -- Michael Hudson-Doyle <mwhudson@debian.org>  Fri, 16 Mar 2018 14:14:34 +1300
 
