@@ -13,6 +13,7 @@ probert (0.0.15) UNRELEASED; urgency=medium
       dependencies
   * d/rules:
     - Re-enable dh_auto_test
+    - Remove unnecessary override_dh_installinit
 
  -- Daniel Watkins <oddbloke@ubuntu.com>  Wed, 27 Mar 2019 14:48:20 -0400
 
