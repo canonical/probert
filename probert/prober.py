@@ -13,9 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from probert.storage import Storage
-from probert.network import NetworkProber
-
 
 class Prober():
     def __init__(self):
@@ -26,10 +23,14 @@ class Prober():
         self.probe_network()
 
     def probe_storage(self):
-        self._results['storage'] = Storage().probe()
+        from probert.storage import Storage
+        self._storage = Storage()
+        self._results['storage'] = self._storage.probe()
 
     def probe_network(self):
-        self._results['network'] = NetworkProber().probe()
+        from probert.network import NetworkProber
+        self._network = NetworkProber()
+        self._results['network'] = self._network.probe()
 
     def get_results(self):
         return self._results

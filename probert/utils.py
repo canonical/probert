@@ -223,3 +223,27 @@ def parse_etc_network_interfaces(ifaces, contents, path):
     for iface in ifaces.keys():
         if 'auto' not in ifaces[iface]:
             ifaces[iface]['auto'] = False
+
+
+def read_sys_block_size(device):
+    device_dir = os.path.join('/sys/class/block', os.path.basename(device))
+    blockdev_size = os.path.join(device_dir, 'size')
+    with open(blockdev_size) as d:
+        size = int(d.read().strip())
+
+    logsize_base = device_dir
+    if not os.path.exists(os.path.join(device_dir, 'queue')):
+        parent_dev = os.path.basename(re.split('[\d+]', device)[0])
+        logsize_base = os.path.join('/sys/class/block', parent_dev)
+
+    logical_size = os.path.join(logsize_base, 'queue', 'logical_block_size')
+    if os.path.exists(logical_size):
+        with open(logical_size) as s:
+            size *= int(s.read().strip())
+
+    return size
+
+
+def read_sys_block_slaves(device):
+    device_dir = os.path.join('/sys/class/block', os.path.basename(device))
+    return os.listdir(os.path.join(device_dir, 'slaves'))

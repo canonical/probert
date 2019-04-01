@@ -14,11 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-import os
-import re
 import pyudev
 
-from probert.utils import udev_get_attributes
+from probert.utils import udev_get_attributes, read_sys_block_size
+from probert import (bcache, dmcrypt, filesystem, lvm, mount, multipath,
+                     raid, zfs)
 
 log = logging.getLogger('probert.storage')
 
@@ -83,80 +83,78 @@ class StorageInfo():
         return self.devpath.startswith('/devices/virtual/')
 
 
+def blockdev_probe(context=None):
+    """ Non-class method for extracting relevant block
+        devices from pyudev.Context().
+    """
+    if not context:
+        context = pyudev.Context()
+
+    blockdev = {}
+    for device in context.list_devices(subsystem='block'):
+        if device['MAJOR'] not in ["1", "7"]:
+            attrs = udev_get_attributes(device)
+            # update the size attr as it may only be the number
+            # of blocks rather than size in bytes.
+            attrs['size'] = \
+                str(read_sys_block_size(device['DEVNAME']))
+            blockdev[device['DEVNAME']] = dict(device)
+            blockdev[device['DEVNAME']].update({'attrs': attrs})
+
+    return blockdev
+
+
 class Storage():
+    """ The Storage class includes a map of storage types that
+        probert knows how to extract required information needed
+        for installation and use.  Each storage module included
+        provides a probe method which will prepare and probe the
+        environment for the specific type of storage devices.
+
+        The result of each probe is collected into a dictionary
+        which is collected in the class .results attribute.
+
+        The probe is non-destructive and read-only; however a
+        probe module may load additional modules if they are not
+        present.
+    """
+    probe_map = {
+        'bcache': bcache.probe,
+        'blockdev': blockdev_probe,
+        'dmcrypt': dmcrypt.probe,
+        'filesystem': filesystem.probe,
+        'lvm': lvm.probe,
+        'mount': mount.probe,
+        'multipath': multipath.probe,
+        'raid': raid.probe,
+        'zfs': zfs.probe
+    }
+
     def __init__(self, results={}):
         self.results = results
         self.context = pyudev.Context()
 
-    def get_devices_by_key(self, keyname, value):
-        try:
-            storage = self.results.get('storage')
-            return [device for device in storage.keys()
-                    if storage[device][keyname] == value]
-        except (KeyError, AttributeError):
-            return []
+    def _get_probe_types(self):
+        return {ptype for ptype, pfunc in self.probe_map.items() if pfunc}
 
-    def get_devices(self):
-        try:
-            return self.results.get('storage').keys()
-        except (KeyError, AttributeError):
-            return []
+    def probe(self, probe_types=None):
+        default_probes = self._get_probe_types()
+        if not probe_types:
+            to_probe = default_probes
+        else:
+            to_probe = probe_types.intersection(default_probes)
 
-    def get_partitions(self, device):
-        ''' /dev/sda '''
-        try:
-            partitions = self.get_devices_by_key('DEVTYPE', 'partition')
-            return [part for part in partitions
-                    if part.startswith(device)]
-        except (KeyError, AttributeError):
-            return []
+        if len(to_probe) == 0:
+            not_avail = probe_types.difference(default_probes)
+            print('Requsted probes not available: %s' % probe_types)
+            print('Valid probe types: %s' % default_probes)
+            print('Unavilable probe types: %s' % not_avail)
+            return self.results
 
-    def get_disks(self):
-        try:
-            storage = self.results.get('storage')
-            return [disk for disk in self.get_devices_by_key('MAJOR', '8')
-                    if storage[disk]['DEVTYPE'] == 'disk']
-        except (KeyError, AttributeError):
-            return []
+        probed_data = {}
+        for ptype in to_probe:
+            pfunc = self.probe_map[ptype]
+            probed_data[ptype] = pfunc(context=self.context)
 
-    def get_device_size(self, device):
-        try:
-            hwinfo = self.results.get('storage').get(device)
-            return hwinfo.get('attrs').get('size')
-        except (KeyError, AttributeError):
-            return "0"
-
-    def _get_device_size(self, device, is_partition=False):
-        ''' device='/dev/sda' '''
-        device_dir = os.path.join('/sys/class/block', os.path.basename(device))
-        blockdev_size = os.path.join(device_dir, 'size')
-        with open(blockdev_size) as d:
-            size = int(d.read().strip())
-
-        logsize_base = device_dir
-        if not os.path.exists(os.path.join(device_dir, 'queue')):
-            parent_dev = os.path.basename(re.split('[\d+]', device)[0])
-            logsize_base = os.path.join('/sys/class/block', parent_dev)
-
-        logical_size = os.path.join(logsize_base, 'queue',
-                                    'logical_block_size')
-        if os.path.exists(logical_size):
-            with open(logical_size) as s:
-                size *= int(s.read().strip())
-
-        return size
-
-    def probe(self):
-        storage = {}
-        for device in self.context.list_devices(subsystem='block'):
-            if device['MAJOR'] not in ["1", "7"]:
-                attrs = udev_get_attributes(device)
-                # update the size attr as it may only be the number
-                # of blocks rather than size in bytes.
-                attrs['size'] = \
-                    str(self._get_device_size(device['DEVNAME']))
-                storage[device['DEVNAME']] = dict(device)
-                storage[device['DEVNAME']].update({'attrs': attrs})
-
-        self.results = storage
-        return storage
+        self.results = probed_data
+        return probed_data

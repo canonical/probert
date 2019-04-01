@@ -44,14 +44,16 @@ def main():
     logger.info("Arguments passed: {}".format(sys.argv))
 
     p = prober.Prober()
-    if opts.all or (not opts.storage and not opts.network):
+    probe_opts = [opts.network, opts.storage]
+    if opts.all or not any(probe_opts):
         p.probe_all()
     if opts.network:
         p.probe_network()
     if opts.storage:
         p.probe_storage()
+
     results = p.get_results()
-    print(json.dumps(results, indent=4, sort_keys=False))
+    print(json.dumps(results, indent=4, sort_keys=True))
 
 
 if __name__ == '__main__':
