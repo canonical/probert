@@ -34,7 +34,7 @@ def _extract_mpath_data(cmd, show_verb):
         result = subprocess.run(cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.DEVNULL)
     except (subprocess.CalledProcessError, FileNotFoundError):
-        return {}
+        return []
 
     mptype = MPATH_SHOW[show_verb]
     data = result.stdout.decode('utf-8')
