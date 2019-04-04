@@ -21,41 +21,48 @@ MPath = namedtuple("MPath", ('device', 'serial', 'multipath', 'host_wwnn',
                              'target_wwnn', 'host_wwpn', 'target_wwpn',
                              'host_adapter'))
 MMap = namedtuple("MMap", ('multipath', 'sysfs', 'paths'))
+MPATH_SHOW = {
+    'paths': MPath,
+    'maps': MMap,
+}
+
 log = logging.getLogger('probert.multipath')
+
+
+def _extract_mpath_data(cmd, show_verb):
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return {}
+
+    mptype = MPATH_SHOW[show_verb]
+    data = result.stdout.decode('utf-8')
+    result = []
+    for line in data.splitlines():
+        mp_dict = None
+        try:
+            mp_dict = mptype(*line.split())._asdict()
+        except TypeError as e:
+            log.debug(
+                'Failed to parse multipath %s entry: %s: %s' % (show_verb,
+                                                                line, e))
+        if mp_dict:
+            result.append(mp_dict)
+
+    return result
 
 
 def multipath_show_paths():
     path_format = "%d %z %m %N %n %R %r %a"
     cmd = ['multipathd', 'show', 'paths', 'raw', 'format', path_format]
-    try:
-        result = subprocess.run(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return {}
-
-    data = result.stdout.decode('utf-8')
-    paths = []
-    for line in data.splitlines():
-        paths.append(MPath(*line.split())._asdict())
-
-    return paths
+    return _extract_mpath_data(cmd, 'paths')
 
 
 def multipath_show_maps():
     maps_format = "%w %d %N"
     cmd = ['multipathd', 'show', 'maps', 'raw', 'format', maps_format]
-    try:
-        result = subprocess.run(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return {}
-
-    data = result.stdout.decode('utf-8')
-    maps = []
-    for line in data.splitlines():
-        maps.append(MMap(*line.split())._asdict())
-
-    return maps
+    return _extract_mpath_data(cmd, 'maps')
 
 
 def probe(context=None):
