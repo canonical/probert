@@ -13,8 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 import logging
 import pyudev
+import subprocess
 
 from probert.utils import udev_get_attributes, read_sys_block_size
 from probert import (bcache, dmcrypt, filesystem, lvm, mount, multipath,
@@ -87,6 +89,24 @@ def blockdev_probe(context=None):
     """ Non-class method for extracting relevant block
         devices from pyudev.Context().
     """
+    def _extract_partition_table(devname):
+        cmd = ['sfdisk', '--bytes', '--json', devname]
+        try:
+            result = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                    stderr=subprocess.DEVNULL)
+            output = result.stdout.decode('utf-8')
+        except subprocess.CalledProcessError as e:
+            log.error('Failed to probe partition table on %s:%s', devname, e)
+            return None
+        if not output:
+            return None
+        ptable = {}
+        try:
+            ptable = json.loads(output)
+        except json.decoder.JSONDecodeError as e:
+            log.error('Failed to load sfdisk json output:', e)
+        return ptable
+
     if not context:
         context = pyudev.Context()
 
@@ -100,6 +120,10 @@ def blockdev_probe(context=None):
                 str(read_sys_block_size(device['DEVNAME']))
             blockdev[device['DEVNAME']] = dict(device)
             blockdev[device['DEVNAME']].update({'attrs': attrs})
+            # include partition table info if present
+            ptable = _extract_partition_table(device['DEVNAME'])
+            if ptable:
+                blockdev[device['DEVNAME']].update(ptable)
 
     return blockdev
 
