@@ -10,8 +10,8 @@ Build-Depends: debhelper (>= 9),
                pep8,
                pkg-config,
                pyflakes,
-               python3-coverage,
                python3-all-dev,
+               python3-coverage,
                python3-flake8,
                python3-jsonschema,
                python3-nose,
@@ -25,16 +25,15 @@ Vcs-Git: https://github.com/CanonicalLtd/probert.git
 
 Package: probert
 Architecture: any
-Depends: ${misc:Depends},
-         ${python3:Depends},
-         ${shlibs:Depends},
-         bcache-tools,
+Depends: bcache-tools,
          lvm2,
          mdadm,
          multipath-tools,
          util-linux,
-         zfsutils-linux
-
+         zfsutils-linux,
+         ${misc:Depends},
+         ${python3:Depends},
+         ${shlibs:Depends}
 Description: Hardware probing tool
  This package provides a tool for probing host hardware information
  and emitting a JSON report.
