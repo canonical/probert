@@ -21,6 +21,30 @@ probert (0.0.15) disco; urgency=medium
 
  -- Ryan Harper <ryan.harper@canonical.com>  Wed, 03 Apr 2019 13:20:21 -0500
 
+probert (0.0.14.2build1) disco; urgency=medium
+
+  * No-change rebuild to build without python3.6 support.
+
+ -- Matthias Klose <doko@ubuntu.com>  Sat, 03 Nov 2018 16:34:52 +0000
+
+probert (0.0.14.2) cosmic; urgency=medium
+
+  * Correctly mark set_link_flags as METH_KEYWORDS. (LP: #1797342)
+
+ -- Michael Hudson-Doyle <michael.hudson@ubuntu.com>  Mon, 15 Oct 2018 10:27:03 +1300
+
+probert (0.0.14.1build2) artful; urgency=medium
+
+  * No-change rebuild to build to drop python3.5.
+
+ -- Matthias Klose <doko@ubuntu.com>  Sat, 05 Aug 2017 16:39:54 +0000
+
+probert (0.0.14.1build1) artful; urgency=medium
+
+  * No change rebuild to add Python 3.6 support.
+
+ -- Michael Hudson-Doyle <michael.hudson@ubuntu.com>  Tue, 16 May 2017 20:15:13 +1200
+
 probert (0.0.14.1) artful; urgency=medium
 
   * Fix Build-Depends to work with multiple supported Python versions.
