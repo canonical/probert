@@ -1,5 +1,8 @@
 probert (0.0.15) disco; urgency=medium
 
+  [ Ryan Harper ]
+  * Add probing for advanced storage types
+
   [ Daniel Watkins ]
   * d/control:
     - Remove unneeded X-Python3-Version
@@ -12,7 +15,6 @@ probert (0.0.15) disco; urgency=medium
       used by the package
     - Drop hard-coded Depends now that setup.py correctly expresses
       dependencies
-    - Add probing for advanced storage types
   * d/rules:
     - Re-enable dh_auto_test
     - Remove unnecessary override_dh_installinit
