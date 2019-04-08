@@ -1,7 +1,7 @@
 probert (0.0.15) disco; urgency=medium
 
   [ Ryan Harper ]
-  * Add probing for advanced storage types
+  * Add probing for advanced storage types (LP: #1821994)
 
   [ Daniel Watkins ]
   * d/control:
