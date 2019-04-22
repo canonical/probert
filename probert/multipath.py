@@ -34,6 +34,7 @@ def _extract_mpath_data(cmd, show_verb):
         result = subprocess.run(cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.DEVNULL)
     except (subprocess.CalledProcessError, FileNotFoundError):
+        log.error('Failed to run cmd: %s', cmd)
         return []
 
     mptype = MPATH_SHOW[show_verb]
@@ -42,6 +43,9 @@ def _extract_mpath_data(cmd, show_verb):
     for line in data.splitlines():
         mp_dict = None
         try:
+            field_vals = line.split()
+            log.debug('Extracted multipath %s fields: %s',
+                      show_verb, field_vals)
             mp_dict = mptype(*line.split())._asdict()
         except TypeError as e:
             log.debug(
