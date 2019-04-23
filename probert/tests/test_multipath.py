@@ -1,15 +1,16 @@
 import mock
 import subprocess
+import testtools
 
 from probert import multipath
-from probert.tests.helpers import CiTestCase
+from probert.tests.helpers import random_string
 
 
-class TestMultipath(CiTestCase):
+class TestMultipath(testtools.TestCase):
 
     @mock.patch('probert.multipath.subprocess.run')
     def test_multipath_show_paths(self, m_run):
-        mp_out = " ".join([self.random_string() for x in range(0, 8)])
+        mp_out = " ".join([random_string() for x in range(0, 8)])
         cp = subprocess.CompletedProcess(args = ['foo'], returncode = 0,
                                          stdout = mp_out.encode('utf-8'),
                                          stderr = "")
@@ -33,7 +34,7 @@ class TestMultipath(CiTestCase):
 
     @mock.patch('probert.multipath.subprocess.run')
     def test_multipath_show_maps(self, m_run):
-        mp_out = " ".join([self.random_string() for x in range(0, 3)])
+        mp_out = " ".join([random_string() for x in range(0, 3)])
         cp = subprocess.CompletedProcess(args = ['foo'], returncode = 0,
                                          stdout = mp_out.encode('utf-8'),
                                          stderr = "")
@@ -66,9 +67,9 @@ class TestMultipath(CiTestCase):
     @mock.patch('probert.multipath.multipath_show_paths')
     @mock.patch('probert.multipath.multipath_show_maps')
     def test_multipath_probe_collects_maps_and_paths(self, m_maps, m_paths):
-        path_string = " ".join([self.random_string() for x in range(0, 8)])
+        path_string = " ".join([random_string() for x in range(0, 8)])
         paths = multipath.MPath(*path_string.split())._asdict()
-        maps_string = " ".join([self.random_string() for x in range(0, 3)])
+        maps_string = " ".join([random_string() for x in range(0, 3)])
         maps = multipath.MMap(*maps_string.split())._asdict()
         m_maps.return_value = [maps]
         m_paths.return_value = [paths]
