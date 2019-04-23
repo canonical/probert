@@ -16,6 +16,7 @@
 import random
 import string
 
+
 def random_string(length=8):
     """ return a random lowercase string with default length of 8"""
     return ''.join(
