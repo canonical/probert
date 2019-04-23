@@ -45,7 +45,7 @@ def _extract_mpath_data(cmd, show_verb):
         try:
             field_vals = line.split()
             log.debug('Extracted multipath %s fields: %s',
-                      show_verb, field_vals)
+                      show_verb, *field_vals)
             mp_dict = mptype(*line.split())._asdict()
         except TypeError as e:
             log.debug(
