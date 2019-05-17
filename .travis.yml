@@ -1,7 +1,8 @@
 language: python
 dist: xenial
 install:
-  - apt-get install tox
+  - sudo apt-get update --quiet --quiet
+  - sudo apt-get install tox --yes
 script:
   - make test
 matrix:
