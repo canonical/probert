@@ -24,14 +24,14 @@ import socket
 
 import pyudev
 
-try:
-    from probert import _nl80211, _rtnetlink
-except ImportError:
-    pass
-
 from probert.utils import udev_get_attributes
 
 log = logging.getLogger('probert.network')
+
+try:
+    from probert import _nl80211, _rtnetlink
+except ImportError as e:
+    log.warning('Failed import network library modules: %s', e)
 
 # Standard interface flags (net/if.h)
 IFF_UP = 0x1                   # Interface is up.
