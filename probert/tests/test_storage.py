@@ -53,7 +53,10 @@ class ProbertTestStorageInfo(testtools.TestCase):
             'vendor': 'SanDisk',
             'model': 'SanDisk_SD5SG2128G1052E',
             'serial': 'SanDisk_SD5SG2128G1052E_133507400177',
-            'devpath': '/devices/pci0000:00/0000:00:1f.2/ata1/host0/target0:0:0/0:0:0:0/block/sda',
+            'devpath': (
+                '/devices/pci0000:00/0000:00:1f.2/ata1/'
+                'host0/target0:0:0/0:0:0:0/block/sda'
+            ),
             'is_virtual': False,
             'raw': sda.get('/dev/sda')
         }

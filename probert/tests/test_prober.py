@@ -1,12 +1,9 @@
 import testtools
-import json
-import argparse
 from unittest.mock import patch
 
 from probert.prober import Prober
 from probert.storage import Storage
 from probert.network import NetworkProber
-from probert.tests.fakes import FAKE_PROBE_ALL_JSON
 
 
 class ProbertTestProber(testtools.TestCase):

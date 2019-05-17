@@ -2,6 +2,7 @@ import testtools
 
 from probert import utils
 
+
 class ProbertTestUtils(testtools.TestCase):
     def setUp(self):
         super(ProbertTestUtils, self).setUp()

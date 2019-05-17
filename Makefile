@@ -3,7 +3,7 @@
 #
 NAME=probert
 VERSION=$(shell PYTHONPATH=$(shell pwd) python -c "import probert; print probert.__version__")
-.PHONY: all version tarball $(NAME)_$(VERSION).orig.tar.gz
+.PHONY: all version tarball test $(NAME)_$(VERSION).orig.tar.gz
 
 all: run
 
@@ -36,11 +36,5 @@ clean:
 run:
 	(PYTHONPATH=$(shell pwd) bin/probert --all)
 
-lint:
-	echo "Running flake8 lint tests..."
-	flake8 bin/probert --ignore=F403
-	flake8 --exclude probert/tests/ probert --ignore=F403
-
-unit:
-	echo "Running unit tests..."
-	python3 -m "nose" -v --nologcapture --with-coverage probert/tests/
+test:
+	tox
