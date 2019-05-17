@@ -203,7 +203,7 @@ def probe(context=None):
         datasets = {}
         zlf = zfs_list_filesystems()
         for zfs_entry in zlf:
-            datasets[zfs_entry.name] = zfs_get_properties(zfs_entry.name)
+            datasets.update(zfs_get_properties(zfs_entry.name))
         zpools[zpool] = {'zdb': zdb_dump, 'datasets': datasets}
 
     return {'zpools': zpools}
