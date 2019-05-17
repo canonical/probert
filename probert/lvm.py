@@ -53,7 +53,7 @@ def _lvm_report(cmd, report_key):
         return None
 
     if not output:
-        return
+        return {}
 
     reports = {}
     try:
