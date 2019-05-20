@@ -24,10 +24,14 @@ import socket
 
 import pyudev
 
-from probert import _nl80211, _rtnetlink
 from probert.utils import udev_get_attributes
 
 log = logging.getLogger('probert.network')
+
+try:
+    from probert import _nl80211, _rtnetlink
+except ImportError as e:
+    log.warning('Failed import network library modules: %s', e)
 
 # Standard interface flags (net/if.h)
 IFF_UP = 0x1                   # Interface is up.
@@ -448,8 +452,9 @@ class Link:
     # This is the logic ip from iproute2 uses to determine whether
     # to show NO-CARRIER or not. It only really makes sense for a
     # wired connection.
-    is_connected = (property(lambda self: ((not (self.flags & IFF_UP)) or
-                                           (self.flags & IFF_RUNNING))))
+    is_connected = (
+        property(lambda self: (
+            (not (self.flags & IFF_UP)) or (self.flags & IFF_RUNNING))))
     is_virtual = (
         property(lambda self: self.devpath.startswith('/devices/virtual/')))
 
