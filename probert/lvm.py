@@ -50,17 +50,17 @@ def _lvm_report(cmd, report_key):
         output = result.stdout.decode('utf-8')
     except subprocess.CalledProcessError as e:
         log.error('Failed to probe LVM devices on system:', e)
-        return None
+        return []
 
     if not output:
-        return {}
+        return []
 
     reports = {}
     try:
         reports = json.loads(output)
     except json.decoder.JSONDecodeError as e:
         log.error('Failed to load LVM json report:', e)
-        return None
+        return []
 
     return _flatten_list([report.get(report_key)
                           for report in reports.get('report', [])
