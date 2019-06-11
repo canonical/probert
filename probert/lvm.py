@@ -49,7 +49,7 @@ def _lvm_report(cmd, report_key):
                                 stderr=subprocess.DEVNULL)
         output = result.stdout.decode('utf-8')
     except subprocess.CalledProcessError as e:
-        log.error('Failed to probe LVM devices on system:', e)
+        log.error('Failed to probe LVM devices on system: %s', e)
         return []
 
     if not output:
@@ -59,7 +59,7 @@ def _lvm_report(cmd, report_key):
     try:
         reports = json.loads(output)
     except json.decoder.JSONDecodeError as e:
-        log.error('Failed to load LVM json report:', e)
+        log.error('Failed to load LVM json report: %s', e)
         return []
 
     return _flatten_list([report.get(report_key)
@@ -78,7 +78,7 @@ def probe_vgs_report():
 
 
 def probe_lvs_report():
-    return _lvm_report('lvs', 'lv')
+    return _lvm_report(['lvs'], 'lv')
 
 
 def lvmetad_running():
@@ -86,7 +86,7 @@ def lvmetad_running():
                                          '/run/lvmetad.pid'))
 
 
-def lvm_scan(activate=True):
+def lvm_scan():
     for cmd in [['pvscan'], ['vgscan', '--mknodes']]:
         if lvmetad_running():
             cmd.append('--cache')
@@ -161,11 +161,11 @@ def extract_lvm_volgroup(vg_name, report_data):
         size = '0B'
 
     return (vg_name, {'name': vg_name,
-                      'devices': list(devices),
+                      'devices': sorted(list(devices)),
                       'size': size})
 
 
-def probe(context=None, report=False):
+def probe(context=None):
     """ Probing for LVM devices requires initiating a kernel level scan
         of block devices to look for physical volumes, volume groups and
         logical volumes.  Once detected, the prober will activate any
