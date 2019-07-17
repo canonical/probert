@@ -112,7 +112,7 @@ def probe(context=None, report=False):
 
     raids = {}
     for device in context.list_devices(subsystem='block'):
-        if 'MD_NAME' in device:
+        if 'MD_NAME' in device and device.get('DEVTYPE') == 'disk':
             devname = device['DEVNAME']
             attrs = udev_get_attributes(device)
             attrs['size'] = str(read_sys_block_size(devname))
