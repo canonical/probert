@@ -1,6 +1,7 @@
 #include <Python.h>
 #include <ctype.h>
 #include <errno.h>
+#include <net/if.h>
 
 #include <netlink/cache.h>
 #include <netlink/route/addr.h>
@@ -31,12 +32,38 @@ struct Listener {
 	PyObject_HEAD
 	struct nl_cache_mngr *mngr;
 	struct nl_cache *link_cache;
+	struct nl_cache *route_cache;
 	PyObject *observer;
 	PyObject *exc_typ, *exc_val, *exc_tb;
 };
 
+struct _clear_routes_arg {
+	struct Listener *listener;
+	int ifindex;
+};
+
+static void observe_route_change(
+	int act,
+	struct rtnl_route *route,
+	struct Listener* listener);
+
+static void _clear_routes(struct nl_object *ob, void *data) {
+	struct _clear_routes_arg* arg = (struct _clear_routes_arg*)data;
+	struct rtnl_route* route = (struct rtnl_route*)ob;
+
+	if (rtnl_route_get_nnexthops(route) > 0) {
+		// Bit cheaty to ignore multipath but....
+		struct rtnl_nexthop* nh = rtnl_route_nexthop_n(route, 0);
+		if (rtnl_route_nh_get_ifindex(nh) == arg->ifindex) {
+			observe_route_change(NL_ACT_DEL, route, arg->listener);
+			nl_cache_remove(ob);
+		}
+	}
+}
+
 static void observe_link_change(
 	int act,
+	struct rtnl_link *old_link,
 	struct rtnl_link *link,
 	struct Listener* listener)
 {
@@ -45,14 +72,25 @@ static void observe_link_change(
 	}
 	PyObject *data;
 
-	int is_vlan;
+	struct _clear_routes_arg clear_routes_arg;
+	int is_vlan, ifindex;
+	unsigned int flags;
 
 	is_vlan = rtnl_link_is_vlan(link);
+	ifindex = rtnl_link_get_ifindex(link);
+	flags = rtnl_link_get_flags(link);
+	if (!(flags & IFF_UP)) {
+		if (old_link && (rtnl_link_get_flags(old_link) & IFF_UP)) {
+			clear_routes_arg.ifindex = ifindex;
+			clear_routes_arg.listener = listener;
+			nl_cache_foreach(listener->route_cache, _clear_routes, &clear_routes_arg);
+		}
+	}
 
 	data = Py_BuildValue(
 		"{si sI sI si sN}",
-		"ifindex", rtnl_link_get_ifindex(link),
-		"flags", rtnl_link_get_flags(link),
+		"ifindex", ifindex,
+		"flags", flags,
 		"arptype", rtnl_link_get_arptype(link),
 		"family", rtnl_link_get_family(link),
 		"is_vlan", PyBool_FromLong(is_vlan));
@@ -92,13 +130,13 @@ static void observe_link_change(
 	}
 }
 
-static void _cb_link(struct nl_cache *cache, struct nl_object *ob, int act,
+static void _cb_link(struct nl_cache *cache, struct nl_object *old, struct nl_object *new, uint64_t diff, int act,
                     void *data) {
-	observe_link_change(act, (struct rtnl_link *)ob, (struct Listener*)data);
+	observe_link_change(act, (struct rtnl_link *)old, (struct rtnl_link *)new, (struct Listener*)data);
 }
 
 static void _e_link(struct nl_object *ob, void *data) {
-	observe_link_change(NL_ACT_NEW, (struct rtnl_link *)ob, (struct Listener*)data);
+	observe_link_change(NL_ACT_NEW, NULL, (struct rtnl_link *)ob, (struct Listener*)data);
 }
 
 static void observe_addr_change(
@@ -281,7 +319,7 @@ maybe_restore(struct Listener* listener) {
 static PyObject*
 listener_start(PyObject *self, PyObject* args)
 {
-	struct nl_cache *addr_cache, *route_cache;
+	struct nl_cache *addr_cache;
 	struct Listener* listener = (struct Listener*)self;
 	int r;
 
@@ -291,7 +329,7 @@ listener_start(PyObject *self, PyObject* args)
 		return NULL;
 	}
 
-	r = nl_cache_mngr_add_cache(listener->mngr, listener->link_cache, _cb_link, listener);
+	r = nl_cache_mngr_add_cache_v2(listener->mngr, listener->link_cache, _cb_link, listener);
 	if (r < 0) {
 		nl_cache_free(listener->link_cache);
 		listener->link_cache = NULL;
@@ -312,22 +350,22 @@ listener_start(PyObject *self, PyObject* args)
 		return NULL;
 	}
 
-	r = rtnl_route_alloc_cache(NULL, AF_UNSPEC, 0, &route_cache);
+	r = rtnl_route_alloc_cache(NULL, AF_UNSPEC, 0, &listener->route_cache);
 	if (r < 0) {
 		PyErr_Format(PyExc_MemoryError, "rtnl_route_alloc_cache failed %d\n", r);
 		return NULL;
 	}
 
-	r = nl_cache_mngr_add_cache(listener->mngr, route_cache, _cb_route, listener);
+	r = nl_cache_mngr_add_cache(listener->mngr, listener->route_cache, _cb_route, listener);
 	if (r < 0) {
-		nl_cache_free(route_cache);
+		nl_cache_free(listener->route_cache);
 		PyErr_Format(PyExc_RuntimeError, "nl_cache_mngr_add_cache failed %d\n", r);
 		return NULL;
 	}
 
 	nl_cache_foreach(listener->link_cache, _e_link, self);
 	nl_cache_foreach(addr_cache, _e_addr, self);
-	nl_cache_foreach(route_cache, _e_route, self);
+	nl_cache_foreach(listener->route_cache, _e_route, self);
 
 	return maybe_restore(listener);
 }
