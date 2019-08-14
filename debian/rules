@@ -2,7 +2,7 @@
 
 VERS=$(shell dpkg-parsechangelog | sed -rne 's,^Version: ([^-]+).*,\1,p')
 export DH_VERBOSE=1
-export PYBUILD_NAME=probert
+export PYBUILD_DESTDIR=debian/tmp
 export PYBUILD_DISABLE_python2=1
 
 %:
@@ -10,6 +10,10 @@ export PYBUILD_DISABLE_python2=1
 
 override_dh_python3:
 	dh_python3 --ignore-shebangs
+
+override_dh_missing:
+	rm -r `find debian/tmp -name __pycache__`
+	dh_missing --fail-missing
 
 get-orig-source:
 	python3 ./setup.py sdist
