@@ -1,3 +1,9 @@
+probert (0.0.17) eoan; urgency=medium
+
+  * Add mock build-dependency.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Mon, 02 Sep 2019 13:23:43 +0100
+
 probert (0.0.16) eoan; urgency=medium
 
   * Split probert package into network, storage and core. This minimizes
