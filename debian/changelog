@@ -4,7 +4,7 @@ probert (0.0.16) eoan; urgency=medium
     the amount of dependencies that curtin, consoleconf, subiquity need to
     pull in to complete probing they require.
 
-  -- Dimitri John Ledkov <xnox@ubuntu.com> Wed, 14 Aug 2019 15:10:38 +0100
+ -- Dimitri John Ledkov <xnox@ubuntu.com> Wed, 14 Aug 2019 15:10:38 +0100
 
 probert (0.0.15) disco; urgency=medium
 
