@@ -3,6 +3,7 @@ probert (0.0.16) eoan; urgency=medium
   * Split probert package into network, storage and core. This minimizes
     the amount of dependencies that curtin, consoleconf, subiquity need to
     pull in to complete probing they require.
+  * Bugfixes for networking, multipath, raid, lvm with testcases.
 
  -- Dimitri John Ledkov <xnox@ubuntu.com>  Wed, 14 Aug 2019 15:10:38 +0100
 
