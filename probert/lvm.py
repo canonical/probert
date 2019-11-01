@@ -19,7 +19,7 @@ import os
 import pyudev
 import subprocess
 
-from probert.utils import read_sys_block_size
+from probert.utils import read_sys_block_size_bytes
 
 log = logging.getLogger('probert.lvm')
 
@@ -122,7 +122,8 @@ def extract_lvm_partition(probe_data):
         lv_id, {'fullname': lv_id,
                 'name': probe_data['DM_LV_NAME'],
                 'volgroup': probe_data['DM_VG_NAME'],
-                'size': "%sB" % read_sys_block_size(probe_data['DEVNAME'])})
+                'size': "%sB" % read_sys_block_size_bytes(
+                    probe_data['DEVNAME'])})
 
 
 def extract_lvm_volgroup(vg_name, report_data):

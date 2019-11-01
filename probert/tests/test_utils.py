@@ -1,6 +1,8 @@
 import testtools
+from mock import call
 
 from probert import utils
+from probert.tests.helpers import random_string, simple_mocked_open
 
 
 class ProbertTestUtils(testtools.TestCase):
@@ -35,3 +37,23 @@ class ProbertTestUtils(testtools.TestCase):
         }
         test_result = utils.dict_merge(r1, r2)
         self.assertEqual(sorted(combined), sorted(test_result))
+
+    def test_utils_read_sys_block_size_bytes(self):
+        devname = random_string()
+        expected_fname = '/sys/class/block/%s/size' % devname
+        expected_bytes = 10737418240
+        content = '20971520'
+        with simple_mocked_open(content=content) as m_open:
+            result = utils.read_sys_block_size_bytes(devname)
+            self.assertEqual(expected_bytes, result)
+            self.assertEqual([call(expected_fname)], m_open.call_args_list)
+
+    def test_utils_read_sys_block_size_bytes_strips_value(self):
+        devname = random_string()
+        expected_fname = '/sys/class/block/%s/size' % devname
+        expected_bytes = 10737418240
+        content = ' 20971520 \n '
+        with simple_mocked_open(content=content) as m_open:
+            result = utils.read_sys_block_size_bytes(devname)
+            self.assertEqual(expected_bytes, result)
+            self.assertEqual([call(expected_fname)], m_open.call_args_list)

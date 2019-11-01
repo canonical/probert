@@ -17,7 +17,7 @@ import logging
 import pyudev
 import subprocess
 
-from probert.utils import (read_sys_block_size,
+from probert.utils import (read_sys_block_size_bytes,
                            udev_get_attributes)
 
 log = logging.getLogger('probert.raid')
@@ -115,7 +115,7 @@ def probe(context=None, report=False):
         if 'MD_NAME' in device and device.get('DEVTYPE') == 'disk':
             devname = device['DEVNAME']
             attrs = udev_get_attributes(device)
-            attrs['size'] = str(read_sys_block_size(devname))
+            attrs['size'] = str(read_sys_block_size_bytes(devname))
             devices, spares = get_mdadm_array_members(devname, device)
             cfg = dict(device)
             cfg.update({'raidlevel': device['MD_LEVEL'],

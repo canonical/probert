@@ -13,8 +13,36 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import contextlib
+import imp
+import importlib
+import mock
 import random
 import string
+
+
+def builtin_module_name():
+    options = ('builtins', '__builtin__')
+    for name in options:
+        try:
+            imp.find_module(name)
+        except ImportError:
+            continue
+        else:
+            print('importing and returning: %s' % name)
+            importlib.import_module(name)
+            return name
+
+
+@contextlib.contextmanager
+def simple_mocked_open(content=None):
+    if not content:
+        content = ''
+    m_open = mock.mock_open(read_data=content)
+    mod_name = builtin_module_name()
+    m_patch = '{}.open'.format(mod_name)
+    with mock.patch(m_patch, m_open, create=True):
+        yield m_open
 
 
 def random_string(length=8):
