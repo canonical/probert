@@ -22,6 +22,10 @@ NET_CONFIG_BRIDGE_OPTIONS = [
     "bridge_hello", "bridge_maxage", "bridge_maxwait", "bridge_stp",
 ]
 
+# sysfs size attribute is always in 512-byte units
+# https://github.com/torvalds/linux/blob/6f0d349d922ba44e4348a17a78ea51b7135965b1/include/linux/types.h#L125
+SECTOR_SIZE_BYTES = 512
+
 
 # from juju-deployer utils.relation_merge
 def dict_merge(onto, source):
@@ -230,8 +234,7 @@ def read_sys_block_size_bytes(device):
     device_dir = os.path.join('/sys/class/block', os.path.basename(device))
     blockdev_size = os.path.join(device_dir, 'size')
     with open(blockdev_size) as d:
-        # sysfs size attribute is always in 512-byte units
-        size = int(d.read().strip()) * 512
+        size = int(d.read().strip()) * SECTOR_SIZE_BYTES
 
     return size
 
