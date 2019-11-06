@@ -18,7 +18,7 @@ import logging
 import pyudev
 import subprocess
 
-from probert.utils import udev_get_attributes, read_sys_block_size
+from probert.utils import udev_get_attributes, read_sys_block_size_bytes
 from probert import (bcache, dmcrypt, filesystem, lvm, mount, multipath,
                      raid, zfs)
 
@@ -117,7 +117,7 @@ def blockdev_probe(context=None):
             # update the size attr as it may only be the number
             # of blocks rather than size in bytes.
             attrs['size'] = \
-                str(read_sys_block_size(device['DEVNAME']))
+                str(read_sys_block_size_bytes(device['DEVNAME']))
             blockdev[device['DEVNAME']] = dict(device)
             blockdev[device['DEVNAME']].update({'attrs': attrs})
             # include partition table info if present

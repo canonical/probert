@@ -244,7 +244,7 @@ class TestLvm(testtools.TestCase):
                      'size': '0B'}),
             lvm.extract_lvm_volgroup('vg0', input_data))
 
-    @mock.patch('probert.lvm.read_sys_block_size')
+    @mock.patch('probert.lvm.read_sys_block_size_bytes')
     def test_extract_lvm_partition(self, m_size, m_run):
         size = 100000000
         m_size.return_value = size
@@ -261,7 +261,7 @@ class TestLvm(testtools.TestCase):
             lvm.extract_lvm_partition(input_data))
         m_size.assert_called_with('/dev/dm-2')
 
-    @mock.patch('probert.lvm.read_sys_block_size')
+    @mock.patch('probert.lvm.read_sys_block_size_bytes')
     @mock.patch('probert.lvm.activate_volgroups')
     @mock.patch('probert.lvm.lvm_scan')
     @mock.patch('probert.lvm.pyudev.Context.list_devices')
@@ -294,7 +294,7 @@ class TestLvm(testtools.TestCase):
         }
         self.assertEqual(expected_result, lvm.probe())
 
-    @mock.patch('probert.lvm.read_sys_block_size')
+    @mock.patch('probert.lvm.read_sys_block_size_bytes')
     @mock.patch('probert.lvm.activate_volgroups')
     @mock.patch('probert.lvm.lvm_scan')
     @mock.patch('probert.lvm.pyudev.Context.list_devices')

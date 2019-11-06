@@ -22,6 +22,10 @@ NET_CONFIG_BRIDGE_OPTIONS = [
     "bridge_hello", "bridge_maxage", "bridge_maxwait", "bridge_stp",
 ]
 
+# sysfs size attribute is always in 512-byte units
+# https://github.com/torvalds/linux/blob/6f0d349d922ba44e4348a17a78ea51b7135965b1/include/linux/types.h#L125
+SECTOR_SIZE_BYTES = 512
+
 
 # from juju-deployer utils.relation_merge
 def dict_merge(onto, source):
@@ -225,21 +229,12 @@ def parse_etc_network_interfaces(ifaces, contents, path):
             ifaces[iface]['auto'] = False
 
 
-def read_sys_block_size(device):
+def read_sys_block_size_bytes(device):
+    """ /sys/class/block/<device>/size and return integer value in bytes"""
     device_dir = os.path.join('/sys/class/block', os.path.basename(device))
     blockdev_size = os.path.join(device_dir, 'size')
     with open(blockdev_size) as d:
-        size = int(d.read().strip())
-
-    logsize_base = device_dir
-    if not os.path.exists(os.path.join(device_dir, 'queue')):
-        parent_dev = os.path.basename(re.split(r'[\d+]', device)[0])
-        logsize_base = os.path.join('/sys/class/block', parent_dev)
-
-    logical_size = os.path.join(logsize_base, 'queue', 'logical_block_size')
-    if os.path.exists(logical_size):
-        with open(logical_size) as s:
-            size *= int(s.read().strip())
+        size = int(d.read().strip()) * SECTOR_SIZE_BYTES
 
     return size
 
