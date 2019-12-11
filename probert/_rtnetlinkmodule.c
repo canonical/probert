@@ -76,6 +76,10 @@ static void observe_link_change(
 	int is_vlan, ifindex;
 	unsigned int flags;
 
+	if (act == NL_ACT_DEL) {
+		link = old_link;
+	}
+
 	is_vlan = rtnl_link_is_vlan(link);
 	ifindex = rtnl_link_get_ifindex(link);
 	flags = rtnl_link_get_flags(link);
