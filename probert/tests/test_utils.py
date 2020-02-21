@@ -1,8 +1,8 @@
 import testtools
-from mock import call
+from mock import call, patch
 
 from probert import utils
-from probert.tests.helpers import random_string, simple_mocked_open
+from probert.tests.helpers import random_string
 
 
 class ProbertTestUtils(testtools.TestCase):
@@ -38,22 +38,24 @@ class ProbertTestUtils(testtools.TestCase):
         test_result = utils.dict_merge(r1, r2)
         self.assertEqual(sorted(combined), sorted(test_result))
 
-    def test_utils_read_sys_block_size_bytes(self):
+    @patch('probert.utils.load_file')
+    def test_utils_read_sys_block_size_bytes(self, m_load_file):
         devname = random_string()
         expected_fname = '/sys/class/block/%s/size' % devname
         expected_bytes = 10737418240
         content = '20971520'
-        with simple_mocked_open(content=content) as m_open:
-            result = utils.read_sys_block_size_bytes(devname)
-            self.assertEqual(expected_bytes, result)
-            self.assertEqual([call(expected_fname)], m_open.call_args_list)
+        m_load_file.return_value = content.encode('utf-8')
+        result = utils.read_sys_block_size_bytes(devname)
+        self.assertEqual(expected_bytes, result)
+        self.assertEqual([call(expected_fname)], m_load_file.call_args_list)
 
-    def test_utils_read_sys_block_size_bytes_strips_value(self):
+    @patch('probert.utils.load_file')
+    def test_utils_read_sys_block_size_bytes_strips_value(self, m_load_file):
         devname = random_string()
         expected_fname = '/sys/class/block/%s/size' % devname
         expected_bytes = 10737418240
         content = ' 20971520 \n '
-        with simple_mocked_open(content=content) as m_open:
-            result = utils.read_sys_block_size_bytes(devname)
-            self.assertEqual(expected_bytes, result)
-            self.assertEqual([call(expected_fname)], m_open.call_args_list)
+        m_load_file.return_value = content.encode('utf-8')
+        result = utils.read_sys_block_size_bytes(devname)
+        self.assertEqual(expected_bytes, result)
+        self.assertEqual([call(expected_fname)], m_load_file.call_args_list)
