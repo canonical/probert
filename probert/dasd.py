@@ -118,7 +118,7 @@ def probe(context=None):
         context = pyudev.Context()
 
     for device in context.list_devices(subsystem='block'):
-        # dasd devices have MAJOR 95
+        # dasd devices have MAJOR 94
         if device['MAJOR'] != "94":
             continue
         # ignore dasd partitions
