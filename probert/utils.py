@@ -229,23 +229,14 @@ def parse_etc_network_interfaces(ifaces, contents, path):
             ifaces[iface]['auto'] = False
 
 
-def load_file(path, read_len=None, offset=0, decode=True):
-    with open(path, "rb") as fp:
-        if offset:
-            fp.seek(offset)
-        contents = fp.read(read_len) if read_len else fp.read()
-
-    if decode:
-        return contents.decode('utf-8')
-    else:
-        return contents
-
-
 def read_sys_block_size_bytes(device):
     """ /sys/class/block/<device>/size and return integer value in bytes"""
     device_dir = os.path.join('/sys/class/block', os.path.basename(device))
     blockdev_size = os.path.join(device_dir, 'size')
-    return int(load_file(blockdev_size).strip()) * SECTOR_SIZE_BYTES
+    with open(blockdev_size) as d:
+        size = int(d.read().strip()) * SECTOR_SIZE_BYTES
+
+    return size
 
 
 def read_sys_block_slaves(device):
