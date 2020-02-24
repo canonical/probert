@@ -66,7 +66,7 @@ def disk_format(dasdview_output):
 
 
 def dasdview(devname):
-    ''' Run dasdview on devname and return dictionary of data.
+    ''' Run dasdview on devname and return the output.
 
     dasdview --extended has 3 sections
     general (2:6), geometry (8:12), extended (14:)
