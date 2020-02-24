@@ -130,7 +130,13 @@ def probe(context=None):
         # ignore dasd partitions
         if 'PARTN' in device:
             continue
-        dasd_info = get_dasd_info(device)
+
+        try:
+            dasd_info = get_dasd_info(device)
+        except ValueError as e:
+            log.error('Error probing dasd device %s: %s', device['DEVNAME'])
+            dasd_info = None
+
         if dasd_info:
             dasds[device['DEVNAME']] = dasd_info
 
