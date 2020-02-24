@@ -1,0 +1,52 @@
+
+--- general DASD information --------------------------------------------------
+device node            : /dev/dasdd
+busid                  : 0.0.1544
+type                   : ECKD
+device type            : hex 3390  	dec 13200
+
+--- DASD geometry -------------------------------------------------------------
+number of cylinders    : hex 7563  	dec 30051
+tracks per cylinder    : hex f  	dec 15
+blocks per track       : hex c  	dec 12
+blocksize              : hex 1000  	dec 4096
+
+--- extended DASD information -------------------------------------------------
+real device number     : hex 0  	dec 0
+subchannel identifier  : hex 1a4  	dec 420
+CU type  (SenseID)     : hex 3990  	dec 14736
+CU model (SenseID)     : hex e9  	dec 233
+device type  (SenseID) : hex 3390  	dec 13200
+device model (SenseID) : hex c  	dec 12
+open count             : hex 2  	dec 2
+req_queue_len          : hex 0  	dec 0
+chanq_len              : hex 0  	dec 0
+status                 : hex 5  	dec 5
+label_block            : hex 2  	dec 2
+FBA_layout             : hex 0  	dec 0
+characteristics_size   : hex 40  	dec 64
+confdata_size          : hex 100  	dec 256
+format                 : hex 2  	dec 2      	CDL formatted
+features               : hex 0  	dec 0      	default
+
+characteristics        : 3990e933 900c5e0c  39f72032 7563000f
+                         e000e5a2 05940222  13090674 00000000
+                         00000000 00000000  32321502 dfee0001
+                         0677080f 007f4800  1f3c0000 00007563
+
+configuration_data     : dc010100 f0f0f2f1  f0f7f9f0 f0c9c2d4
+                         f7f5f0f0 f0f0f0f0  f0c4e7d7 f7f10844
+                         d4020000 f0f0f2f1  f0f7f9f6 f1c9c2d4
+                         f7f5f0f0 f0f0f0f0  f0c4e7d7 f7f10800
+                         d0000000 f0f0f2f1  f0f7f9f6 f1c9c2d4
+                         f7f5f0f0 f0f0f0f0  f0c4e7d7 f7f00800
+                         f0000001 f0f0f2f1  f0f7f9f0 f0c9c2d4
+                         f7f5f0f0 f0f0f0f0  f0c4e7d7 f7f10800
+                         00000000 00000000  00000000 00000000
+                         00000000 00000000  00000000 00000000
+                         00000000 00000000  00000000 00000000
+                         00000000 00000000  00000000 00000000
+                         00000000 00000000  00000000 00000000
+                         00000000 00000000  00000000 00000000
+                         81000003 2d001e00  15000247 000c0016
+                         000cc044 0a0f61ca  00030000 0000a000
