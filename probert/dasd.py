@@ -134,7 +134,7 @@ def probe(context=None):
         try:
             dasd_info = get_dasd_info(device)
         except ValueError as e:
-            log.error('Error probing dasd device %s: %s', device['DEVNAME'])
+            log.error('Error probing dasd device %s: %s', device['DEVNAME'], e)
             dasd_info = None
 
         if dasd_info:
