@@ -15,6 +15,7 @@
 
 import logging
 import os
+import platform
 import pyudev
 import re
 import subprocess
@@ -113,6 +114,11 @@ def probe(context=None):
        and the s390x device_id used to uniquely identify the device.
     """
     log.debug('Probing DASD devies')
+    machine = platform.machine()
+    if machine != "s390x":
+        log.debug('DASD devices only present on s390x, arch=%s', machine)
+        return {}
+
     dasds = {}
     if not context:
         context = pyudev.Context()
