@@ -25,10 +25,8 @@ DASD_FORMAT = r"^format\s+:.+\s+(?P<format>\w+\s\w+)$"
 DASD_BLKSIZE = r"^blocksize\s+:\shex\s\w+\s+dec\s(?P<blksize>\d+)$"
 
 
-def _search(regex, content, groupkey, flags=None):
-    if flags is None:
-        flags = re.MULTILINE
-    m = re.search(regex, content, flags)
+def _search(regex, content, groupkey):
+    m = re.search(regex, content, re.MULTILINE)
     if m:
         return m.group(groupkey)
 
