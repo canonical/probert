@@ -1,3 +1,15 @@
+probert (0.0.17build2) focal; urgency=medium
+
+  * No-change rebuild to drop python3.7.
+
+ -- Matthias Klose <doko@ubuntu.com>  Tue, 18 Feb 2020 09:38:26 +0100
+
+probert (0.0.17build1) focal; urgency=medium
+
+  * No-change rebuild to build with python3.8.
+
+ -- Matthias Klose <doko@ubuntu.com>  Fri, 18 Oct 2019 18:27:19 +0000
+
 probert (0.0.17) eoan; urgency=medium
 
   * Add mock build-dependency.
