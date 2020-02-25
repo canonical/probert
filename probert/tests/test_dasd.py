@@ -106,3 +106,66 @@ class TestDasd(testtools.TestCase):
         m_dview.return_value = self._load_test_data('dasdd.view')
         m_disk.return_value = None
         self.assertIsNone(dasd.get_dasd_info(device))
+
+    @mock.patch('probert.dasd.platform.machine')
+    def test_dasd_probe_returns_empty_dict_non_s390x_arch(self, m_machine):
+        machine = random_string()
+        self.assertNotEqual("s390x", machine)
+        m_machine.return_value = machine
+        self.assertEqual({}, dasd.probe())
+
+    @mock.patch('probert.dasd.platform.machine')
+    @mock.patch('probert.dasd.dasdview')
+    def test_dasd_probe_dasdd(self, m_dasdview, m_machine):
+        m_machine.return_value = 's390x'
+        m_dasdview.side_effect = iter([self._load_test_data('dasdd.view')])
+
+        context = mock.MagicMock()
+        context.list_devices.side_effect = iter([
+            [{"MAJOR": "94", "DEVNAME": "/dev/dasdd", "ID_SERIAL": "0X1544",
+             "ID_PATH": "ccw-0.0.1544"}],
+        ])
+        expected_results = {
+            '/dev/dasdd': {
+                'name': '/dev/dasdd', 'device_id': '0.0.1544',
+                'disk_layout': 'cdl', 'blocksize': 4096},
+        }
+        self.assertEqual(expected_results, dasd.probe(context=context))
+
+    @mock.patch('probert.dasd.platform.machine')
+    @mock.patch('probert.dasd.dasdview')
+    def test_dasd_probe_dasde(self, m_dasdview, m_machine):
+        m_machine.return_value = 's390x'
+        m_dasdview.side_effect = iter([self._load_test_data('dasde.view')])
+
+        context = mock.MagicMock()
+        context.list_devices.side_effect = iter([
+            [{"MAJOR": "94", "DEVNAME": "/dev/dasde",
+             "ID_PATH": "ccw-0.0.2250"}],
+        ])
+        expected_results = {
+            '/dev/dasde': {
+                'name': '/dev/dasde', 'device_id': '0.0.2250',
+                'disk_layout': 'not-formatted', 'blocksize': 512},
+        }
+        self.assertEqual(expected_results, dasd.probe(context=context))
+
+    @mock.patch('probert.dasd.platform.machine')
+    @mock.patch('probert.dasd.dasdview')
+    def test_dasd_probe_dasdd_skips_partitions(self, m_dasdview, m_machine):
+        m_machine.return_value = 's390x'
+        m_dasdview.side_effect = iter([self._load_test_data('dasdd.view')])
+
+        context = mock.MagicMock()
+        context.list_devices.side_effect = iter([
+            [{"MAJOR": "94", "DEVNAME": "/dev/dasdd", "ID_SERIAL": "0X1544",
+             "ID_PATH": "ccw-0.0.1544"}],
+            [{"MAJOR": "94", "DEVNAME": "/dev/dasdd1", "ID_SERIAL": "0X1544",
+             "ID_PATH": "ccw-0.0.1544", "PARTN": "1"}],
+        ])
+        expected_results = {
+            '/dev/dasdd': {
+                'name': '/dev/dasdd', 'device_id': '0.0.1544',
+                'disk_layout': 'cdl', 'blocksize': 4096},
+        }
+        self.assertEqual(expected_results, dasd.probe(context=context))
