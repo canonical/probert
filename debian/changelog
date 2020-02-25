@@ -1,3 +1,28 @@
+probert (0.0.18) focal; urgency=medium
+
+  [Ryan Harper]
+  * d/control
+    - Add s390-tools dep on s390x architecture
+  * Add probing support for DASD devices on s390x
+  * Fix storage size calculations from sysfs (Issue #74)
+
+  [Michael Hudson-Doyle]
+  * Fix segfault when netdev is removed
+
+ -- Ryan Harper <ryan.harper@canonical.com>  Tue, 25 Feb 2020 15:14:40 -0600
+
+probert (0.0.17build2) focal; urgency=medium
+
+  * No-change rebuild to drop python3.7.
+
+ -- Matthias Klose <doko@ubuntu.com>  Tue, 18 Feb 2020 09:38:26 +0100
+
+probert (0.0.17build1) focal; urgency=medium
+
+  * No-change rebuild to build with python3.8.
+
+ -- Matthias Klose <doko@ubuntu.com>  Fri, 18 Oct 2019 18:27:19 +0000
+
 probert (0.0.17) eoan; urgency=medium
 
   * Add mock build-dependency.
