@@ -1,4 +1,5 @@
 usr/lib/python3.*/dist-packages/probert/bcache.py
+usr/lib/python3.*/dist-packages/probert/dasd.py
 usr/lib/python3.*/dist-packages/probert/dmcrypt.py
 usr/lib/python3.*/dist-packages/probert/filesystem.py
 usr/lib/python3.*/dist-packages/probert/lvm.py
