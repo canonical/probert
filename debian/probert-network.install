@@ -1,5 +1,5 @@
-usr/lib/python3.*/dist-packages/probert/_nl80211module.c
-usr/lib/python3.*/dist-packages/probert/network.py
-usr/lib/python3.*/dist-packages/probert/_rtnetlinkmodule.c
 usr/lib/python3.*/dist-packages/probert/_nl80211.*.so
+usr/lib/python3.*/dist-packages/probert/_nl80211module.c
 usr/lib/python3.*/dist-packages/probert/_rtnetlink.*.so
+usr/lib/python3.*/dist-packages/probert/_rtnetlinkmodule.c
+usr/lib/python3.*/dist-packages/probert/network.py
