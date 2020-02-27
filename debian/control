@@ -14,8 +14,8 @@ Build-Depends: debhelper (>= 9),
                python3-coverage,
                python3-flake8,
                python3-jsonschema,
-               python3-nose,
                python3-mock,
+               python3-nose,
                python3-pyudev,
                python3-setuptools,
                python3-testtools
@@ -26,7 +26,7 @@ Vcs-Git: https://github.com/CanonicalLtd/probert.git
 
 Package: probert
 Architecture: all
-Depends: ${misc:Depends}, probert-storage, probert-network
+Depends: probert-network, probert-storage, ${misc:Depends}
 Description: Hardware probing tool - metapackage
  This package provides a tool for probing host hardware information
  and emitting a JSON report.
@@ -35,9 +35,7 @@ Description: Hardware probing tool - metapackage
 
 Package: probert-common
 Architecture: all
-Depends: ${misc:Depends},
-         ${python3:Depends},
-         ${shlibs:Depends}
+Depends: ${misc:Depends}, ${python3:Depends}, ${shlibs:Depends}
 Breaks: probert (<< 0.0.16)
 Replaces: probert (<< 0.0.16)
 Description: Hardware probing tool - common
@@ -48,11 +46,11 @@ Description: Hardware probing tool - common
 
 Package: probert-storage
 Architecture: all
-Depends: probert-common (= ${source:Version}),
-         bcache-tools,
+Depends: bcache-tools,
          lvm2,
          mdadm,
          multipath-tools,
+         probert-common (= ${source:Version}),
          s390-tools [s390x],
          zfsutils-linux,
          ${misc:Depends},
