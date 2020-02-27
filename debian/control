@@ -45,7 +45,7 @@ Description: Hardware probing tool - common
  This package provides the common code for probing.
 
 Package: probert-storage
-Architecture: all
+Architecture: any
 Depends: bcache-tools,
          lvm2,
          mdadm,
