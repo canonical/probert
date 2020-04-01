@@ -25,6 +25,7 @@ MPATH_SHOW = {
     'paths': MPath,
     'maps': MMap,
 }
+MP_SEP = ','
 
 log = logging.getLogger('probert.multipath')
 
@@ -43,7 +44,7 @@ def _extract_mpath_data(cmd, show_verb):
     for line in data.splitlines():
         mp_dict = None
         try:
-            field_vals = line.split()
+            field_vals = line.split(MP_SEP)
             log.debug('Extracted multipath %s fields: %s',
                       show_verb, field_vals)
             mp_dict = mptype(*field_vals)._asdict()
@@ -58,13 +59,13 @@ def _extract_mpath_data(cmd, show_verb):
 
 
 def multipath_show_paths():
-    path_format = "%d %z %m %N %n %R %r %a"
+    path_format = MP_SEP.join(["%d", "%z", "%m", "%N", "%n", "%R", "%r", "%a"])
     cmd = ['multipathd', 'show', 'paths', 'raw', 'format', path_format]
     return _extract_mpath_data(cmd, 'paths')
 
 
 def multipath_show_maps():
-    maps_format = "%w %d %N"
+    maps_format = MP_SEP.join(["%w", "%d", "%N"])
     cmd = ['multipathd', 'show', 'maps', 'raw', 'format', maps_format]
     return _extract_mpath_data(cmd, 'maps')
 
