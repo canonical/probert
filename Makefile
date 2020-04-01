@@ -2,7 +2,7 @@
 # Makefile for probert
 #
 NAME=probert
-VERSION=$(shell PYTHONPATH=$(shell pwd) python -c "import probert; print probert.__version__")
+VERSION=$(shell PYTHONPATH=$(shell pwd) /usr/bin/env python3 -c "import probert; print(probert.__version__)")
 .PHONY: all version tarball test $(NAME)_$(VERSION).orig.tar.gz
 
 all: run
