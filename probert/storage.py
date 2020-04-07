@@ -112,7 +112,10 @@ def blockdev_probe(context=None):
 
     blockdev = {}
     for device in context.list_devices(subsystem='block'):
-        if device.get('MAJOR') not in ["1", "7", None]:
+        if "MAJOR" not in device:
+            # Shouldn't happen but apparently does! (LP: #1868109)
+            continue
+        if device['MAJOR'] not in ["1", "7"]:
             attrs = udev_get_attributes(device)
             # update the size attr as it may only be the number
             # of blocks rather than size in bytes.
