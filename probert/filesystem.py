@@ -34,7 +34,7 @@ def probe(context=None):
     for device in context.list_devices(subsystem='block'):
         # Ignore block major=1 (ramdisk) and major=7 (loopback)
         # these won't ever be used in recreating storage on target systems.
-        if device['MAJOR'] not in ["1", "7"]:
+        if device.get('MAJOR') not in ["1", "7", None]:
             fs_info = get_device_filesystem(device)
             # The ID_FS_ udev values come from libblkid, which contains code to
             # recognize lots of different things that block devices or their
