@@ -242,3 +242,11 @@ def read_sys_block_size_bytes(device):
 def read_sys_block_slaves(device):
     device_dir = os.path.join('/sys/class/block', os.path.basename(device))
     return os.listdir(os.path.join(device_dir, 'slaves'))
+
+
+def sane_block_devices(context):
+    for device in context.list_devices(subsystem='block'):
+        if "MAJOR" not in device:
+            # Shouldn't happen but apparently does! (LP: #1868109)
+            continue
+        yield device

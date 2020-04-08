@@ -18,7 +18,11 @@ import logging
 import pyudev
 import subprocess
 
-from probert.utils import udev_get_attributes, read_sys_block_size_bytes
+from probert.utils import (
+    read_sys_block_size_bytes,
+    sane_block_devices,
+    udev_get_attributes,
+    )
 from probert import (bcache, dasd, dmcrypt, filesystem, lvm, mount, multipath,
                      raid, zfs)
 
@@ -111,10 +115,7 @@ def blockdev_probe(context=None):
         context = pyudev.Context()
 
     blockdev = {}
-    for device in context.list_devices(subsystem='block'):
-        if "MAJOR" not in device:
-            # Shouldn't happen but apparently does! (LP: #1868109)
-            continue
+    for device in sane_block_devices(context):
         if device['MAJOR'] not in ["1", "7"]:
             attrs = udev_get_attributes(device)
             # update the size attr as it may only be the number

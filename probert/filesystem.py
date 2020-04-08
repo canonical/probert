@@ -14,7 +14,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+
 import pyudev
+
+from probert.utils import sane_block_devices
 
 log = logging.getLogger('probert.filesystems')
 
@@ -31,10 +34,7 @@ def probe(context=None):
     if not context:
         context = pyudev.Context()
 
-    for device in context.list_devices(subsystem='block'):
-        if "MAJOR" not in device:
-            # Shouldn't happen but apparently does! (LP: #1868109)
-            continue
+    for device in sane_block_devices(context):
         # Ignore block major=1 (ramdisk) and major=7 (loopback)
         # these won't ever be used in recreating storage on target systems.
         if device['MAJOR'] not in ["1", "7"]:
