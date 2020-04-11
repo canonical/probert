@@ -14,11 +14,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-import pyudev
 import subprocess
 
-from probert.utils import (read_sys_block_size_bytes,
-                           udev_get_attributes)
+import pyudev
+
+from probert.utils import (
+    read_sys_block_size_bytes,
+    sane_block_devices,
+    udev_get_attributes,
+    )
+
 
 log = logging.getLogger('probert.raid')
 
@@ -111,7 +116,7 @@ def probe(context=None, report=False):
     context = pyudev.Context()
 
     raids = {}
-    for device in context.list_devices(subsystem='block'):
+    for device in sane_block_devices(context):
         if 'MD_NAME' in device and device.get('DEVTYPE') == 'disk':
             devname = device['DEVNAME']
             attrs = udev_get_attributes(device)

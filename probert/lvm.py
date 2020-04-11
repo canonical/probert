@@ -16,10 +16,14 @@
 import logging
 import json
 import os
-import pyudev
 import subprocess
 
-from probert.utils import read_sys_block_size_bytes
+import pyudev
+
+from probert.utils import (
+    read_sys_block_size_bytes,
+    sane_block_devices,
+    )
 
 log = logging.getLogger('probert.lvm')
 
@@ -204,7 +208,7 @@ def probe(context=None):
     pvols = {}
     vg_report = probe_vgs_report()
 
-    for device in context.list_devices(subsystem='block'):
+    for device in sane_block_devices(context):
         if 'DM_UUID' in device and device['DM_UUID'].startswith('LVM'):
             (lv_id, new_lv) = extract_lvm_partition(device)
             if lv_id not in lvols:

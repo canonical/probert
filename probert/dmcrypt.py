@@ -14,8 +14,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-import pyudev
 import subprocess
+
+import pyudev
+
+from probert.utils import sane_block_devices
+
 
 log = logging.getLogger('probert.dmcrypt')
 
@@ -54,7 +58,7 @@ def probe(context=None, report=False):
     crypt_devices = {}
 
     # look for block devices with DM_UUID and CRYPT; these are crypt devices
-    for device in context.list_devices(subsystem='block'):
+    for device in sane_block_devices(context):
         if 'DM_UUID' in device and device['DM_UUID'].startswith('CRYPT'):
             devname = device['DEVNAME']
             dm_info = dmsetup_info(devname)

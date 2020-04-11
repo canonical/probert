@@ -264,12 +264,13 @@ class TestLvm(testtools.TestCase):
     @mock.patch('probert.lvm.read_sys_block_size_bytes')
     @mock.patch('probert.lvm.activate_volgroups')
     @mock.patch('probert.lvm.lvm_scan')
-    @mock.patch('probert.lvm.pyudev.Context.list_devices')
+    @mock.patch('probert.lvm.sane_block_devices')
     @mock.patch('probert.lvm.probe_vgs_report')
-    def test_probe(self, m_vgs, m_pyudev, m_scan, m_activate, m_size, m_run):
+    def test_probe(self, m_vgs, m_blockdevs, m_scan, m_activate, m_size,
+                   m_run):
         size = 1000
         m_size.return_value = size
-        m_pyudev.return_value = CONTEXT
+        m_blockdevs.return_value = CONTEXT
         m_vgs.return_value = VGS_REPORT
 
         expected_result = {
@@ -297,13 +298,13 @@ class TestLvm(testtools.TestCase):
     @mock.patch('probert.lvm.read_sys_block_size_bytes')
     @mock.patch('probert.lvm.activate_volgroups')
     @mock.patch('probert.lvm.lvm_scan')
-    @mock.patch('probert.lvm.pyudev.Context.list_devices')
+    @mock.patch('probert.lvm.sane_block_devices')
     @mock.patch('probert.lvm.probe_vgs_report')
-    def test_probe_skip_dupes(self, m_vgs, m_pyudev, m_scan, m_activate,
+    def test_probe_skip_dupes(self, m_vgs, m_blockdevs, m_scan, m_activate,
                               m_size, m_run):
         size = 1000
         m_size.return_value = size
-        m_pyudev.return_value = CONTEXT_DUPES
+        m_blockdevs.return_value = CONTEXT_DUPES
         m_vgs.return_value = VGS_REPORT_DUPES
 
         expected_result = {
