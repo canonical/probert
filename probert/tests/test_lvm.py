@@ -178,7 +178,7 @@ class TestLvm(testtools.TestCase):
         m_run.assert_has_calls([
           mock.call(['pvscan', '--cache'],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL),
-          mock.call(['vgscan', '--mknodes', '--cache'],
+          mock.call(['vgscan', '--cache'],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)])
 
     @mock.patch('probert.lvm.lvmetad_running')
@@ -193,7 +193,7 @@ class TestLvm(testtools.TestCase):
         m_run.assert_has_calls([
           mock.call(['pvscan', '--cache'],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL),
-          mock.call(['vgscan', '--mknodes', '--cache'],
+          mock.call(['vgscan', '--cache'],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)])
 
     def test_activate_volgroups(self, m_run):
