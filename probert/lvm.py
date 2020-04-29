@@ -91,7 +91,7 @@ def lvmetad_running():
 
 
 def lvm_scan():
-    for cmd in [['pvscan'], ['vgscan', '--mknodes']]:
+    for cmd in [['pvscan'], ['vgscan']]:
         if lvmetad_running():
             cmd.append('--cache')
         try:
