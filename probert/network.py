@@ -782,21 +782,34 @@ class StoredDataObserver:
         self.saved_data = saved_data
         for data in self.saved_data['links']:
             jsonschema.validate(data, link_schema)
+        self.links = {}
         self.receiver = receiver
+        self.rd, self.wr = os.pipe()
 
     def start(self):
         for data in self.saved_data['links']:
             link = Link.from_saved_data(data)
             self.receiver.new_link(link.ifindex, link)
+            self.links[link.ifindex] = link
         for data in self.saved_data['routes']:
             self.receiver.route_change("NEW", data)
-        return []
+        return [self.rd]
+
+    def _scan_results(self, link):
+        link.wlan['visible_ssids'] = ["AA", "BB"]
+        link.wlan['scan_state'] = None
+        os.write(self.wr, b'x')
 
     def trigger_scan(self, ifindex):
-        pass
+        import asyncio
+        link = self.links[ifindex]
+        link.wlan['scan_state'] = 'scanning'
+        asyncio.get_event_loop().call_later(
+            2.0, self._scan_results, link)
+        os.write(self.wr, b'x')
 
     def data_ready(self, fd):
-        pass
+        os.read(self.rd, 1)
 
 
 class NetworkProber:
