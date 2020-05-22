@@ -22,6 +22,7 @@ Standards-Version: 4.3.0
 Homepage: https://github.com/CanonicalLtd/probert
 Vcs-Browser: https://github.com/CanonicalLtd/probert
 Vcs-Git: https://github.com/CanonicalLtd/probert.git
+Rules-Requires-Root: no
 
 Package: probert
 Architecture: all
