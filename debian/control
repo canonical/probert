@@ -3,13 +3,12 @@ Section: admin
 Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Ryan Harper <ryan.harper@canonical.com>
-Build-Depends: debhelper (>= 9),
+Build-Depends: debhelper-compat (= 13),
                dh-python,
                libnl-genl-3-dev,
                libnl-route-3-dev,
                pep8,
                pkg-config,
-               pyflakes,
                python3-all-dev,
                python3-coverage,
                python3-flake8,
@@ -19,10 +18,11 @@ Build-Depends: debhelper (>= 9),
                python3-pyudev,
                python3-setuptools,
                python3-testtools
-Standards-Version: 4.3.0
+Standards-Version: 4.5.0
 Homepage: https://github.com/CanonicalLtd/probert
 Vcs-Browser: https://github.com/CanonicalLtd/probert
 Vcs-Git: https://github.com/CanonicalLtd/probert.git
+Rules-Requires-Root: no
 
 Package: probert
 Architecture: all
@@ -58,7 +58,7 @@ Depends: bcache-tools,
          ${shlibs:Depends}
 Breaks: probert (<< 0.0.16)
 Replaces: probert (<< 0.0.16)
-Description: Hardware probing tool - storage metapackage
+Description: Hardware probing tool - storage probing
  This package provides a tool for probing host hardware information
  and emitting a JSON report.
  .
@@ -72,7 +72,7 @@ Depends: probert-common (= ${source:Version}),
          ${shlibs:Depends}
 Breaks: probert (<< 0.0.16)
 Replaces: probert (<< 0.0.16)
-Description: Hardware probing tool - storage metapackage
+Description: Hardware probing tool - network probing
  This package provides a tool for probing host hardware information
  and emitting a JSON report.
  .
