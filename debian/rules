@@ -13,7 +13,6 @@ override_dh_python3:
 
 override_dh_missing:
 	rm -r `find debian/tmp -name __pycache__`
-	dh_missing --fail-missing
 
 get-orig-source:
 	python3 ./setup.py sdist
