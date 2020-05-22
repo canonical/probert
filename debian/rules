@@ -1,6 +1,7 @@
 #!/usr/bin/make -f
 
-VERS=$(shell dpkg-parsechangelog | sed -rne 's,^Version: ([^-]+).*,\1,p')
+include /usr/share/dpkg/pkg-info.mk
+
 export DH_VERBOSE=1
 export PYBUILD_DESTDIR=debian/tmp
 export PYBUILD_DISABLE_python2=1
@@ -16,6 +17,6 @@ override_dh_missing:
 
 get-orig-source:
 	python3 ./setup.py sdist
-	cp dist/*.tar.gz ../probert_${VERS}.orig.tar.gz
-	cp dist/*.tar.gz /tmp/probert_${VERS}.orig.tar.gz
+	cp dist/*.tar.gz ../probert_${DEB_VERSION}.orig.tar.gz
+	cp dist/*.tar.gz /tmp/probert_${DEB_VERSION}.orig.tar.gz
 	rm -rf dist
