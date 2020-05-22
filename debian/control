@@ -18,7 +18,7 @@ Build-Depends: debhelper-compat (= 13),
                python3-pyudev,
                python3-setuptools,
                python3-testtools
-Standards-Version: 4.3.0
+Standards-Version: 4.5.0
 Homepage: https://github.com/CanonicalLtd/probert
 Vcs-Browser: https://github.com/CanonicalLtd/probert
 Vcs-Git: https://github.com/CanonicalLtd/probert.git
