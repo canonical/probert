@@ -1,3 +1,16 @@
+probert (0.0.20) UNRELEASED; urgency=medium
+
+  [ Ryan Harper ]
+  * Run wrap-and-sort on debian dir
+  * debian/control: Change probert-storage Architecture to any to allow
+    binary arch dependencies
+  * Add dasd files to probert-common and probert-storage install files
+
+  [ Paride Legovini ]
+  * d/control: drop the pyflakes Build-Dependency (not needed) (LP: #1879731)
+
+ -- Paride Legovini <pl@ninthfloor.org>  Wed, 27 May 2020 13:59:52 +0200
+
 probert (0.0.18) focal; urgency=medium
 
   [Ryan Harper]
