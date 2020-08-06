@@ -234,6 +234,8 @@ def _compute_type(iface, arptype):
             DEV_TYPE = 'ib'
         else:
             DEV_TYPE = 'ibchild'
+    elif arptype == 280:
+        DEV_TYPE = 'can'
     elif arptype == 512:
         DEV_TYPE = 'ppp'
     elif arptype == 768:
