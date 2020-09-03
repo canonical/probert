@@ -2,21 +2,37 @@ probert (0.0.20) groovy; urgency=medium
 
   [ Ryan Harper ]
   * Run wrap-and-sort on debian dir
-  * debian/control: Change probert-storage Architecture to any to allow binary
-    arch dependencies
+  * debian/control: Change probert-storage Architecture to any to allow
+    binary arch dependencies
   * Add dasd files to probert-common and probert-storage install files
+  * multipath: use non-whitespace to split output
+  * Makefile: use python3 and be virtenv friendly
+  * lvm: don't use vgscan --mknodes
+
+  [ Michael Hudson-Doyle ]
+  * cope with block devices with no MAJOR in udev
+  * introduce and use a sane_block_devices helper that checks for MAJOR
+  * fix tests, thanks ryan
+  * have dry run mode supply some fake scan results
+
+  [ Tsunghan Liu (Robert Liu) ]
+  * Support CAN interfaces (LP: #1890397)
 
   [ Paride Legovini ]
   * d/control:
-    - drop the pyflakes Build-Dependency (not needed) (LP: #1879731)
+    - drop Build-Depends on pyflakes (not needed) (LP: #1879731)
+    - drop Build-Depends on pep8 (not actually used)
     - set Rules-Requires-Root: no
     - bump the dh compat level to 13 via debhelper-compat
     - bump Standards-Version to 4.5.0 (no changes needed)
     - fix the bin packages short descriptions
+    - drop the XSBC-Original-Maintainer field
   * d/rules:
     - drop the PYBUILD environment variables (not needed)
     - drop explicit dh_missing --fail-missing (default in compat >=12)
     - include pkg-info.mk instead of parsing d/changelog
+    - build with DEB_BUILD_MAINT_OPTIONS = hardening=+all
+    - drop the get-orig-source target
   * d/copyright: use the versioned format URI
 
  -- Paride Legovini <paride.legovini@canonical.com>  Fri, 22 May 2020 19:00:47 +0200
