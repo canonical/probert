@@ -1,3 +1,26 @@
+probert (0.0.20) groovy; urgency=medium
+
+  [ Ryan Harper ]
+  * Run wrap-and-sort on debian dir
+  * debian/control: Change probert-storage Architecture to any to allow binary
+    arch dependencies
+  * Add dasd files to probert-common and probert-storage install files
+
+  [ Paride Legovini ]
+  * d/control:
+    - drop the pyflakes Build-Dependency (not needed) (LP: #1879731)
+    - set Rules-Requires-Root: no
+    - bump the dh compat level to 13 via debhelper-compat
+    - bump Standards-Version to 4.5.0 (no changes needed)
+    - fix the bin packages short descriptions
+  * d/rules:
+    - drop the PYBUILD environment variables (not needed)
+    - drop explicit dh_missing --fail-missing (default in compat >=12)
+    - include pkg-info.mk instead of parsing d/changelog
+  * d/copyright: use the versioned format URI
+
+ -- Paride Legovini <paride.legovini@canonical.com>  Fri, 22 May 2020 19:00:47 +0200
+
 probert (0.0.18) focal; urgency=medium
 
   [Ryan Harper]

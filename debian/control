@@ -3,30 +3,30 @@ Section: admin
 Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Ryan Harper <ryan.harper@canonical.com>
-Build-Depends: debhelper (>= 9),
+Build-Depends: debhelper-compat (= 13),
                dh-python,
                libnl-genl-3-dev,
                libnl-route-3-dev,
                pep8,
                pkg-config,
-               pyflakes,
                python3-all-dev,
                python3-coverage,
                python3-flake8,
                python3-jsonschema,
-               python3-nose,
                python3-mock,
+               python3-nose,
                python3-pyudev,
                python3-setuptools,
                python3-testtools
-Standards-Version: 4.3.0
+Standards-Version: 4.5.0
 Homepage: https://github.com/CanonicalLtd/probert
 Vcs-Browser: https://github.com/CanonicalLtd/probert
 Vcs-Git: https://github.com/CanonicalLtd/probert.git
+Rules-Requires-Root: no
 
 Package: probert
 Architecture: all
-Depends: ${misc:Depends}, probert-storage, probert-network
+Depends: probert-network, probert-storage, ${misc:Depends}
 Description: Hardware probing tool - metapackage
  This package provides a tool for probing host hardware information
  and emitting a JSON report.
@@ -35,9 +35,7 @@ Description: Hardware probing tool - metapackage
 
 Package: probert-common
 Architecture: all
-Depends: ${misc:Depends},
-         ${python3:Depends},
-         ${shlibs:Depends}
+Depends: ${misc:Depends}, ${python3:Depends}, ${shlibs:Depends}
 Breaks: probert (<< 0.0.16)
 Replaces: probert (<< 0.0.16)
 Description: Hardware probing tool - common
@@ -47,12 +45,12 @@ Description: Hardware probing tool - common
  This package provides the common code for probing.
 
 Package: probert-storage
-Architecture: all
-Depends: probert-common (= ${source:Version}),
-         bcache-tools,
+Architecture: any
+Depends: bcache-tools,
          lvm2,
          mdadm,
          multipath-tools,
+         probert-common (= ${source:Version}),
          s390-tools [s390x],
          zfsutils-linux,
          ${misc:Depends},
@@ -60,7 +58,7 @@ Depends: probert-common (= ${source:Version}),
          ${shlibs:Depends}
 Breaks: probert (<< 0.0.16)
 Replaces: probert (<< 0.0.16)
-Description: Hardware probing tool - storage metapackage
+Description: Hardware probing tool - storage probing
  This package provides a tool for probing host hardware information
  and emitting a JSON report.
  .
@@ -74,7 +72,7 @@ Depends: probert-common (= ${source:Version}),
          ${shlibs:Depends}
 Breaks: probert (<< 0.0.16)
 Replaces: probert (<< 0.0.16)
-Description: Hardware probing tool - storage metapackage
+Description: Hardware probing tool - network probing
  This package provides a tool for probing host hardware information
  and emitting a JSON report.
  .
