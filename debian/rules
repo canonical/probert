@@ -3,6 +3,7 @@
 include /usr/share/dpkg/pkg-info.mk
 
 export DH_VERBOSE=1
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 %:
 	dh $@ --with python3 --buildsystem=pybuild
@@ -12,9 +13,3 @@ override_dh_python3:
 
 override_dh_missing:
 	rm -r `find debian/tmp -name __pycache__`
-
-get-orig-source:
-	python3 ./setup.py sdist
-	cp dist/*.tar.gz ../probert_${DEB_VERSION}.orig.tar.gz
-	cp dist/*.tar.gz /tmp/probert_${DEB_VERSION}.orig.tar.gz
-	rm -rf dist

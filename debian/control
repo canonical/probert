@@ -2,12 +2,10 @@ Source: probert
 Section: admin
 Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
-XSBC-Original-Maintainer: Ryan Harper <ryan.harper@canonical.com>
 Build-Depends: debhelper-compat (= 13),
                dh-python,
                libnl-genl-3-dev,
                libnl-route-3-dev,
-               pep8,
                pkg-config,
                python3-all-dev,
                python3-coverage,
