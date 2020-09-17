@@ -8,5 +8,5 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 override_dh_python3:
 	dh_python3 --ignore-shebangs
 
-override_dh_missing:
-	rm -r `find debian/tmp -name __pycache__`
+execute_after_dh_auto_install:
+	find debian/tmp -name __pycache__ -exec rm -rv {} +
