@@ -107,8 +107,8 @@ def blockdev_probe(context=None):
         ptable = {}
         try:
             ptable = json.loads(output)
-        except json.decoder.JSONDecodeError as e:
-            log.error('Failed to load sfdisk json output:', e)
+        except json.decoder.JSONDecodeError:
+            log.exception('Failed to load sfdisk json output:')
         return ptable
 
     if not context:
