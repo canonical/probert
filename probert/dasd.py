@@ -22,28 +22,29 @@ import subprocess
 
 log = logging.getLogger('probert.dasd')
 
-DASD_FORMAT = r"^format\s+:.+\s+(?P<format>\w+\s\w+)$"
-DASD_BLKSIZE = r"^blocksize\s+:\shex\s\w+\s+dec\s(?P<blksize>\d+)$"
+
+def _dasd_view_dec_pattern(label):
+    return r"^{}\s+:\shex\s\w+\s+dec\s(?P<value>\d+)$".format(
+        re.escape(label))
 
 
-def _search(regex, content, groupkey):
+DASD_FORMAT = r"^format\s+:.+\s+(?P<value>\w+\s\w+)$"
+DASD_BLKSIZE = _dasd_view_dec_pattern("blocksize")
+DASD_CYLINDERS = _dasd_view_dec_pattern("number of cylinders")
+DASD_TRACKS_PER_CYLINDER = _dasd_view_dec_pattern("tracks per cylinder")
+DASD_TYPE = r"^type\s+:\s(?P<value>[A-Za-z]+)\s*$"
+
+
+def find_val(regex, content):
     m = re.search(regex, content, re.MULTILINE)
-    if m:
-        return m.group(groupkey)
+    if m is not None:
+        return m.group("value")
 
 
-def blocksize(dasdview_output):
-    """ Read and return device_id's 'blocksize' value.
-
-    :param: device_id: string of device ccw bus_id.
-    :returns: int: the device's current blocksize.
-    """
-    if not dasdview_output:
-        return
-
-    blksize = _search(DASD_BLKSIZE, dasdview_output, 'blksize')
-    if blksize:
-        return int(blksize)
+def find_val_int(regex, content):
+    v = find_val(regex, content)
+    if v is not None:
+        return int(v)
 
 
 def disk_format(dasdview_output):
@@ -61,8 +62,8 @@ def disk_format(dasdview_output):
        'ldl formatted': 'ldl',
        'not formatted': 'not-formatted',
     }
-    diskfmt = _search(DASD_FORMAT, dasdview_output, 'format')
-    if diskfmt:
+    diskfmt = find_val(DASD_FORMAT, dasdview_output)
+    if diskfmt is not None:
         return mapping.get(diskfmt.lower())
 
 
@@ -93,17 +94,31 @@ def get_dasd_info(device):
     """
     name = device.get('DEVNAME')
     device_id = device.get('ID_PATH', '').replace('ccw-', '')
+
     dasdview_output = dasdview(name)
     diskfmt = disk_format(dasdview_output)
-    blksize = blocksize(dasdview_output)
+    blksize = find_val_int(DASD_BLKSIZE, dasdview_output)
+    type = find_val(DASD_TYPE, dasdview_output)
+
+    cylinders = find_val_int(DASD_CYLINDERS, dasdview_output)
+    tracks_per_cylinder = find_val_int(
+        DASD_TRACKS_PER_CYLINDER, dasdview_output)
+
     if not all([name, device_id, diskfmt, blksize]):
         vals = ("name=%s device_id=%s format=%s blksize=%s" % (
                 name, device_id, diskfmt, blksize))
         log.debug('Failed to probe some DASD values: %s', vals)
         return None
 
-    return {'name': name, 'device_id': device_id,
-            'disk_layout': diskfmt, 'blocksize': blksize}
+    return {
+        'blocksize': blksize,
+        'cylinders': cylinders,
+        'device_id': device_id,
+        'disk_layout': diskfmt,
+        'name': name,
+        'tracks_per_cylinder': tracks_per_cylinder,
+        'type': type,
+        }
 
 
 def probe(context=None):
