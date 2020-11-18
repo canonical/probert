@@ -7,6 +7,12 @@ from probert.tests import fakes
 from probert.tests.helpers import random_string
 
 
+# The tests parse canned dasdview output, and to be able to write
+# tests one needs to simply know what the correct parsed values
+# are. These helper functions help make the this dependence on outside
+# knowledge a little clearer:
+
+
 def expected_dasdd_probe_data(*, devname='/dev/dasdd', device_id):
     return {
         'blocksize': 4096,
@@ -191,3 +197,48 @@ class TestDasd(testtools.TestCase):
             '/dev/dasdd': expected_dasdd_probe_data(device_id='0.0.1544'),
             }
         self.assertEqual(expected_results, dasd.probe(context=context))
+
+    @mock.patch('probert.dasd.subprocess.run')
+    @mock.patch('probert.dasd.open')
+    @mock.patch('probert.dasd.platform.machine')
+    def test_dasd_probe_virtio_dasd(self, m_machine, m_open, m_run):
+        m_machine.return_value = 's390x'
+
+        virtio_major = random_string()
+        devname = random_string()
+
+        m_open.return_value = ['{} virtblk\n'.format(virtio_major)]
+        m_run.return_value.returncode = 0
+
+        context = mock.MagicMock()
+        context.list_devices.side_effect = iter([
+            [{"MAJOR": virtio_major, "DEVNAME": devname}],
+        ])
+        expected_results = {
+            devname: {'name': devname, 'type': 'virt'}
+            }
+        self.assertEqual(expected_results, dasd.probe(context=context))
+        m_run.assert_called_once_with(
+            ['fdasd', '-i', devname],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    @mock.patch('probert.dasd.subprocess.run')
+    @mock.patch('probert.dasd.open')
+    @mock.patch('probert.dasd.platform.machine')
+    def test_dasd_probe_virtio_non_dasd(self, m_machine, m_open, m_run):
+        m_machine.return_value = 's390x'
+
+        virtio_major = random_string()
+        devname = random_string()
+
+        m_open.return_value = ['{} virtblk\n'.format(virtio_major)]
+        m_run.return_value.returncode = 1
+
+        context = mock.MagicMock()
+        context.list_devices.side_effect = iter([
+            [{"MAJOR": virtio_major, "DEVNAME": devname}],
+        ])
+        self.assertEqual({}, dasd.probe(context=context))
+        m_run.assert_called_once_with(
+            ['fdasd', '-i', devname],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

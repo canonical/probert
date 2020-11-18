@@ -138,21 +138,39 @@ def probe(context=None):
     if not context:
         context = pyudev.Context()
 
+    virtio_major = None
+    for line in open('/proc/devices'):
+        if line.endswith('virtblk\n'):
+            virtio_major = line.split()[0]
+
     for device in context.list_devices(subsystem='block'):
-        # dasd devices have MAJOR 94
-        if device['MAJOR'] != "94":
-            continue
-        # ignore dasd partitions
+        # ignore partitions
         if 'PARTN' in device:
             continue
+        # dasd devices have MAJOR 94
+        if device['MAJOR'] == "94":
+            try:
+                dasd_info = get_dasd_info(device)
+            except ValueError as e:
+                log.error(
+                    'Error probing dasd device %s: %s', device['DEVNAME'], e)
+                dasd_info = None
 
-        try:
-            dasd_info = get_dasd_info(device)
-        except ValueError as e:
-            log.error('Error probing dasd device %s: %s', device['DEVNAME'], e)
-            dasd_info = None
-
-        if dasd_info:
-            dasds[device['DEVNAME']] = dasd_info
+            if dasd_info:
+                dasds[device['DEVNAME']] = dasd_info
+        elif device['MAJOR'] == virtio_major:
+            # a dasd can be passed to a VM via virtio, in which case
+            # there is no device id and dasdview/dasdmft do not work
+            # but it must still be formatted with vtoc, so we report
+            # it here. The only way I can find to detect such a device
+            # is that "fdasd -i" on the device is successful.
+            result = subprocess.run(
+                ['fdasd', '-i', device['DEVNAME']],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if result.returncode == 0:
+                dasds[device['DEVNAME']] = {
+                    'name': device['DEVNAME'],
+                    'type': 'virt',
+                    }
 
     return dasds
