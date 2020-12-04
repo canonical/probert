@@ -143,6 +143,8 @@ def probe(context=None):
         if line.endswith('virtblk\n'):
             virtio_major = line.split()[0]
 
+    log.debug("found MAJOR for virtblk: %s", virtio_major)
+
     for device in context.list_devices(subsystem='block'):
         # ignore partitions
         if 'PARTN' in device:
@@ -167,6 +169,9 @@ def probe(context=None):
             result = subprocess.run(
                 ['fdasd', '-i', device['DEVNAME']],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            log.debug(
+                "fasd -i %s returned %s",
+                device['DEVNAME'], result.returncode)
             if result.returncode == 0:
                 dasds[device['DEVNAME']] = {
                     'name': device['DEVNAME'],
