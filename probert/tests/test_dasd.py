@@ -13,28 +13,30 @@ from probert.tests.helpers import random_string
 # knowledge a little clearer:
 
 
-def expected_dasdd_probe_data(*, devname='/dev/dasdd', device_id):
-    return {
+def update_probe_data(base, **kw):
+    r = base.copy()
+    r.update(kw)
+    return r
+
+
+expected_probe_data = {
+    '/dev/dasdd': {
         'blocksize': 4096,
         'cylinders': 30051,
-        'device_id': device_id,
         'disk_layout': 'cdl',
-        'name': devname,
+        'name': '/dev/dasdd',
         'tracks_per_cylinder': 15,
         'type': 'ECKD',
-        }
-
-
-def expected_dasde_probe_data(*, device_id):
-    return {
+        },
+    '/dev/dasde': {
         'blocksize': 512,
         'cylinders': 10017,
-        'device_id': device_id,
         'disk_layout': 'not-formatted',
         'name': '/dev/dasde',
         'tracks_per_cylinder': 15,
         'type': 'ECKD',
-        }
+        },
+    }
 
 
 class TestDasd(testtools.TestCase):
@@ -108,7 +110,9 @@ class TestDasd(testtools.TestCase):
         device = {'DEVNAME': devname, 'ID_PATH': 'ccw-' + id_path}
         m_dview.return_value = self._load_test_data('dasdd.view')
         self.assertEqual(
-            expected_dasdd_probe_data(devname=devname, device_id=id_path),
+            update_probe_data(
+                expected_probe_data['/dev/dasdd'],
+                name=devname, device_id=id_path),
             dasd.get_dasd_info(device))
 
     @mock.patch('probert.dasd.dasdview')
@@ -160,7 +164,8 @@ class TestDasd(testtools.TestCase):
              "ID_PATH": "ccw-0.0.1544"}],
         ])
         expected_results = {
-            '/dev/dasdd': expected_dasdd_probe_data(device_id="0.0.1544"),
+            '/dev/dasdd': update_probe_data(
+                expected_probe_data['/dev/dasdd'], device_id="0.0.1544")
         }
         self.assertEqual(expected_results, dasd.probe(context=context))
 
@@ -176,7 +181,8 @@ class TestDasd(testtools.TestCase):
              "ID_PATH": "ccw-0.0.2250"}],
         ])
         expected_results = {
-            '/dev/dasde': expected_dasde_probe_data(device_id='0.0.2250'),
+            '/dev/dasde': update_probe_data(
+                expected_probe_data['/dev/dasde'], device_id="0.0.2250")
             }
         self.assertEqual(expected_results, dasd.probe(context=context))
 
@@ -194,7 +200,8 @@ class TestDasd(testtools.TestCase):
              "ID_PATH": "ccw-0.0.1544", "PARTN": "1"}],
         ])
         expected_results = {
-            '/dev/dasdd': expected_dasdd_probe_data(device_id='0.0.1544'),
+            '/dev/dasdd': update_probe_data(
+                expected_probe_data['/dev/dasdd'], device_id="0.0.1544"),
             }
         self.assertEqual(expected_results, dasd.probe(context=context))
 
