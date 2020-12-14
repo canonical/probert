@@ -7,6 +7,38 @@ from probert.tests import fakes
 from probert.tests.helpers import random_string
 
 
+# The tests parse canned dasdview output, and to be able to write
+# tests one needs to simply know what the correct parsed values
+# are. These helper functions help make the this dependence on outside
+# knowledge a little clearer:
+
+
+def update_probe_data(base, **kw):
+    r = base.copy()
+    r.update(kw)
+    return r
+
+
+expected_probe_data = {
+    '/dev/dasdd': {
+        'blocksize': 4096,
+        'cylinders': 30051,
+        'disk_layout': 'cdl',
+        'name': '/dev/dasdd',
+        'tracks_per_cylinder': 15,
+        'type': 'ECKD',
+        },
+    '/dev/dasde': {
+        'blocksize': 512,
+        'cylinders': 10017,
+        'disk_layout': 'not-formatted',
+        'name': '/dev/dasde',
+        'tracks_per_cylinder': 15,
+        'type': 'ECKD',
+        },
+    }
+
+
 class TestDasd(testtools.TestCase):
 
     def _load_test_data(self, data_fname):
@@ -48,11 +80,15 @@ class TestDasd(testtools.TestCase):
         self.assertEqual(None, dasd.dasdview(devname))
 
     def test_dasd_parses_blocksize(self):
-        self.assertEqual(4096,
-                         dasd.blocksize(self._load_test_data('dasdd.view')))
+        self.assertEqual(
+            4096,
+            dasd.find_val_int(
+                dasd.DASD_BLKSIZE, self._load_test_data('dasdd.view')))
 
     def test_dasd_blocksize_returns_none_on_invalid_output(self):
-        self.assertIsNone(dasd.blocksize(random_string()))
+        self.assertIsNone(
+            dasd.find_val_int(
+                dasd.DASD_BLKSIZE, random_string()))
 
     def test_dasd_parses_disk_format(self):
         self.assertEqual('cdl',
@@ -73,9 +109,11 @@ class TestDasd(testtools.TestCase):
         id_path = random_string()
         device = {'DEVNAME': devname, 'ID_PATH': 'ccw-' + id_path}
         m_dview.return_value = self._load_test_data('dasdd.view')
-        self.assertEqual({'name': devname, 'device_id': id_path,
-                          'disk_layout': 'cdl', 'blocksize': 4096},
-                         dasd.get_dasd_info(device))
+        self.assertEqual(
+            update_probe_data(
+                expected_probe_data['/dev/dasdd'],
+                name=devname, device_id=id_path),
+            dasd.get_dasd_info(device))
 
     @mock.patch('probert.dasd.dasdview')
     def test_get_dasd_info_returns_none_if_not_all(self, m_dview):
@@ -85,18 +123,18 @@ class TestDasd(testtools.TestCase):
         m_dview.return_value = random_string()
         self.assertIsNone(dasd.get_dasd_info(device))
 
-    @mock.patch('probert.dasd.blocksize')
+    @mock.patch('probert.dasd.find_val_int')
     @mock.patch('probert.dasd.dasdview')
     def test_get_dasd_info_returns_none_if_bad_blocksize(self, m_dview,
-                                                         m_block):
+                                                         m_find_val_int):
         devname = random_string()
         id_path = random_string()
         device = {'DEVNAME': devname, 'ID_PATH': 'ccw-' + id_path}
         m_dview.return_value = self._load_test_data('dasdd.view')
-        m_block.return_value = None
+        m_find_val_int.return_value = None
         self.assertIsNone(dasd.get_dasd_info(device))
 
-    @mock.patch('probert.dasd.blocksize')
+    @mock.patch('probert.dasd.disk_format')
     @mock.patch('probert.dasd.dasdview')
     def test_get_dasd_info_returns_none_if_bad_disk_format(self, m_dview,
                                                            m_disk):
@@ -126,9 +164,8 @@ class TestDasd(testtools.TestCase):
              "ID_PATH": "ccw-0.0.1544"}],
         ])
         expected_results = {
-            '/dev/dasdd': {
-                'name': '/dev/dasdd', 'device_id': '0.0.1544',
-                'disk_layout': 'cdl', 'blocksize': 4096},
+            '/dev/dasdd': update_probe_data(
+                expected_probe_data['/dev/dasdd'], device_id="0.0.1544")
         }
         self.assertEqual(expected_results, dasd.probe(context=context))
 
@@ -144,10 +181,9 @@ class TestDasd(testtools.TestCase):
              "ID_PATH": "ccw-0.0.2250"}],
         ])
         expected_results = {
-            '/dev/dasde': {
-                'name': '/dev/dasde', 'device_id': '0.0.2250',
-                'disk_layout': 'not-formatted', 'blocksize': 512},
-        }
+            '/dev/dasde': update_probe_data(
+                expected_probe_data['/dev/dasde'], device_id="0.0.2250")
+            }
         self.assertEqual(expected_results, dasd.probe(context=context))
 
     @mock.patch('probert.dasd.platform.machine')
@@ -164,8 +200,52 @@ class TestDasd(testtools.TestCase):
              "ID_PATH": "ccw-0.0.1544", "PARTN": "1"}],
         ])
         expected_results = {
-            '/dev/dasdd': {
-                'name': '/dev/dasdd', 'device_id': '0.0.1544',
-                'disk_layout': 'cdl', 'blocksize': 4096},
-        }
+            '/dev/dasdd': update_probe_data(
+                expected_probe_data['/dev/dasdd'], device_id="0.0.1544"),
+            }
         self.assertEqual(expected_results, dasd.probe(context=context))
+
+    @mock.patch('probert.dasd.subprocess.run')
+    @mock.patch('probert.dasd.open')
+    @mock.patch('probert.dasd.platform.machine')
+    def test_dasd_probe_virtio_dasd(self, m_machine, m_open, m_run):
+        m_machine.return_value = 's390x'
+
+        virtio_major = random_string()
+        devname = random_string()
+
+        m_open.return_value = ['{} virtblk\n'.format(virtio_major)]
+        m_run.return_value.returncode = 0
+
+        context = mock.MagicMock()
+        context.list_devices.side_effect = iter([
+            [{"MAJOR": virtio_major, "DEVNAME": devname}],
+        ])
+        expected_results = {
+            devname: {'name': devname, 'type': 'virt'}
+            }
+        self.assertEqual(expected_results, dasd.probe(context=context))
+        m_run.assert_called_once_with(
+            ['fdasd', '-i', devname],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    @mock.patch('probert.dasd.subprocess.run')
+    @mock.patch('probert.dasd.open')
+    @mock.patch('probert.dasd.platform.machine')
+    def test_dasd_probe_virtio_non_dasd(self, m_machine, m_open, m_run):
+        m_machine.return_value = 's390x'
+
+        virtio_major = random_string()
+        devname = random_string()
+
+        m_open.return_value = ['{} virtblk\n'.format(virtio_major)]
+        m_run.return_value.returncode = 1
+
+        context = mock.MagicMock()
+        context.list_devices.side_effect = iter([
+            [{"MAJOR": virtio_major, "DEVNAME": devname}],
+        ])
+        self.assertEqual({}, dasd.probe(context=context))
+        m_run.assert_called_once_with(
+            ['fdasd', '-i', devname],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

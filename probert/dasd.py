@@ -22,28 +22,29 @@ import subprocess
 
 log = logging.getLogger('probert.dasd')
 
-DASD_FORMAT = r"^format\s+:.+\s+(?P<format>\w+\s\w+)$"
-DASD_BLKSIZE = r"^blocksize\s+:\shex\s\w+\s+dec\s(?P<blksize>\d+)$"
+
+def _dasd_view_dec_pattern(label):
+    return r"^{}\s+:\shex\s\w+\s+dec\s(?P<value>\d+)$".format(
+        re.escape(label))
 
 
-def _search(regex, content, groupkey):
+DASD_FORMAT = r"^format\s+:.+\s+(?P<value>\w+\s\w+)$"
+DASD_BLKSIZE = _dasd_view_dec_pattern("blocksize")
+DASD_CYLINDERS = _dasd_view_dec_pattern("number of cylinders")
+DASD_TRACKS_PER_CYLINDER = _dasd_view_dec_pattern("tracks per cylinder")
+DASD_TYPE = r"^type\s+:\s(?P<value>[A-Za-z]+)\s*$"
+
+
+def find_val(regex, content):
     m = re.search(regex, content, re.MULTILINE)
-    if m:
-        return m.group(groupkey)
+    if m is not None:
+        return m.group("value")
 
 
-def blocksize(dasdview_output):
-    """ Read and return device_id's 'blocksize' value.
-
-    :param: device_id: string of device ccw bus_id.
-    :returns: int: the device's current blocksize.
-    """
-    if not dasdview_output:
-        return
-
-    blksize = _search(DASD_BLKSIZE, dasdview_output, 'blksize')
-    if blksize:
-        return int(blksize)
+def find_val_int(regex, content):
+    v = find_val(regex, content)
+    if v is not None:
+        return int(v)
 
 
 def disk_format(dasdview_output):
@@ -61,8 +62,8 @@ def disk_format(dasdview_output):
        'ldl formatted': 'ldl',
        'not formatted': 'not-formatted',
     }
-    diskfmt = _search(DASD_FORMAT, dasdview_output, 'format')
-    if diskfmt:
+    diskfmt = find_val(DASD_FORMAT, dasdview_output)
+    if diskfmt is not None:
         return mapping.get(diskfmt.lower())
 
 
@@ -93,17 +94,31 @@ def get_dasd_info(device):
     """
     name = device.get('DEVNAME')
     device_id = device.get('ID_PATH', '').replace('ccw-', '')
+
     dasdview_output = dasdview(name)
     diskfmt = disk_format(dasdview_output)
-    blksize = blocksize(dasdview_output)
+    blksize = find_val_int(DASD_BLKSIZE, dasdview_output)
+    type = find_val(DASD_TYPE, dasdview_output)
+
+    cylinders = find_val_int(DASD_CYLINDERS, dasdview_output)
+    tracks_per_cylinder = find_val_int(
+        DASD_TRACKS_PER_CYLINDER, dasdview_output)
+
     if not all([name, device_id, diskfmt, blksize]):
         vals = ("name=%s device_id=%s format=%s blksize=%s" % (
                 name, device_id, diskfmt, blksize))
         log.debug('Failed to probe some DASD values: %s', vals)
         return None
 
-    return {'name': name, 'device_id': device_id,
-            'disk_layout': diskfmt, 'blocksize': blksize}
+    return {
+        'blocksize': blksize,
+        'cylinders': cylinders,
+        'device_id': device_id,
+        'disk_layout': diskfmt,
+        'name': name,
+        'tracks_per_cylinder': tracks_per_cylinder,
+        'type': type,
+        }
 
 
 def probe(context=None):
@@ -123,21 +138,44 @@ def probe(context=None):
     if not context:
         context = pyudev.Context()
 
+    virtio_major = None
+    for line in open('/proc/devices'):
+        if line.endswith('virtblk\n'):
+            virtio_major = line.split()[0]
+
+    log.debug("found MAJOR for virtblk: %s", virtio_major)
+
     for device in context.list_devices(subsystem='block'):
-        # dasd devices have MAJOR 94
-        if device['MAJOR'] != "94":
-            continue
-        # ignore dasd partitions
+        # ignore partitions
         if 'PARTN' in device:
             continue
+        # dasd devices have MAJOR 94
+        if device['MAJOR'] == "94":
+            try:
+                dasd_info = get_dasd_info(device)
+            except ValueError as e:
+                log.error(
+                    'Error probing dasd device %s: %s', device['DEVNAME'], e)
+                dasd_info = None
 
-        try:
-            dasd_info = get_dasd_info(device)
-        except ValueError as e:
-            log.error('Error probing dasd device %s: %s', device['DEVNAME'], e)
-            dasd_info = None
-
-        if dasd_info:
-            dasds[device['DEVNAME']] = dasd_info
+            if dasd_info:
+                dasds[device['DEVNAME']] = dasd_info
+        elif device['MAJOR'] == virtio_major:
+            # a dasd can be passed to a VM via virtio, in which case
+            # there is no device id and dasdview/dasdmft do not work
+            # but it must still be formatted with vtoc, so we report
+            # it here. The only way I can find to detect such a device
+            # is that "fdasd -i" on the device is successful.
+            result = subprocess.run(
+                ['fdasd', '-i', device['DEVNAME']],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            log.debug(
+                "fasd -i %s returned %s",
+                device['DEVNAME'], result.returncode)
+            if result.returncode == 0:
+                dasds[device['DEVNAME']] = {
+                    'name': device['DEVNAME'],
+                    'type': 'virt',
+                    }
 
     return dasds
