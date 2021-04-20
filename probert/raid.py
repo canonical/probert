@@ -19,9 +19,7 @@ import subprocess
 import pyudev
 
 from probert.utils import (
-    read_sys_block_size_bytes,
     sane_block_devices,
-    udev_get_attributes,
     )
 
 
@@ -117,15 +115,20 @@ def probe(context=None, report=False):
 
     raids = {}
     for device in sane_block_devices(context):
-        if 'MD_NAME' in device and device.get('DEVTYPE') == 'disk':
-            devname = device['DEVNAME']
-            attrs = udev_get_attributes(device)
-            attrs['size'] = str(read_sys_block_size_bytes(devname))
+        if device.get('DEVTYPE') != 'disk':
+            continue
+        devname = device['DEVNAME']
+        if 'MD_NAME' in device or device.get('MD_METADATA') == 'imsm':
             devices, spares = get_mdadm_array_members(devname, device)
             cfg = dict(device)
             cfg.update({'raidlevel': device['MD_LEVEL'],
                         'devices': devices,
                         'spare_devices': spares})
+            raids[devname] = cfg
+        elif 'MD_CONTAINER' in device:
+            cfg = dict(device)
+            cfg.update({'raidlevel': device['MD_LEVEL'],
+                        'container': device['MD_CONTAINER']})
             raids[devname] = cfg
 
     return raids
