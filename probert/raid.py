@@ -121,6 +121,9 @@ def probe(context=None, report=False):
         if 'MD_NAME' in device or device.get('MD_METADATA') == 'imsm':
             devices, spares = get_mdadm_array_members(devname, device)
             cfg = dict(device)
+            if device.get('MD_METADATA') == 'imsm':
+                devices = devices + spares
+                spares = []
             cfg.update({'raidlevel': device['MD_LEVEL'],
                         'devices': devices,
                         'spare_devices': spares})
