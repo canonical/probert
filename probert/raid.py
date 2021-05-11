@@ -19,6 +19,7 @@ import subprocess
 import pyudev
 
 from probert.utils import (
+    read_sys_block_size_bytes,
     sane_block_devices,
     )
 
@@ -127,14 +128,20 @@ def probe(context=None, report=False):
                 # it may require parsing --examine output :(
                 devices = devices + spares
                 spares = []
-            cfg.update({'raidlevel': device['MD_LEVEL'],
-                        'devices': devices,
-                        'spare_devices': spares})
+            cfg.update({
+                'raidlevel': device['MD_LEVEL'],
+                'devices': devices,
+                'spare_devices': spares,
+                'size': str(read_sys_block_size_bytes(devname)),
+                })
             raids[devname] = cfg
         elif 'MD_CONTAINER' in device:
             cfg = dict(device)
-            cfg.update({'raidlevel': device['MD_LEVEL'],
-                        'container': device['MD_CONTAINER']})
+            cfg.update({
+                'raidlevel': device['MD_LEVEL'],
+                'container': device['MD_CONTAINER'],
+                'size': str(read_sys_block_size_bytes(devname)),
+                })
             raids[devname] = cfg
 
     return raids
