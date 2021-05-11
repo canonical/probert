@@ -122,6 +122,9 @@ def probe(context=None, report=False):
             devices, spares = get_mdadm_array_members(devname, device)
             cfg = dict(device)
             if device.get('MD_METADATA') == 'imsm':
+                # All disks in a imsm container show up as spares in --detail
+                # output. I don't know how to detect an actual spare drive --
+                # it may require parsing --examine output :(
                 devices = devices + spares
                 spares = []
             cfg.update({'raidlevel': device['MD_LEVEL'],
