@@ -123,9 +123,14 @@ def probe(context=None, report=False):
             devices, spares = get_mdadm_array_members(devname, device)
             cfg = dict(device)
             if device.get('MD_METADATA') == 'imsm':
-                # All disks in a imsm container show up as spares in --detail
-                # output. I don't know how to detect an actual spare drive --
-                # it may require parsing --examine output :(
+                # All disks in a imsm container show up as spares, in some
+                # sense because they are not "used" by the container (there is
+                # a concept of a spare drive in a container -- where there is a
+                # drive in the container that is not part of a volume/subarray
+                # within it -- but this is a fairly ephemeral concept which
+                # doesn't survive a reboot, so we don't account for that
+                # here). We don't care about that though and just record all
+                # component disks as active.
                 devices = devices + spares
                 spares = []
             cfg.update({
