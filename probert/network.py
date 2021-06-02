@@ -388,13 +388,20 @@ class Link:
             typ = 'vlan'
         else:
             typ = _compute_type(name, netlink_data['arptype'])
-        return cls(
+        link = cls(
             addresses={},
             type=typ,
             udev_data=udev_data,
             netlink_data=netlink_data,
             bond=_get_bonding(name, netlink_data['flags']),
             bridge=_get_bridging(name))
+        if udev_data['DEVTYPE'] == 'wlan':
+            link.wlan = {
+                'visible_ssids': [],
+                'ssid': None,
+                'scan_state': None,
+            }
+        return link
 
     @classmethod
     def from_saved_data(cls, link_data):
@@ -414,14 +421,6 @@ class Link:
         self.bond = bond
         self.bridge = bridge
         self.wlan = wlan
-
-    def mark_as_wlan(self):
-        if self.wlan is None:
-            self.wlan = {
-                'visible_ssids': [],
-                'ssid': None,
-                'scan_state': None,
-            }
 
     def serialize(self):
         r = {
@@ -744,7 +743,6 @@ class UdevObserver(NetworkObserver):
         if ifindex < 0 or ifindex not in self._links:
             return
         link = self._links[ifindex]
-        link.mark_as_wlan()
         if arg['cmd'] == 'TRIGGER_SCAN':
             link.wlan['scan_state'] = 'scanning'
         if arg['cmd'] == 'NEW_SCAN_RESULTS' and 'ssids' in arg:
