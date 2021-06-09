@@ -395,7 +395,7 @@ class Link:
             netlink_data=netlink_data,
             bond=_get_bonding(name, netlink_data['flags']),
             bridge=_get_bridging(name))
-        if udev_data['DEVTYPE'] == 'wlan':
+        if udev_data.get('DEVTYPE') == 'wlan':
             link.wlan = {
                 'visible_ssids': [],
                 'ssid': None,
