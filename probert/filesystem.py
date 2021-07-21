@@ -46,8 +46,8 @@ def probe(context=None):
             # which libblkid conveniently tags with ID_FS_USAGE=filesystem.
             # Swap is a bit of a special case because it is not a mountable
             # filesystem in the usual sense, but subiquity still needs to
-            # generate mount actions for it.
-            if fs_info.get("USAGE") == "filesystem" or \
+            # generate mount actions for it.  Crypto is a disguised filesystem.
+            if fs_info.get("USAGE") in ("filesystem", "crypto") or \
                fs_info.get("TYPE") == "swap":
                 filesystems[device['DEVNAME']] = fs_info
 
