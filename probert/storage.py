@@ -24,7 +24,7 @@ from probert.utils import (
     udev_get_attributes,
     )
 from probert import (bcache, dasd, dmcrypt, filesystem, lvm, mount, multipath,
-                     raid, zfs)
+                     os, raid, zfs)
 
 log = logging.getLogger('probert.storage')
 
@@ -155,6 +155,7 @@ class Storage():
         'lvm': lvm.probe,
         'mount': mount.probe,
         'multipath': multipath.probe,
+        'os': os.probe,
         'raid': raid.probe,
         'zfs': zfs.probe
     }
