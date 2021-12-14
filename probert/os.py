@@ -58,7 +58,7 @@ def _parse_osprober(lines):
     return ret
 
 
-@functools.lru_cache
+@functools.lru_cache(maxsize=1)
 def _run_os_prober():
     cmd = ['os-prober']
     try:
