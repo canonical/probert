@@ -17,10 +17,13 @@ import subprocess
 from unittest import TestCase
 from unittest.mock import patch
 
-from probert.os import probe, _parse_osprober
+from probert.os import probe, _parse_osprober, _run_os_prober
 
 
 class TestOsProber(TestCase):
+    def tearDown(self):
+        _run_os_prober.cache_clear()
+
     def test_empty(self):
         self.assertEqual({}, _parse_osprober([]))
 
@@ -144,3 +147,10 @@ class TestOsProber(TestCase):
     def test_osprober_fail(self, run):
         run.side_effect = subprocess.CalledProcessError(1, 'cmd')
         self.assertEqual({}, probe())
+
+    @patch('probert.os.subprocess.run')
+    def test_run_once(self, run):
+        run.return_value.stdout = ''
+        self.assertEqual({}, probe())
+        self.assertEqual({}, probe())
+        run.assert_called_once()
