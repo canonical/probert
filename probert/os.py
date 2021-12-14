@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import functools
 import logging
 import re
 import subprocess
@@ -57,15 +58,22 @@ def _parse_osprober(lines):
     return ret
 
 
-def probe(context=None):
-    """Capture detected OSes. Indexed by partition as decided by os-prober."""
+@functools.lru_cache(maxsize=1)
+def _run_os_prober():
     cmd = ['os-prober']
     try:
         result = subprocess.run(cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
                                 universal_newlines=True, check=True)
-        output = result.stdout or ''
+        return result.stdout or ''
     except subprocess.CalledProcessError as cpe:
         log.exception('Failed to probe OSes\n%s', cpe.stderr or '')
+        return None
+
+
+def probe(context=None):
+    """Capture detected OSes. Indexed by partition as decided by os-prober."""
+    output = _run_os_prober()
+    if not output:
         return {}
     return _parse_osprober(output.splitlines())
