@@ -88,19 +88,6 @@ def get_mdadm_array_members(md_device, detail):
     return (devices, spares)
 
 
-def extract_mdadm_raid_name(conf):
-    ''' return the raid array name, removing homehost if present.
-
-    MD_NAME=s1lp6:raid5-2406-2407-2408-2409
-
-    returns 'raid5-2406-2407-2408-2409'
-    '''
-    raid_name = conf.get('MD_NAME')
-    if ':' in raid_name:
-        _, raid_name = raid_name.split(':')
-    return raid_name
-
-
 def probe(context=None, report=False):
     """Initiate an mdadm assemble to awaken existing MDADM devices.
        For each md block device, extract required information needed
