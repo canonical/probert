@@ -62,7 +62,7 @@ def get_mdadm_array_spares(md_device, detail):
             if keymatch(key, detail, 'spare')]
 
 
-def get_mdadm_array_members(md_device, detail):
+def get_mdadm_array_members(md_device):
     ''' extract array devices and spares from mdadm --detail --export output
 
     MD_LEVEL=raid5
@@ -81,6 +81,24 @@ def get_mdadm_array_members(md_device, detail):
 
     returns (['/dev/dm2', '/dev/dm-3', '/dev/dm-4'], ['/dev/dm-5'])
     '''
+    cmd = ['mdadm', '--detail', '--export', md_device]
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL)
+        output = result.stdout.decode('utf-8')
+    except subprocess.CalledProcessError as e:
+        log.error('failed to get detail for %s: %s', md_device, e)
+        return ([], [])
+
+    detail = {}
+
+    for line in output.splitlines():
+        line = line.strip()
+        if '=' not in line:
+            continue
+        k, v = line.split('=', 1)
+        detail[k] = v
+
     md_device_keys = [key for key in detail.keys()
                       if key.startswith('MD_DEVICE_') and key.endswith('_DEV')]
     spares = sorted(get_mdadm_array_spares(md_device, detail))
@@ -116,7 +134,7 @@ def probe(context=None, report=False):
                 })
             raids[devname] = cfg
         else:
-            devices, spares = get_mdadm_array_members(devname, device)
+            devices, spares = get_mdadm_array_members(devname)
             cfg = dict(device)
             if device.get('MD_METADATA') == 'imsm':
                 # All disks in a imsm container show up as spares, in some
