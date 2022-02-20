@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import os
 import subprocess
 
 import pyudev
@@ -103,10 +104,18 @@ def probe(context=None, report=False):
 
     raids = {}
     for device in sane_block_devices(context):
-        if device.get('DEVTYPE') != 'disk':
-            continue
         devname = device['DEVNAME']
-        if 'MD_NAME' in device or device.get('MD_METADATA') == 'imsm':
+        if not os.path.basename(devname).startswith('md'):
+            continue
+        if 'MD_CONTAINER' in device:
+            cfg = dict(device)
+            cfg.update({
+                'raidlevel': device['MD_LEVEL'],
+                'container': device['MD_CONTAINER'],
+                'size': str(read_sys_block_size_bytes(devname)),
+                })
+            raids[devname] = cfg
+        else:
             devices, spares = get_mdadm_array_members(devname, device)
             cfg = dict(device)
             if device.get('MD_METADATA') == 'imsm':
@@ -124,14 +133,6 @@ def probe(context=None, report=False):
                 'raidlevel': device['MD_LEVEL'],
                 'devices': devices,
                 'spare_devices': spares,
-                'size': str(read_sys_block_size_bytes(devname)),
-                })
-            raids[devname] = cfg
-        elif 'MD_CONTAINER' in device:
-            cfg = dict(device)
-            cfg.update({
-                'raidlevel': device['MD_LEVEL'],
-                'container': device['MD_CONTAINER'],
                 'size': str(read_sys_block_size_bytes(devname)),
                 })
             raids[devname] = cfg
