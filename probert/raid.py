@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import os
 import subprocess
 
 import pyudev
@@ -41,27 +42,7 @@ def mdadm_assemble(scan=True, ignore_errors=True):
     return
 
 
-def get_mdadm_array_spares(md_device, detail):
-
-    def role_key_to_dev(rolekey):
-        # MD_DEVICE_dev_dm_5_ROLE=spare -> MD_DEVICE_dev_dm_5_DEV
-        devname_mangled = rolekey.split('MD_DEVICE_')[1].split('_ROLE')[0]
-        return 'MD_DEVICE_%s_DEV' % devname_mangled
-
-    def keymatch(key, data, role):
-        prefix = key.startswith('MD_DEVICE_')
-        suffix = key.endswith('_ROLE')
-        matches = data.get(key) == role
-        return (prefix and suffix and matches)
-
-    def get_dev_from_key(key, data):
-        return data.get(role_key_to_dev(key))
-
-    return [get_dev_from_key(key, detail) for key in detail.keys()
-            if keymatch(key, detail, 'spare')]
-
-
-def get_mdadm_array_members(md_device, detail):
+def get_mdadm_array_members(md_device):
     ''' extract array devices and spares from mdadm --detail --export output
 
     MD_LEVEL=raid5
@@ -80,25 +61,40 @@ def get_mdadm_array_members(md_device, detail):
 
     returns (['/dev/dm2', '/dev/dm-3', '/dev/dm-4'], ['/dev/dm-5'])
     '''
-    md_device_keys = [key for key in detail.keys()
-                      if key.startswith('MD_DEVICE_') and key.endswith('_DEV')]
-    spares = sorted(get_mdadm_array_spares(md_device, detail))
-    devices = sorted([detail[key] for key in md_device_keys
-                      if detail[key] not in spares])
-    return (devices, spares)
+    cmd = ['mdadm', '--detail', '--export', md_device]
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL)
+        output = result.stdout.decode('utf-8')
+    except subprocess.CalledProcessError as e:
+        log.error('failed to get detail for %s: %s', md_device, e)
+        return ([], [])
 
+    devices = {}
+    roles = {}
 
-def extract_mdadm_raid_name(conf):
-    ''' return the raid array name, removing homehost if present.
+    for line in output.splitlines():
+        line = line.strip()
+        if '=' not in line:
+            continue
+        k, v = line.split('=', 1)
+        if k.startswith('MD_DEVICE_'):
+            if k.endswith("_DEV"):
+                dev_key = k[len('MD_DEVICE_'):-len('_DEV')]
+                devices[dev_key] = v
+            elif k.endswith("_ROLE"):
+                dev_key = k[len('MD_DEVICE_'):-len('_ROLE')]
+                roles[dev_key] = v
 
-    MD_NAME=s1lp6:raid5-2406-2407-2408-2409
+    actives = []
+    spares = []
 
-    returns 'raid5-2406-2407-2408-2409'
-    '''
-    raid_name = conf.get('MD_NAME')
-    if ':' in raid_name:
-        _, raid_name = raid_name.split(':')
-    return raid_name
+    for dev_key, devname in devices.items():
+        if roles.get(dev_key) == 'spare':
+            spares.append(devname)
+        else:
+            actives.append(devname)
+    return (sorted(actives), sorted(spares))
 
 
 def probe(context=None, report=False):
@@ -116,11 +112,19 @@ def probe(context=None, report=False):
 
     raids = {}
     for device in sane_block_devices(context):
-        if device.get('DEVTYPE') != 'disk':
-            continue
         devname = device['DEVNAME']
-        if 'MD_NAME' in device or device.get('MD_METADATA') == 'imsm':
-            devices, spares = get_mdadm_array_members(devname, device)
+        if not os.path.basename(devname).startswith('md'):
+            continue
+        if 'MD_CONTAINER' in device:
+            cfg = dict(device)
+            cfg.update({
+                'raidlevel': device['MD_LEVEL'],
+                'container': device['MD_CONTAINER'],
+                'size': str(read_sys_block_size_bytes(devname)),
+                })
+            raids[devname] = cfg
+        else:
+            devices, spares = get_mdadm_array_members(devname)
             cfg = dict(device)
             if device.get('MD_METADATA') == 'imsm':
                 # All disks in a imsm container show up as spares, in some
@@ -137,14 +141,6 @@ def probe(context=None, report=False):
                 'raidlevel': device['MD_LEVEL'],
                 'devices': devices,
                 'spare_devices': spares,
-                'size': str(read_sys_block_size_bytes(devname)),
-                })
-            raids[devname] = cfg
-        elif 'MD_CONTAINER' in device:
-            cfg = dict(device)
-            cfg.update({
-                'raidlevel': device['MD_LEVEL'],
-                'container': device['MD_CONTAINER'],
                 'size': str(read_sys_block_size_bytes(devname)),
                 })
             raids[devname] = cfg
