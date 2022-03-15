@@ -1,3 +1,4 @@
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <ctype.h>
 #include <errno.h>
@@ -419,7 +420,7 @@ static void extract_ssid(struct nlattr *data, struct scan_handler_params *p)
 	char *ie = nla_data(bss[NL80211_BSS_INFORMATION_ELEMENTS]);
 	int ie_len = nla_len(bss[NL80211_BSS_INFORMATION_ELEMENTS]);
 	char *ssid = nl80211_get_ie(ie, ie_len, 0);
-	int ssid_len = ssid[1];
+	ssize_t ssid_len = (ssize_t)ssid[1];
 	PyObject* v = Py_BuildValue("(y#s)", ssid + 2, ssid_len, cstatus);
 	if (v == NULL) {
 		Py_CLEAR(p->ssid_list);
