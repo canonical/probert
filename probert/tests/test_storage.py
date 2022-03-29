@@ -1,4 +1,5 @@
 import testtools
+from unittest.mock import Mock
 import json
 
 from probert.storage import Storage, StorageInfo
@@ -8,12 +9,52 @@ from probert.tests.fakes import FAKE_PROBE_ALL_JSON
 class ProbertTestStorage(testtools.TestCase):
     def setUp(self):
         super(ProbertTestStorage, self).setUp()
-        with open(FAKE_PROBE_ALL_JSON) as f:
-            self.results = json.load(f)
-        self.storage = Storage(results=self.results)
 
     def test_storage_init(self):
-        self.assertNotEqual(None, self.storage)
+        with open(FAKE_PROBE_ALL_JSON) as f:
+            self.results = json.load(f)
+        storage = Storage(results=self.results)
+        self.assertNotEqual(None, storage)
+
+
+class ProbertTestStorageProbeSet(testtools.TestCase):
+    def setUp(self):
+        super(ProbertTestStorageProbeSet, self).setUp()
+        self.storage = Storage()
+        for k, v in self.storage.probe_map.items():
+            self.storage.probe_map[k].pfunc = Mock()
+
+    def _do_test_defaults(self, probe_types):
+        self.storage.probe(probe_types)
+        for k, v in self.storage.probe_map.items():
+            if (probe_types and k in probe_types) or v.in_default_set:
+                v.pfunc.assert_called()
+            else:
+                v.pfunc.assert_not_called()
+
+    def test_storage_none_probe_types(self):
+        self._do_test_defaults(None)
+
+    def test_storage_defaults_probe_types(self):
+        self._do_test_defaults({'defaults'})
+
+    def test_storage_defaults_with_extra_probe_types(self):
+        self._do_test_defaults({'defaults', 'os'})
+
+    def test_storage_some_probe_types(self):
+        probe_types = {'bcache'}
+        self.storage.probe(probe_types)
+        for k, v in self.storage.probe_map.items():
+            if k in probe_types:
+                v.pfunc.assert_called()
+            else:
+                v.pfunc.assert_not_called()
+
+    def test_storage_unknown_type(self):
+        probe_types = {'not-a-real-type'}
+        self.storage.probe(probe_types)
+        for v in self.storage.probe_map.values():
+            v.pfunc.assert_not_called()
 
 
 class ProbertTestStorageInfo(testtools.TestCase):

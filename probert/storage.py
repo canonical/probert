@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from dataclasses import dataclass
 import json
 import logging
 import pyudev
@@ -132,6 +133,12 @@ def blockdev_probe(context=None):
     return blockdev
 
 
+@dataclass
+class Probe:
+    pfunc: callable
+    in_default_set: bool = True
+
+
 class Storage():
     """ The Storage class includes a map of storage types that
         probert knows how to extract required information needed
@@ -147,44 +154,49 @@ class Storage():
         present.
     """
     probe_map = {
-        'bcache': bcache.probe,
-        'blockdev': blockdev_probe,
-        'dasd': dasd.probe,
-        'dmcrypt': dmcrypt.probe,
-        'filesystem': filesystem.probe,
-        'lvm': lvm.probe,
-        'mount': mount.probe,
-        'multipath': multipath.probe,
-        'os': os.probe,
-        'raid': raid.probe,
-        'zfs': zfs.probe
+        'bcache': Probe(bcache.probe),
+        'blockdev': Probe(blockdev_probe),
+        'dasd': Probe(dasd.probe),
+        'dmcrypt': Probe(dmcrypt.probe),
+        'filesystem': Probe(filesystem.probe),
+        'lvm': Probe(lvm.probe),
+        'mount': Probe(mount.probe),
+        'multipath': Probe(multipath.probe),
+        'os': Probe(os.probe, in_default_set=False),
+        'raid': Probe(raid.probe),
+        'zfs': Probe(zfs.probe),
     }
 
     def __init__(self, results={}):
         self.results = results
         self.context = pyudev.Context()
 
-    def _get_probe_types(self):
-        return {ptype for ptype, pfunc in self.probe_map.items() if pfunc}
+    def _get_probe_types(self, get_all=False):
+        return {ptype for ptype, probe in self.probe_map.items()
+                if get_all or probe.in_default_set}
 
     def probe(self, probe_types=None):
-        default_probes = self._get_probe_types()
+        default_probes = self._get_probe_types(False)
+        all_probes = self._get_probe_types(True)
         if not probe_types:
             to_probe = default_probes
         else:
-            to_probe = probe_types.intersection(default_probes)
+            if 'defaults' in probe_types:
+                probe_types.remove('defaults')
+                probe_types = probe_types.union(default_probes)
+            to_probe = probe_types.intersection(all_probes)
 
         if len(to_probe) == 0:
-            not_avail = probe_types.difference(default_probes)
+            not_avail = probe_types.difference(all_probes)
             print('Requsted probes not available: %s' % probe_types)
-            print('Valid probe types: %s' % default_probes)
+            print('Valid probe types: %s' % all_probes)
             print('Unavilable probe types: %s' % not_avail)
             return self.results
 
         probed_data = {}
         for ptype in to_probe:
-            pfunc = self.probe_map[ptype]
-            probed_data[ptype] = pfunc(context=self.context)
+            probe = self.probe_map[ptype]
+            probed_data[ptype] = probe.pfunc(context=self.context)
 
         self.results = probed_data
         return probed_data

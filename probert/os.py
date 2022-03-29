@@ -17,6 +17,7 @@
 import functools
 import logging
 import re
+import shutil
 import subprocess
 
 log = logging.getLogger('probert.os')
@@ -60,9 +61,14 @@ def _parse_osprober(lines):
 
 @functools.lru_cache(maxsize=1)
 def _run_os_prober():
-    cmd = ['os-prober']
+    for cmd in 'subiquity.os-prober', 'os-prober':
+        if shutil.which(cmd):
+            break
+    else:
+        log.error('failed to locate os-prober')
+        return None
     try:
-        result = subprocess.run(cmd, stdout=subprocess.PIPE,
+        result = subprocess.run([cmd], stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
                                 universal_newlines=True, check=True)
         return result.stdout or ''
