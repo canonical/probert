@@ -112,6 +112,8 @@ def probe(context=None, report=False):
 
     raids = {}
     for device in sane_block_devices(context):
+        if device.get('DEVTYPE') != 'disk':
+            continue
         devname = device['DEVNAME']
         if not os.path.basename(devname).startswith('md'):
             continue
