@@ -20,6 +20,9 @@ import pyudev
 import re
 import subprocess
 
+from probert.utils import sane_block_devices
+
+
 log = logging.getLogger('probert.dasd')
 
 
@@ -145,7 +148,7 @@ def probe(context=None):
 
     log.debug("found MAJOR for virtblk: %s", virtio_major)
 
-    for device in context.list_devices(subsystem='block'):
+    for device in sane_block_devices(context):
         # ignore partitions
         if 'PARTN' in device:
             continue
