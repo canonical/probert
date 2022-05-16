@@ -28,7 +28,7 @@ def get_device_filesystem(device):
             for k, v in device.items() if k.startswith('ID_FS_')}
 
 
-def probe(context=None):
+def probe(context=None, enabled_probes=None, **kw):
     """ Capture detected filesystems found on discovered block devices.  """
     filesystems = {}
     if not context:

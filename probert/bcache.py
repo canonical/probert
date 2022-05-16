@@ -89,7 +89,7 @@ def is_bcache_device(device):
     return device.get('ID_FS_TYPE') == 'bcache'
 
 
-def probe(context=None):
+def probe(context=None, **kw):
     """Probe the system for bcache devices.  Bcache devices
        are registered with the kernel upon module load and when
        devices are hot/cold plugged.  There are two portions to

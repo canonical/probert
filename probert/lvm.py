@@ -170,7 +170,7 @@ def extract_lvm_volgroup(vg_name, report_data):
                       'size': size})
 
 
-def probe(context=None):
+def probe(context=None, **kw):
     """ Probing for LVM devices requires initiating a kernel level scan
         of block devices to look for physical volumes, volume groups and
         logical volumes.  Once detected, the prober will activate any
