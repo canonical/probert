@@ -130,6 +130,7 @@ def get_device_filesystem(device, sizing):
             size_info = sizing_tools[fstype](device.device_node)
             if size_info is not None:
                 fs_info.update(size_info)
+        fs_info.setdefault('ESTIMATED_MIN_SIZE', -1)
     return fs_info
 
 
