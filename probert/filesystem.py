@@ -71,7 +71,8 @@ def get_resize2fs_info(path):
     return None
 
 
-def get_ext_sizing(path):
+def get_ext_sizing(device):
+    path = device.device_node
     dumpe2fs_info = get_dumpe2fs_info(path)
     if not dumpe2fs_info:
         return None
@@ -84,7 +85,8 @@ def get_ext_sizing(path):
     return ret
 
 
-def get_ntfs_sizing(path):
+def get_ntfs_sizing(device):
+    path = device.device_node
     cmd = ['ntfsresize',
            '--no-action',
            '--force',  # needed post-resize, which otherwise demands a CHKDSK
@@ -112,11 +114,19 @@ def get_ntfs_sizing(path):
     return ret
 
 
+def get_swap_sizing(device):
+    return {
+        'SIZE': device['ID_PART_ENTRY_SIZE'] * 512,
+        'ESTIMATED_MIN_SIZE': 0
+    }
+
+
 sizing_tools = {
     'ext2': get_ext_sizing,
     'ext3': get_ext_sizing,
     'ext4': get_ext_sizing,
     'ntfs': get_ntfs_sizing,
+    'swap': get_swap_sizing,
 }
 
 
@@ -127,7 +137,7 @@ def get_device_filesystem(device, sizing):
     if sizing:
         fstype = fs_info.get('TYPE', None)
         if fstype in sizing_tools:
-            size_info = sizing_tools[fstype](device.device_node)
+            size_info = sizing_tools[fstype](device)
             if size_info is not None:
                 fs_info.update(size_info)
         fs_info.setdefault('ESTIMATED_MIN_SIZE', -1)

@@ -24,6 +24,7 @@ from probert.filesystem import (
     get_resize2fs_info,
     get_ext_sizing,
     get_ntfs_sizing,
+    get_swap_sizing,
     get_device_filesystem,
 )
 
@@ -39,6 +40,10 @@ def random_string(length=8):
 
 
 class TestFilesystem(TestCase):
+    def setUp(self):
+        self.device = Mock()
+        self.device.device_node = random_string()
+
     @patch('probert.filesystem.run')
     def test_dumpe2fs_simple_output(self, run):
         run.return_value = '''
@@ -46,19 +51,19 @@ Block count: 1234
 Block size:  4000
 '''
         expected = {'block_count': 1234, 'block_size': 4000}
-        self.assertEqual(expected, get_dumpe2fs_info(random_string()))
+        self.assertEqual(expected, get_dumpe2fs_info(self.device))
 
     @patch('probert.filesystem.run')
     def test_dumpe2fs_real_output(self, run):
         run.return_value = read_file('probert/tests/data/dumpe2fs_ext4.out')
         expected = {'block_count': 10240, 'block_size': 4096}
-        self.assertEqual(expected, get_dumpe2fs_info(random_string()))
+        self.assertEqual(expected, get_dumpe2fs_info(self.device))
 
     @patch('probert.filesystem.run')
     def test_resize2fs(self, run):
         run.return_value = 'Estimated minimum size of the filesystem: 1371\n'
         expected = {'min_blocks': 1371}
-        self.assertEqual(expected, get_resize2fs_info(random_string()))
+        self.assertEqual(expected, get_resize2fs_info(self.device))
 
     @patch('probert.filesystem.get_resize2fs_info')
     @patch('probert.filesystem.get_dumpe2fs_info')
@@ -66,28 +71,26 @@ Block size:  4000
         dumpe2fs.return_value = {'block_count': 20000, 'block_size': 1000}
         resize2fs.return_value = {'min_blocks': 4000}
         expected = {'SIZE': 20000 * 1000, 'ESTIMATED_MIN_SIZE': 4000 * 1000}
-        self.assertEqual(expected, get_ext_sizing(random_string()))
+        self.assertEqual(expected, get_ext_sizing(self.device))
 
     @patch('probert.filesystem.get_dumpe2fs_info')
     def test_ext4_bad_dumpe2fs(self, dumpe2fs):
-        device = Mock()
         dumpe2fs.return_value = None
-        self.assertIsNone(get_ext_sizing(device))
+        self.assertIsNone(get_ext_sizing(self.device))
 
     @patch('probert.filesystem.get_resize2fs_info')
     @patch('probert.filesystem.get_dumpe2fs_info')
     def test_ext4_bad_resize2fs(self, dumpe2fs, resize2fs):
-        device = Mock()
         dumpe2fs.return_value = {'block_count': 20000, 'block_size': 1000}
         resize2fs.return_value = None
         expected = {'SIZE': 20000 * 1000}
-        self.assertEqual(expected, get_ext_sizing(device))
+        self.assertEqual(expected, get_ext_sizing(self.device))
 
     @patch('probert.filesystem.run')
     def test_ntfs_real_output(self, run):
         run.return_value = read_file('probert/tests/data/ntfsresize.out')
         expected = {'SIZE': 41939456, 'ESTIMATED_MIN_SIZE': 2613248}
-        self.assertEqual(expected, get_ntfs_sizing(random_string()))
+        self.assertEqual(expected, get_ntfs_sizing(self.device))
 
     @patch('probert.filesystem.run')
     def test_ntfs_simple_output(self, run):
@@ -96,33 +99,34 @@ Current volume size: 100000000 bytes (100 MB)
 You might resize at 25000000 bytes or 25 MB (freeing 75 MB).
 '''
         expected = {'SIZE': 100000000, 'ESTIMATED_MIN_SIZE': 25000000}
-        self.assertEqual(expected, get_ntfs_sizing(random_string()))
+        self.assertEqual(expected, get_ntfs_sizing(self.device))
+
+    def test_swap_sizing(self):
+        device = {'ID_PART_ENTRY_SIZE': 2}
+        expected = {'SIZE': 1024, 'ESTIMATED_MIN_SIZE': 0}
+        self.assertEqual(expected, get_swap_sizing(device))
 
     def test_get_device_filesystem_no_sizing(self):
         data = {'ID_FS_FOO': 'bar'}
-        device = Mock()
-        device.items = lambda: data.items()
+        self.device.items = lambda: data.items()
         expected = {'FOO': 'bar'}
-        self.assertEqual(expected, get_device_filesystem(device, False))
+        self.assertEqual(expected, get_device_filesystem(self.device, False))
 
     def test_get_device_filesystem_sizing_unsupported(self):
         data = {'ID_FS_TYPE': 'reiserfs'}
-        device = Mock()
-        device.items = lambda: data.items()
+        self.device.items = lambda: data.items()
         expected = {'ESTIMATED_MIN_SIZE': -1, 'TYPE': 'reiserfs'}
-        self.assertEqual(expected, get_device_filesystem(device, True))
+        self.assertEqual(expected, get_device_filesystem(self.device, True))
 
     def test_get_device_filesystem_missing_info(self):
         data = {}
-        device = Mock()
-        device.items = lambda: data.items()
+        self.device.items = lambda: data.items()
         expected = {'ESTIMATED_MIN_SIZE': -1}
-        self.assertEqual(expected, get_device_filesystem(device, True))
+        self.assertEqual(expected, get_device_filesystem(self.device, True))
 
     def test_get_device_filesystem_sizing_ext4(self):
         data = {'ID_FS_TYPE': 'ext4'}
-        device = Mock()
-        device.items = lambda: data.items()
+        self.device.items = lambda: data.items()
         size_info = {'ESTIMATED_MIN_SIZE': 1 << 20, 'SIZE': 10 << 20}
         ext4 = Mock()
         ext4.return_value = size_info
@@ -130,13 +134,12 @@ You might resize at 25000000 bytes or 25 MB (freeing 75 MB).
                         {'ext4': ext4}, clear=True):
             expected = size_info.copy()
             expected['TYPE'] = 'ext4'
-            actual = get_device_filesystem(device, True)
+            actual = get_device_filesystem(self.device, True)
             self.assertEqual(expected, actual)
 
     def test_get_device_filesystem_sizing_ext4_no_min(self):
         data = {'ID_FS_TYPE': 'ext4'}
-        device = Mock()
-        device.items = lambda: data.items()
+        self.device.items = lambda: data.items()
         size_info = {'SIZE': 10 << 20}
         ext4 = Mock()
         ext4.return_value = size_info
@@ -145,5 +148,5 @@ You might resize at 25000000 bytes or 25 MB (freeing 75 MB).
             expected = size_info.copy()
             expected['ESTIMATED_MIN_SIZE'] = -1
             expected['TYPE'] = 'ext4'
-            actual = get_device_filesystem(device, True)
+            actual = get_device_filesystem(self.device, True)
             self.assertEqual(expected, actual)
