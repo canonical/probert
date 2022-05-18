@@ -93,6 +93,12 @@ Block size:  4000
         self.assertEqual(expected, get_ntfs_sizing(self.device))
 
     @patch('probert.filesystem.run')
+    def test_ntfs_real_output_full(self, run):
+        run.return_value = read_file('probert/tests/data/ntfsresize_full.out')
+        expected = {'SIZE': 83882496, 'ESTIMATED_MIN_SIZE': 83882496}
+        self.assertEqual(expected, get_ntfs_sizing(self.device))
+
+    @patch('probert.filesystem.run')
     def test_ntfs_simple_output(self, run):
         run.return_value = '''
 Current volume size: 100000000 bytes (100 MB)

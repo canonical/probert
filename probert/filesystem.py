@@ -99,9 +99,13 @@ def get_ntfs_sizing(device):
     #   Current volume size: 41939456 bytes (42 MB)
     #   ...
     #   You might resize at 2613248 bytes or 3 MB (freeing 39 MB).
+    #   or
+    #   ERROR: Volume is full. To shrink it, delete unused files.
     volsize_matcher = re.compile(r'^Current volume size: ([0-9]+) bytes')
     minsize_matcher = re.compile(r'^You might resize at ([0-9]+) bytes')
+    volfull_matcher = re.compile(r'^ERROR: Volume is full.')
     ret = {}
+    is_full = False
     for line in out.splitlines():
         m = volsize_matcher.match(line)
         if m:
@@ -109,8 +113,14 @@ def get_ntfs_sizing(device):
         m = minsize_matcher.match(line)
         if m:
             ret['ESTIMATED_MIN_SIZE'] = int(m.group(1))
+        m = volfull_matcher.match(line)
+        if m:
+            is_full = True
     if 'SIZE' not in ret:
         log.debug('ntfs volume size not found: unexpected output format')
+        return None
+    if is_full:
+        ret['ESTIMATED_MIN_SIZE'] = ret['SIZE']
     return ret
 
 
