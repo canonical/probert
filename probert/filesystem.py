@@ -42,13 +42,13 @@ def get_dumpe2fs_info(path):
         return None
     # Block count:              20480
     # Block size:               4096
-    block_count_matcher = re.compile(r'Block count:\s+(\d+)')
-    block_size_matcher = re.compile(r'Block size:\s+(\d+)')
+    block_count_matcher = re.compile(r'^Block count:\s+(\d+)$')
+    block_size_matcher = re.compile(r'^Block size:\s+(\d+)$')
     for line in out.splitlines():
-        m = block_count_matcher.match(line)
+        m = block_count_matcher.fullmatch(line)
         if m:
             ret['block_count'] = int(m.group(1))
-        m = block_size_matcher.match(line)
+        m = block_size_matcher.fullmatch(line)
         if m:
             ret['block_size'] = int(m.group(1))
     if 'block_count' not in ret or 'block_size' not in ret:
@@ -63,9 +63,9 @@ def get_resize2fs_info(path):
     if out is None:
         return None
     min_blocks_matcher = re.compile(
-        r'^Estimated minimum size of the filesystem: (\d+)')
+        r'^Estimated minimum size of the filesystem: (\d+)$')
     for line in out.splitlines():
-        m = min_blocks_matcher.match(line)
+        m = min_blocks_matcher.fullmatch(line)
         if m:
             return {'min_blocks': int(m.group(1))}
     return None
