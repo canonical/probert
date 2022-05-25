@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import os
 import re
 import subprocess
 
@@ -24,9 +25,20 @@ from probert.utils import sane_block_devices
 log = logging.getLogger('probert.filesystems')
 
 
-def run(cmdarr, **kw):
+def _clean_env(env):
+    if env is None:
+        env = os.environ.copy()
+    else:
+        env = env.copy()
+    env['LC_ALL'] = 'C'
+    return env
+
+
+def run(cmdarr, env=None, **kw):
+    env = _clean_env(env)
     try:
-        return subprocess.check_output(cmdarr, universal_newlines=True, **kw)
+        return subprocess.check_output(cmdarr, universal_newlines=True,
+                                       env=env, **kw)
     except subprocess.CalledProcessError as cpe:
         if cpe.stderr:
             log.debug('stderr: %s', cpe.stderr)
