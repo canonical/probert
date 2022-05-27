@@ -70,7 +70,7 @@ def multipath_show_maps():
     return _extract_mpath_data(cmd, 'maps')
 
 
-def probe(context=None):
+def probe(context=None, **kw):
     """Query the multipath daemon for multipath maps and paths.
 
        This data is useful for determining whether a specific block

@@ -124,7 +124,7 @@ def get_dasd_info(device):
         }
 
 
-def probe(context=None):
+def probe(context=None, **kw):
     """Examine all dasd devices present and extract configuration attributes
 
        This data is useful for determining if the dasd device has been

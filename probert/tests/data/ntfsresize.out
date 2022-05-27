@@ -1,0 +1,13 @@
+ntfsresize v2017.3.23AR.3 (libntfs-3g)
+Device name        : /dev/loop2p1
+NTFS volume version: 3.1
+Cluster size       : 4096 bytes
+Current volume size: 41939456 bytes (42 MB)
+Current device size: 41943040 bytes (42 MB)
+Checking filesystem consistency ...
+  0.00 percent completed100.00 percent completed
+Accounting clusters ...
+Space in use       : 3 MB (6.2%)
+Collecting resizing constraints ...
+You might resize at 2613248 bytes or 3 MB (freeing 39 MB).
+Please make a test run using both the -n and -s options before real resizing!

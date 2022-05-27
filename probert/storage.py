@@ -90,7 +90,7 @@ class StorageInfo():
         return self.devpath.startswith('/devices/virtual/')
 
 
-def blockdev_probe(context=None):
+def blockdev_probe(context=None, **kw):
     """ Non-class method for extracting relevant block
         devices from pyudev.Context().
     """
@@ -139,6 +139,12 @@ class Probe:
     in_default_set: bool = True
 
 
+def null_probe(context=None, **kw):
+    """Some probe types are flags that change the behavior of other probes.
+       These flag probes do nothing on their own."""
+    return None
+
+
 class Storage():
     """ The Storage class includes a map of storage types that
         probert knows how to extract required information needed
@@ -163,6 +169,7 @@ class Storage():
         'mount': Probe(mount.probe),
         'multipath': Probe(multipath.probe),
         'os': Probe(os.probe, in_default_set=False),
+        'filesystem_sizing': Probe(null_probe, in_default_set=False),
         'raid': Probe(raid.probe),
         'zfs': Probe(zfs.probe),
     }
@@ -196,7 +203,9 @@ class Storage():
         probed_data = {}
         for ptype in to_probe:
             probe = self.probe_map[ptype]
-            probed_data[ptype] = probe.pfunc(context=self.context)
+            result = probe.pfunc(context=self.context, enabled_probes=to_probe)
+            if result is not None:
+                probed_data[ptype] = result
 
         self.results = probed_data
         return probed_data
