@@ -17,6 +17,9 @@ import logging
 import os
 import subprocess
 
+from probert.utils import sane_block_devices
+
+
 log = logging.getLogger('probert.bcache')
 
 
@@ -113,7 +116,7 @@ def probe(context=None):
     if not context:
         return bcache
 
-    for device in context.list_devices(subsystem='block'):
+    for device in sane_block_devices(context):
         if is_bcache_device(device):
             devpath = device['DEVNAME']
             sb = superblock_asdict(devpath)
