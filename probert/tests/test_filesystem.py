@@ -156,3 +156,18 @@ You might resize at 25000000 bytes or 25 MB (freeing 75 MB).
             expected['TYPE'] = 'ext4'
             actual = get_device_filesystem(self.device, True)
             self.assertEqual(expected, actual)
+
+    @patch('probert.filesystem.shutil.which')
+    def test_ntfsresize_not_found(self, which):
+        which.return_value = None
+        self.assertEqual(None, get_ntfs_sizing(self.device))
+
+    @patch('probert.filesystem.shutil.which')
+    def test_dumpe2fs_not_found(self, which):
+        which.return_value = None
+        self.assertEqual(None, get_dumpe2fs_info(self.device))
+
+    @patch('probert.filesystem.shutil.which')
+    def test_resize2fs_not_found(self, which):
+        which.return_value = None
+        self.assertEqual(None, get_resize2fs_info(self.device))

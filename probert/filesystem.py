@@ -16,6 +16,7 @@
 import logging
 import os
 import re
+import shutil
 import subprocess
 
 import pyudev
@@ -48,7 +49,11 @@ def run(cmdarr, env=None, **kw):
 
 def get_dumpe2fs_info(path):
     ret = {}
-    out = run(['dumpe2fs', '-h', path])
+    dumpe2fs = shutil.which('dumpe2fs')
+    if dumpe2fs is None:
+        log.debug('ext volume size not found: dumpe2fs not found')
+        return None
+    out = run([dumpe2fs, '-h', path])
     if out is None:
         log.debug('ext volume size not found: dumpe2fs failure')
         return None
@@ -71,7 +76,11 @@ def get_dumpe2fs_info(path):
 
 def get_resize2fs_info(path):
     # Estimated minimum size of the filesystem: 1696
-    out = run(['resize2fs', '-P', path])
+    resize2fs = shutil.which('resize2fs')
+    if resize2fs is None:
+        log.debug('ext volume size not found: resize2fs not found')
+        return None
+    out = run([resize2fs, '-P', path])
     if out is None:
         return None
     min_blocks_matcher = re.compile(
@@ -99,7 +108,11 @@ def get_ext_sizing(device):
 
 def get_ntfs_sizing(device):
     path = device.device_node
-    cmd = ['ntfsresize',
+    ntfsresize = shutil.which('ntfsresize')
+    if ntfsresize is None:
+        log.debug('ntfs volume size not found: ntfsresize not found')
+        return None
+    cmd = [ntfsresize,
            '--no-action',
            '--force',  # needed post-resize, which otherwise demands a CHKDSK
            '--info', path]
