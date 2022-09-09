@@ -16,6 +16,7 @@
 import random
 import string
 
+import pytest
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
@@ -37,6 +38,31 @@ def read_file(filename):
 def random_string(length=8):
     return ''.join(
         random.choice(string.ascii_lowercase) for _ in range(length))
+
+
+class TestGetSwapSizing:
+    @pytest.mark.parametrize(
+        "device,expected",
+        (
+            (
+                {"ID_PART_ENTRY_SIZE": 2},
+                {"SIZE": 1024, "ESTIMATED_MIN_SIZE": 0}
+            ),
+            (
+                {
+                    "DEVNAME": "/dev/dm-1",
+                    "DEVTYPE": "disk",
+                    "DM_VG_NAME": "vg1",
+                    "attrs": {
+                        "size": "1073741824",
+                    },
+                },
+                {"SIZE": 1073741824, "ESTIMATED_MIN_SIZE": 0},
+            ),
+        ),
+    )
+    def test_expected_output(self, device, expected):
+        assert expected == get_swap_sizing(device)
 
 
 class TestFilesystem(TestCase):
