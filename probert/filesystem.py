@@ -150,10 +150,17 @@ def get_ntfs_sizing(device):
 
 
 def get_swap_sizing(device):
-    return {
-        'SIZE': device['ID_PART_ENTRY_SIZE'] * 512,
-        'ESTIMATED_MIN_SIZE': 0
-    }
+    if 'ID_PART_ENTRY_SIZE' in device:
+        size = device['ID_PART_ENTRY_SIZE'] * 512
+    else:
+        size = int(device.get('attrs', {}).get('size', 0))
+    if not size:
+        log.debug(
+            'swap volume size not found. Neither ID_PART_ENTRY_SIZE nor'
+            ' attrs:size present'
+        )
+        return None
+    return {'SIZE': size, 'ESTIMATED_MIN_SIZE': 0}
 
 
 sizing_tools = {
