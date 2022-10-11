@@ -2,8 +2,38 @@ import testtools
 from unittest.mock import Mock
 import json
 
-from probert.storage import Storage, StorageInfo
+from probert.storage import Storage, StorageInfo, interesting_storage_devs
 from probert.tests.fakes import FAKE_PROBE_ALL_JSON
+
+from parameterized import parameterized
+
+
+class ProbertTestInterestingDevs(testtools.TestCase):
+    @parameterized.expand([
+        ['1', 0],
+        ['2', 1],
+        ['7', 0],
+    ])
+    def test_major_filtering(self, major, expected):
+        context = Mock()
+        context.list_devices.return_value = [{'MAJOR': major}]
+
+        actual = len(list(interesting_storage_devs(context)))
+        self.assertEqual(expected, actual)
+
+    @parameterized.expand([
+        ['7:0', 0],
+        ['8:0', 1],
+    ])
+    def test_parent_major_filtering(self, parent_majmin, expected):
+        context = Mock()
+        context.list_devices.return_value = [{
+            'MAJOR': '259',
+            'ID_PART_ENTRY_DISK': parent_majmin
+        }]
+
+        actual = len(list(interesting_storage_devs(context)))
+        self.assertEqual(expected, actual)
 
 
 class ProbertTestStorage(testtools.TestCase):

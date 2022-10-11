@@ -90,6 +90,22 @@ class StorageInfo():
         return self.devpath.startswith('/devices/virtual/')
 
 
+def interesting_storage_devs(context):
+    skip_majors = (
+        '1',  # ignore ram disks
+        '7',  # ignore loopback devices
+    )
+
+    for device in sane_block_devices(context):
+        if device['MAJOR'] in skip_majors:
+            continue
+        major, minor = device.get('ID_PART_ENTRY_DISK', '0:0').split(':')
+        if major in skip_majors:
+            # also skip partitions that are on a device we don't want
+            continue
+        yield device
+
+
 def blockdev_probe(context=None, **kw):
     """ Non-class method for extracting relevant block
         devices from pyudev.Context().
@@ -116,19 +132,18 @@ def blockdev_probe(context=None, **kw):
         context = pyudev.Context()
 
     blockdev = {}
-    for device in sane_block_devices(context):
-        if device['MAJOR'] not in ["1", "7"]:
-            attrs = udev_get_attributes(device)
-            # update the size attr as it may only be the number
-            # of blocks rather than size in bytes.
-            attrs['size'] = \
-                str(read_sys_block_size_bytes(device['DEVNAME']))
-            blockdev[device['DEVNAME']] = dict(device)
-            blockdev[device['DEVNAME']].update({'attrs': attrs})
-            # include partition table info if present
-            ptable = _extract_partition_table(device['DEVNAME'])
-            if ptable:
-                blockdev[device['DEVNAME']].update(ptable)
+    for device in interesting_storage_devs(context):
+        attrs = udev_get_attributes(device)
+        # update the size attr as it may only be the number
+        # of blocks rather than size in bytes.
+        attrs['size'] = \
+            str(read_sys_block_size_bytes(device['DEVNAME']))
+        blockdev[device['DEVNAME']] = dict(device)
+        blockdev[device['DEVNAME']].update({'attrs': attrs})
+        # include partition table info if present
+        ptable = _extract_partition_table(device['DEVNAME'])
+        if ptable:
+            blockdev[device['DEVNAME']].update(ptable)
 
     return blockdev
 
