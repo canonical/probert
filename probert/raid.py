@@ -147,10 +147,10 @@ def probe(context=None, report=False, **kw):
                 'spare_devices': spares,
                 'size': str(read_sys_block_size_bytes(devname)),
                 })
-                if 'MD_LEVEL' in device:
-                    cfg.update({
-                        'raidlevel': device['MD_LEVEL'],
-                    })
+            if 'MD_LEVEL' in device:
+                cfg.update({
+                    'raidlevel': device['MD_LEVEL'],
+                })
             raids[devname] = cfg
 
     return raids
