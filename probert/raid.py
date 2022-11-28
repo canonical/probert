@@ -120,9 +120,12 @@ def probe(context=None, report=False, **kw):
         if 'MD_CONTAINER' in device:
             cfg = dict(device)
             cfg.update({
-                'raidlevel': device['MD_LEVEL'],
                 'container': device['MD_CONTAINER'],
                 'size': str(read_sys_block_size_bytes(devname)),
+                })
+            if 'MD_LEVEL' in device:
+                cfg.update({
+                    'raidlevel': device['MD_LEVEL'],
                 })
             raids[devname] = cfg
         else:
@@ -140,10 +143,13 @@ def probe(context=None, report=False, **kw):
                 devices = devices + spares
                 spares = []
             cfg.update({
-                'raidlevel': device['MD_LEVEL'],
                 'devices': devices,
                 'spare_devices': spares,
                 'size': str(read_sys_block_size_bytes(devname)),
+                })
+            if 'MD_LEVEL' in device:
+                cfg.update({
+                    'raidlevel': device['MD_LEVEL'],
                 })
             raids[devname] = cfg
 
