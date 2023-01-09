@@ -21,7 +21,7 @@ import subprocess
 
 from probert.utils import (
     read_sys_block_size_bytes,
-    sane_block_devices,
+    interesting_storage_devs,
     udev_get_attributes,
     )
 from probert import (bcache, dasd, dmcrypt, filesystem, lvm, mount, multipath,
@@ -88,22 +88,6 @@ class StorageInfo():
     @property
     def is_virtual(self):
         return self.devpath.startswith('/devices/virtual/')
-
-
-def interesting_storage_devs(context):
-    skip_majors = (
-        '1',  # ignore ram disks
-        '7',  # ignore loopback devices
-    )
-
-    for device in sane_block_devices(context):
-        if device['MAJOR'] in skip_majors:
-            continue
-        major, minor = device.get('ID_PART_ENTRY_DISK', '0:0').split(':')
-        if major in skip_majors:
-            # also skip partitions that are on a device we don't want
-            continue
-        yield device
 
 
 def blockdev_probe(context=None, **kw):

@@ -250,3 +250,19 @@ def sane_block_devices(context):
             # Shouldn't happen but apparently does! (LP: #1868109)
             continue
         yield device
+
+
+def interesting_storage_devs(context):
+    skip_majors = (
+        '1',  # ignore ram disks
+        '7',  # ignore loopback devices
+    )
+
+    for device in sane_block_devices(context):
+        if device['MAJOR'] in skip_majors:
+            continue
+        major, minor = device.get('ID_PART_ENTRY_DISK', '0:0').split(':')
+        if major in skip_majors:
+            # also skip partitions that are on a device we don't want
+            continue
+        yield device
