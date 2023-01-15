@@ -138,6 +138,11 @@ You might resize at 25000000 bytes or 25 MB (freeing 75 MB).
         expected = {'SIZE': 1024, 'ESTIMATED_MIN_SIZE': 0}
         self.assertEqual(expected, get_swap_sizing(device))
 
+    def test_swap_sizing_as_string(self):
+        device = {'ID_PART_ENTRY_SIZE': "2"}
+        expected = {'SIZE': 1024, 'ESTIMATED_MIN_SIZE': 0}
+        self.assertEqual(expected, get_swap_sizing(device))
+
     def test_get_device_filesystem_no_sizing(self):
         data = {'ID_FS_FOO': 'bar'}
         self.device.items = lambda: data.items()

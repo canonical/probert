@@ -151,7 +151,7 @@ def get_ntfs_sizing(device):
 
 def get_swap_sizing(device):
     if 'ID_PART_ENTRY_SIZE' in device:
-        size = device['ID_PART_ENTRY_SIZE'] * 512
+        size = int(device['ID_PART_ENTRY_SIZE']) * 512
     else:
         size = int(device.get('attrs', {}).get('size', 0))
     if not size:
