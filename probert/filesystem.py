@@ -21,7 +21,7 @@ import subprocess
 
 import pyudev
 
-from probert.utils import sane_block_devices
+from probert.utils import interesting_storage_devs
 
 log = logging.getLogger('probert.filesystems')
 
@@ -194,21 +194,18 @@ def probe(context=None, enabled_probes=None, **kw):
 
     need_fs_sizing = 'filesystem_sizing' in enabled_probes
 
-    for device in sane_block_devices(context):
-        # Ignore block major=1 (ramdisk) and major=7 (loopback)
-        # these won't ever be used in recreating storage on target systems.
-        if device['MAJOR'] not in ["1", "7"]:
-            fs_info = get_device_filesystem(device, need_fs_sizing)
-            # The ID_FS_ udev values come from libblkid, which contains code to
-            # recognize lots of different things that block devices or their
-            # partitions can contain (filesystems, lvm PVs, bcache, ...).  We
-            # only want to report things that are mountable filesystems here,
-            # which libblkid conveniently tags with ID_FS_USAGE=filesystem.
-            # Swap is a bit of a special case because it is not a mountable
-            # filesystem in the usual sense, but subiquity still needs to
-            # generate mount actions for it.  Crypto is a disguised filesystem.
-            if fs_info.get("USAGE") in ("filesystem", "crypto") or \
-               fs_info.get("TYPE") == "swap":
-                filesystems[device['DEVNAME']] = fs_info
+    for device in interesting_storage_devs(context):
+        fs_info = get_device_filesystem(device, need_fs_sizing)
+        # The ID_FS_ udev values come from libblkid, which contains code to
+        # recognize lots of different things that block devices or their
+        # partitions can contain (filesystems, lvm PVs, bcache, ...).  We
+        # only want to report things that are mountable filesystems here,
+        # which libblkid conveniently tags with ID_FS_USAGE=filesystem.
+        # Swap is a bit of a special case because it is not a mountable
+        # filesystem in the usual sense, but subiquity still needs to
+        # generate mount actions for it.  Crypto is a disguised filesystem.
+        if fs_info.get("USAGE") in ("filesystem", "crypto") or \
+           fs_info.get("TYPE") == "swap":
+            filesystems[device['DEVNAME']] = fs_info
 
     return filesystems
