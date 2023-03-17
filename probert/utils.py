@@ -1,10 +1,14 @@
 from copy import deepcopy
 import glob
 import itertools
+import logging
 import os
 import re
+import subprocess
 
 import pyudev
+
+log = logging.getLogger('probert.utils')
 
 NET_CONFIG_OPTIONS = [
     "address", "netmask", "broadcast", "network", "metric", "gateway",
@@ -25,6 +29,27 @@ NET_CONFIG_BRIDGE_OPTIONS = [
 # sysfs size attribute is always in 512-byte units
 # https://github.com/torvalds/linux/blob/6f0d349d922ba44e4348a17a78ea51b7135965b1/include/linux/types.h#L125
 SECTOR_SIZE_BYTES = 512
+
+
+def _clean_env(env):
+    if env is None:
+        env = os.environ.copy()
+    else:
+        env = env.copy()
+    env['LC_ALL'] = 'C'
+    return env
+
+
+def run(cmdarr, env=None, **kw):
+    env = _clean_env(env)
+    try:
+        return subprocess.check_output(cmdarr, universal_newlines=True,
+                                       env=env, **kw)
+    except subprocess.CalledProcessError as cpe:
+        if cpe.stderr:
+            log.debug('stderr: %s', cpe.stderr)
+        log.exception(cpe)
+        return None
 
 
 # from juju-deployer utils.relation_merge

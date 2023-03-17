@@ -14,37 +14,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-import os
 import re
 import shutil
-import subprocess
 
 import pyudev
 
-from probert.utils import sane_block_devices
+from probert.utils import (
+    run,
+    sane_block_devices,
+)
 
 log = logging.getLogger('probert.filesystems')
-
-
-def _clean_env(env):
-    if env is None:
-        env = os.environ.copy()
-    else:
-        env = env.copy()
-    env['LC_ALL'] = 'C'
-    return env
-
-
-def run(cmdarr, env=None, **kw):
-    env = _clean_env(env)
-    try:
-        return subprocess.check_output(cmdarr, universal_newlines=True,
-                                       env=env, **kw)
-    except subprocess.CalledProcessError as cpe:
-        if cpe.stderr:
-            log.debug('stderr: %s', cpe.stderr)
-        log.exception(cpe)
-        return None
 
 
 def get_dumpe2fs_info(path):
