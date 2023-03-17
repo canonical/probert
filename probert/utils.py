@@ -4,7 +4,9 @@ import itertools
 import logging
 import os
 import re
+import shlex
 import subprocess
+from subprocess import PIPE
 
 import pyudev
 
@@ -40,16 +42,30 @@ def _clean_env(env):
     return env
 
 
+def _log_stream(stream, name):
+    if stream:
+        log.debug(f'{name}: ------------------------------------------')
+        for line in stream.splitlines():
+            log.debug(line)
+    else:
+        log.debug(f'<empty {name}>')
+
+
 def run(cmdarr, env=None, **kw):
+    """Run the given, with stdout, stderr, and return code always logged.
+    Returns the stdout on command success, or None on command failure."""
     env = _clean_env(env)
-    try:
-        return subprocess.check_output(cmdarr, universal_newlines=True,
-                                       env=env, **kw)
-    except subprocess.CalledProcessError as cpe:
-        if cpe.stderr:
-            log.debug('stderr: %s', cpe.stderr)
-        log.exception(cpe)
-        return None
+    sp = subprocess.run(cmdarr, text=True, env=env,
+                        stdout=PIPE, stderr=PIPE, **kw)
+    display_cmd = shlex.join(cmdarr)
+    rc = sp.returncode
+    log.debug(f'Command `{display_cmd}` exited with result: {rc}')
+    _log_stream(sp.stdout, 'stdout')
+    _log_stream(sp.stderr, 'stderr')
+    log.debug('--------------------------------------------------')
+    if sp.returncode == 0:
+        return sp.stdout
+    return None
 
 
 # from juju-deployer utils.relation_merge

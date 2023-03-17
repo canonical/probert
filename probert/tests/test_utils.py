@@ -1,5 +1,11 @@
-import testtools
+import contextlib
+import logging
 from mock import call
+import os
+import tempfile
+import testtools
+import textwrap
+# import unittest
 
 from probert import utils
 from probert.tests.helpers import random_string, simple_mocked_open
@@ -57,3 +63,120 @@ class ProbertTestUtils(testtools.TestCase):
             result = utils.read_sys_block_size_bytes(devname)
             self.assertEqual(expected_bytes, result)
             self.assertEqual([call(expected_fname)], m_open.call_args_list)
+
+
+@contextlib.contextmanager
+def create_script(content):
+    try:
+        script = None
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as fp:
+            fp.write(textwrap.dedent(content))
+            script = fp.name
+        os.chmod(script, 0o755)
+        yield script
+    finally:
+        if script:
+            os.remove(script)
+
+
+class ProbertTestRun(testtools.TestCase):
+    leader = 'DEBUG:probert.utils:'
+
+    def test_run_success_no_output(self):
+        content = '''\
+            #!/bin/sh
+            exit 0
+        '''
+        with self.assertLogs('probert.utils', level=logging.DEBUG) as m_logs:
+            with create_script(content) as script:
+                actual = utils.run([script, 'a', 'b', 'c'])
+            expected = [self.leader + line for line in (
+                f'Command `{script} a b c` exited with result: 0',
+                '<empty stdout>',
+                '<empty stderr>',
+                '--------------------------------------------------',
+            )]
+            self.assertEqual('', actual)
+            self.assertEqual(expected, m_logs.output)
+
+    def test_run_success_no_stderr(self):
+        content = '''\
+            #!/bin/sh
+            echo "Line 1"
+            echo "Line 2"
+            exit 0
+        '''
+        with self.assertLogs('probert.utils', level=logging.DEBUG) as m_logs:
+            with create_script(content) as script:
+                actual = utils.run([script, 'a', 'b', 'c'])
+            expected = [self.leader + line for line in (
+                f'Command `{script} a b c` exited with result: 0',
+                'stdout: ------------------------------------------',
+                'Line 1',
+                'Line 2',
+                '<empty stderr>',
+                '--------------------------------------------------',
+            )]
+            self.assertEqual('Line 1\nLine 2\n', actual)
+            self.assertEqual(expected, m_logs.output)
+
+    def test_run_empty_output(self):
+        content = '''\
+            #!/bin/sh
+            echo
+            exit 0
+        '''
+        with self.assertLogs('probert.utils', level=logging.DEBUG) as m_logs:
+            with create_script(content) as script:
+                actual = utils.run([script, 'a', 'b', 'c'])
+            expected = [self.leader + line for line in (
+                f'Command `{script} a b c` exited with result: 0',
+                'stdout: ------------------------------------------',
+                '',
+                '<empty stderr>',
+                '--------------------------------------------------',
+            )]
+            self.assertEqual('\n', actual)
+            self.assertEqual(expected, m_logs.output)
+
+    def test_run_success_with_stderr(self):
+        content = '''\
+            #!/bin/sh
+            echo "Success message"
+            echo "Diagnostic info" 1>&2
+            exit 0
+        '''
+        with self.assertLogs('probert.utils', level=logging.DEBUG) as m_logs:
+            with create_script(content) as script:
+                actual = utils.run([script, 'a', 'b', 'c'])
+            expected = [self.leader + line for line in (
+                f'Command `{script} a b c` exited with result: 0',
+                'stdout: ------------------------------------------',
+                'Success message',
+                'stderr: ------------------------------------------',
+                'Diagnostic info',
+                '--------------------------------------------------',
+            )]
+            self.assertEqual('Success message\n', actual)
+            self.assertEqual(expected, m_logs.output)
+
+    def test_run_failure(self):
+        content = '''\
+            #!/bin/bash
+            echo "Bad output"
+            echo "You did it wrong" 1>&2
+            exit 7
+        '''
+        with self.assertLogs('probert.utils', level=logging.DEBUG) as m_logs:
+            with create_script(content) as script:
+                actual = utils.run([script])
+            expected = [self.leader + line for line in (
+                f'Command `{script}` exited with result: 7',
+                'stdout: ------------------------------------------',
+                'Bad output',
+                'stderr: ------------------------------------------',
+                'You did it wrong',
+                '--------------------------------------------------',
+            )]
+            self.assertIsNone(actual)
+            self.assertEqual(expected, m_logs.output)
