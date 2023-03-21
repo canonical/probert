@@ -1,10 +1,16 @@
 from copy import deepcopy
 import glob
 import itertools
+import logging
 import os
 import re
+import shlex
+import subprocess
+from subprocess import PIPE
 
 import pyudev
+
+log = logging.getLogger('probert.utils')
 
 NET_CONFIG_OPTIONS = [
     "address", "netmask", "broadcast", "network", "metric", "gateway",
@@ -25,6 +31,41 @@ NET_CONFIG_BRIDGE_OPTIONS = [
 # sysfs size attribute is always in 512-byte units
 # https://github.com/torvalds/linux/blob/6f0d349d922ba44e4348a17a78ea51b7135965b1/include/linux/types.h#L125
 SECTOR_SIZE_BYTES = 512
+
+
+def _clean_env(env):
+    if env is None:
+        env = os.environ.copy()
+    else:
+        env = env.copy()
+    env['LC_ALL'] = 'C'
+    return env
+
+
+def _log_stream(stream, name):
+    if stream:
+        log.debug(f'{name}: ------------------------------------------')
+        for line in stream.splitlines():
+            log.debug(line)
+    else:
+        log.debug(f'<empty {name}>')
+
+
+def run(cmdarr, env=None, **kw):
+    """Run the given, with stdout, stderr, and return code always logged.
+    Returns the stdout on command success, or None on command failure."""
+    env = _clean_env(env)
+    sp = subprocess.run(cmdarr, text=True, env=env,
+                        stdout=PIPE, stderr=PIPE, **kw)
+    display_cmd = shlex.join(cmdarr)
+    rc = sp.returncode
+    log.debug(f'Command `{display_cmd}` exited with result: {rc}')
+    _log_stream(sp.stdout, 'stdout')
+    _log_stream(sp.stderr, 'stderr')
+    log.debug('--------------------------------------------------')
+    if sp.returncode == 0:
+        return sp.stdout
+    return None
 
 
 # from juju-deployer utils.relation_merge
