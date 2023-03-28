@@ -5,7 +5,7 @@ import os
 import tempfile
 import testtools
 import textwrap
-# import unittest
+import unittest
 
 from probert import utils
 from probert.tests.helpers import random_string, simple_mocked_open
@@ -180,3 +180,24 @@ class ProbertTestRun(testtools.TestCase):
             )]
             self.assertIsNone(actual)
             self.assertEqual(expected, m_logs.output)
+
+    def test_run_nonunicode_out(self):
+        with self.assertLogs('probert.utils', level=logging.DEBUG) as m_logs:
+            with unittest.mock.patch('subprocess.run') as m_run:
+                m_run.return_value = unittest.mock.Mock()
+                m_run.return_value.returncode = 0
+                m_run.return_value.stdout = b'r\xe9serv\xe9e'
+                m_run.return_value.stderr = b''
+                actual = utils.run(['cmd'])
+        expected = [self.leader + line for line in (
+            'Command `cmd` exited with result: 0',
+            'UnicodeDecodeError on stdout: '
+            "'utf-8' codec can't decode byte 0xe9 in position 1: "
+            'invalid continuation byte',
+            'stdout: ------------------------------------------',
+            "b'r\\xe9serv\\xe9e'",
+            '<empty stderr>',
+            '--------------------------------------------------',
+        )]
+        self.assertIsNone(actual)
+        self.assertEqual(expected, m_logs.output)

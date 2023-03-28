@@ -42,29 +42,37 @@ def _clean_env(env):
     return env
 
 
-def _log_stream(stream, name):
+def _decode_stream(stream, name):
     if stream:
+        try:
+            log_input = text = stream.decode('utf-8')
+        except UnicodeDecodeError as ude:
+            log.debug(f'UnicodeDecodeError on {name}: {ude}')
+            text = None
+            log_input = stream
         log.debug(f'{name}: ------------------------------------------')
-        for line in stream.splitlines():
+        for line in log_input.splitlines():
             log.debug(line)
+        return text
     else:
         log.debug(f'<empty {name}>')
+        return ''
 
 
 def run(cmdarr, env=None, **kw):
-    """Run the given, with stdout, stderr, and return code always logged.
+    """Run the given command with stdout, stderr, return code always logged.
     Returns the stdout on command success, or None on command failure."""
     env = _clean_env(env)
-    sp = subprocess.run(cmdarr, text=True, env=env,
+    sp = subprocess.run(cmdarr, text=False, env=env,
                         stdout=PIPE, stderr=PIPE, **kw)
     display_cmd = shlex.join(cmdarr)
     rc = sp.returncode
     log.debug(f'Command `{display_cmd}` exited with result: {rc}')
-    _log_stream(sp.stdout, 'stdout')
-    _log_stream(sp.stderr, 'stderr')
+    stdout = _decode_stream(sp.stdout, 'stdout')
+    _decode_stream(sp.stderr, 'stderr')
     log.debug('--------------------------------------------------')
-    if sp.returncode == 0:
-        return sp.stdout
+    if stdout is not None and sp.returncode == 0:
+        return stdout
     return None
 
 
