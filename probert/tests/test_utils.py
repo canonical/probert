@@ -195,7 +195,7 @@ class ProbertTestRun(testtools.TestCase):
             "'utf-8' codec can't decode byte 0xe9 in position 1: "
             'invalid continuation byte',
             'stdout: ------------------------------------------',
-            "b'r\\xe9serv\\xe9e'",
+            'r\\xe9serv\\xe9e',
             '<empty stderr>',
             '--------------------------------------------------',
         )]

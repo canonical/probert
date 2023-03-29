@@ -49,7 +49,7 @@ def _decode_stream(stream, name):
         except UnicodeDecodeError as ude:
             log.debug(f'UnicodeDecodeError on {name}: {ude}')
             text = None
-            log_input = stream
+            log_input = stream.decode('utf-8', 'backslashreplace')
         log.debug(f'{name}: ------------------------------------------')
         for line in log_input.splitlines():
             log.debug(line)
