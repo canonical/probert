@@ -95,6 +95,7 @@ def get_ntfs_sizing(device):
     cmd = [ntfsresize,
            '--no-action',
            '--force',  # needed post-resize, which otherwise demands a CHKDSK
+           '--no-progress-bar',
            '--info', path]
     out = run(cmd)
     if out is None:
