@@ -1,8 +1,8 @@
 import json
-import mock
 import subprocess
-import testtools
 import textwrap
+import unittest
+from unittest import mock
 
 from probert import lvm
 from probert.tests.helpers import random_string
@@ -67,7 +67,7 @@ VGS_REPORT_DUPES = 2 * VGS_REPORT
 
 
 @mock.patch('probert.lvm.subprocess.run')
-class TestLvm(testtools.TestCase):
+class TestLvm(unittest.TestCase):
 
     def test__lvm_report_returns_empty_list_on_err(self, m_run):
         m_run.side_effect = subprocess.CalledProcessError(

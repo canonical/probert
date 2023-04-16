@@ -1,17 +1,16 @@
 import contextlib
 import logging
-from mock import call
 import os
 import tempfile
-import testtools
 import textwrap
-# import unittest
+import unittest
+from unittest.mock import call
 
 from probert import utils
 from probert.tests.helpers import random_string, simple_mocked_open
 
 
-class ProbertTestUtils(testtools.TestCase):
+class ProbertTestUtils(unittest.TestCase):
     def setUp(self):
         super(ProbertTestUtils, self).setUp()
 
@@ -79,7 +78,7 @@ def create_script(content):
             os.remove(script)
 
 
-class ProbertTestRun(testtools.TestCase):
+class ProbertTestRun(unittest.TestCase):
     leader = 'DEBUG:probert.utils:'
 
     def test_run_success_no_output(self):

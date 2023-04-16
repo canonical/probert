@@ -1,6 +1,4 @@
 flake8
-mock
 parameterized
 pytest
 pytest-cov
-testtools

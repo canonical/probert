@@ -1,4 +1,4 @@
-import testtools
+import unittest
 from unittest.mock import Mock
 import json
 
@@ -8,7 +8,7 @@ from probert.tests.fakes import FAKE_PROBE_ALL_JSON
 from parameterized import parameterized
 
 
-class ProbertTestInterestingDevs(testtools.TestCase):
+class ProbertTestInterestingDevs(unittest.TestCase):
     @parameterized.expand([
         ['1', 0],
         ['2', 1],
@@ -36,7 +36,7 @@ class ProbertTestInterestingDevs(testtools.TestCase):
         self.assertEqual(expected, actual)
 
 
-class ProbertTestStorage(testtools.TestCase):
+class ProbertTestStorage(unittest.TestCase):
     def setUp(self):
         super(ProbertTestStorage, self).setUp()
 
@@ -47,7 +47,7 @@ class ProbertTestStorage(testtools.TestCase):
         self.assertNotEqual(None, storage)
 
 
-class ProbertTestStorageProbeSet(testtools.TestCase):
+class ProbertTestStorageProbeSet(unittest.TestCase):
     def setUp(self):
         super(ProbertTestStorageProbeSet, self).setUp()
         self.storage = Storage()
@@ -87,7 +87,7 @@ class ProbertTestStorageProbeSet(testtools.TestCase):
             v.pfunc.assert_not_called()
 
 
-class ProbertTestStorageInfo(testtools.TestCase):
+class ProbertTestStorageInfo(unittest.TestCase):
     ''' properties:
         .name = /dev/sda
         .type = disk
