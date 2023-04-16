@@ -28,13 +28,14 @@ from probert.utils import (
 log = logging.getLogger('probert.filesystems')
 
 
-def get_dumpe2fs_info(path):
+async def get_dumpe2fs_info(path):
     ret = {}
     dumpe2fs = shutil.which('dumpe2fs')
     if dumpe2fs is None:
         log.debug('ext volume size not found: dumpe2fs not found')
         return None
-    out = run([dumpe2fs, '-h', path])
+    out = await asyncio.get_running_loop().run_in_executor(
+            None, run, [dumpe2fs, '-h', path])
     if out is None:
         log.debug('ext volume size not found: dumpe2fs failure')
         return None
@@ -55,13 +56,14 @@ def get_dumpe2fs_info(path):
     return ret
 
 
-def get_resize2fs_info(path):
+async def get_resize2fs_info(path):
     # Estimated minimum size of the filesystem: 1696
     resize2fs = shutil.which('resize2fs')
     if resize2fs is None:
         log.debug('ext volume size not found: resize2fs not found')
         return None
-    out = run([resize2fs, '-P', path])
+    out = await asyncio.get_running_loop().run_in_executor(
+            None, run, [resize2fs, '-P', path])
     if out is None:
         return None
     min_blocks_matcher = re.compile(
@@ -73,21 +75,21 @@ def get_resize2fs_info(path):
     return None
 
 
-def get_ext_sizing(device):
+async def get_ext_sizing(device):
     path = device.device_node
-    dumpe2fs_info = get_dumpe2fs_info(path)
+    dumpe2fs_info = await get_dumpe2fs_info(path)
     if not dumpe2fs_info:
         return None
     ret = {'SIZE': dumpe2fs_info['block_count'] * dumpe2fs_info['block_size']}
 
-    resize2fs_info = get_resize2fs_info(path)
+    resize2fs_info = await get_resize2fs_info(path)
     if resize2fs_info:
         min_size = resize2fs_info['min_blocks'] * dumpe2fs_info['block_size']
         ret['ESTIMATED_MIN_SIZE'] = min_size
     return ret
 
 
-def get_ntfs_sizing(device):
+async def get_ntfs_sizing(device):
     path = device.device_node
     ntfsresize = shutil.which('ntfsresize')
     if ntfsresize is None:
@@ -98,7 +100,7 @@ def get_ntfs_sizing(device):
            '--force',  # needed post-resize, which otherwise demands a CHKDSK
            '--no-progress-bar',
            '--info', path]
-    out = run(cmd)
+    out = await asyncio.get_running_loop().run_in_executor(None, run, cmd)
     if out is None:
         log.debug('ntfs volume size not found: ntfsresize failure')
         return None
@@ -131,7 +133,7 @@ def get_ntfs_sizing(device):
     return ret
 
 
-def get_swap_sizing(device):
+async def get_swap_sizing(device):
     if 'ID_PART_ENTRY_SIZE' in device:
         size = int(device['ID_PART_ENTRY_SIZE']) * 512
     else:
@@ -154,14 +156,14 @@ sizing_tools = {
 }
 
 
-def get_device_filesystem(device, sizing):
+async def get_device_filesystem(device, sizing):
     # extract ID_FS_* keys into dict, dropping leading ID_FS
     fs_info = {k.replace('ID_FS_', ''): v
                for k, v in device.items() if k.startswith('ID_FS_')}
     if sizing:
         fstype = fs_info.get('TYPE', None)
         if fstype in sizing_tools:
-            size_info = sizing_tools[fstype](device)
+            size_info = await sizing_tools[fstype](device)
             if size_info is not None:
                 fs_info.update(size_info)
         fs_info.setdefault('ESTIMATED_MIN_SIZE', -1)
@@ -180,7 +182,7 @@ async def probe(context=None, enabled_probes=None, **kw):
         # Ignore block major=1 (ramdisk) and major=7 (loopback)
         # these won't ever be used in recreating storage on target systems.
         if device['MAJOR'] not in ["1", "7"]:
-            fs_info = get_device_filesystem(device, need_fs_sizing)
+            fs_info = await get_device_filesystem(device, need_fs_sizing)
             # The ID_FS_ udev values come from libblkid, which contains code to
             # recognize lots of different things that block devices or their
             # partitions can contain (filesystems, lvm PVs, bcache, ...).  We

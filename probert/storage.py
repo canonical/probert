@@ -219,7 +219,8 @@ class Storage():
         for ptype in to_probe:
             probe = self.probe_map[ptype]
             result = await probe.pfunc(context=self.context,
-                                       enabled_probes=to_probe)
+                                       enabled_probes=to_probe,
+                                       parallelize=True)
             if result is not None:
                 probed_data[ptype] = result
 
