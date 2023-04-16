@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import asyncio
 import functools
 import logging
 import re
@@ -79,7 +80,8 @@ def _run_os_prober():
 
 async def probe(context=None, **kw):
     """Capture detected OSes. Indexed by partition as decided by os-prober."""
-    output = _run_os_prober()
+    output = await asyncio.get_running_loop().run_in_executor(
+            None, _run_os_prober)
     if not output:
         return {}
     return _parse_osprober(output.splitlines())
