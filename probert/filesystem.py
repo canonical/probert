@@ -170,7 +170,7 @@ async def get_device_filesystem(device, sizing):
     return fs_info
 
 
-async def probe(context=None, enabled_probes=None, **kw):
+async def probe(context=None, enabled_probes=None, *, parallelize=False, **kw):
     """ Capture detected filesystems found on discovered block devices.  """
     filesystems = {}
     if not context:
@@ -197,7 +197,10 @@ async def probe(context=None, enabled_probes=None, **kw):
 
     coroutines = [probe_filesystem(dev) for dev in sane_block_devices(context)]
 
-    for coroutine in coroutines:
-        await coroutine
+    if parallelize:
+        await asyncio.gather(*coroutines)
+    else:
+        for coroutine in coroutines:
+            await coroutine
 
     return filesystems

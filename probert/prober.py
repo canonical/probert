@@ -18,14 +18,15 @@ class Prober():
     def __init__(self):
         self._results = {}
 
-    async def probe_all(self):
+    async def probe_all(self, *, parallelize=False):
         await self.probe_storage()
         self.probe_network()
 
-    async def probe_storage(self):
+    async def probe_storage(self, *, parallelize=False):
         from probert.storage import Storage
         self._storage = Storage()
-        self._results['storage'] = await self._storage.probe()
+        self._results['storage'] = await self._storage.probe(
+                parallelize=parallelize)
 
     def probe_network(self):
         from probert.network import NetworkProber

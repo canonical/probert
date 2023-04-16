@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import asyncio
 from dataclasses import dataclass
 import json
 import logging
@@ -197,7 +198,7 @@ class Storage():
         return {ptype for ptype, probe in self.probe_map.items()
                 if get_all or probe.in_default_set}
 
-    async def probe(self, probe_types=None):
+    async def probe(self, probe_types=None, *, parallelize=False):
         default_probes = self._get_probe_types(False)
         all_probes = self._get_probe_types(True)
         if not probe_types:
@@ -216,13 +217,22 @@ class Storage():
             return self.results
 
         probed_data = {}
-        for ptype in to_probe:
+
+        async def run_probe(ptype):
             probe = self.probe_map[ptype]
             result = await probe.pfunc(context=self.context,
                                        enabled_probes=to_probe,
-                                       parallelize=True)
+                                       parallelize=parallelize)
             if result is not None:
                 probed_data[ptype] = result
+
+        coroutines = [run_probe(ptype) for ptype in to_probe]
+
+        if parallelize:
+            await asyncio.gather(*coroutines)
+        else:
+            for coroutine in coroutines:
+                await coroutine
 
         self.results = probed_data
         return probed_data
