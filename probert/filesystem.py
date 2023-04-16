@@ -21,7 +21,7 @@ import shutil
 import pyudev
 
 from probert.utils import (
-    run,
+    arun,
     sane_block_devices,
 )
 
@@ -34,8 +34,7 @@ async def get_dumpe2fs_info(path):
     if dumpe2fs is None:
         log.debug('ext volume size not found: dumpe2fs not found')
         return None
-    out = await asyncio.get_running_loop().run_in_executor(
-            None, run, [dumpe2fs, '-h', path])
+    out = await arun([dumpe2fs, '-h', path])
     if out is None:
         log.debug('ext volume size not found: dumpe2fs failure')
         return None
@@ -62,8 +61,7 @@ async def get_resize2fs_info(path):
     if resize2fs is None:
         log.debug('ext volume size not found: resize2fs not found')
         return None
-    out = await asyncio.get_running_loop().run_in_executor(
-            None, run, [resize2fs, '-P', path])
+    out = await arun([resize2fs, '-P', path])
     if out is None:
         return None
     min_blocks_matcher = re.compile(
@@ -100,7 +98,7 @@ async def get_ntfs_sizing(device):
            '--force',  # needed post-resize, which otherwise demands a CHKDSK
            '--no-progress-bar',
            '--info', path]
-    out = await asyncio.get_running_loop().run_in_executor(None, run, cmd)
+    out = await arun(cmd)
     if out is None:
         log.debug('ntfs volume size not found: ntfsresize failure')
         return None

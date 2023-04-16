@@ -65,7 +65,7 @@ class TestFilesystem(IsolatedAsyncioTestCase):
         self.device = Mock()
         self.device.device_node = random_string()
 
-    @patch('probert.filesystem.run')
+    @patch('probert.filesystem.arun')
     async def test_dumpe2fs_simple_output(self, run):
         run.return_value = '''
 Block count: 1234
@@ -74,13 +74,13 @@ Block size:  4000
         expected = {'block_count': 1234, 'block_size': 4000}
         self.assertEqual(expected, await get_dumpe2fs_info(self.device))
 
-    @patch('probert.filesystem.run')
+    @patch('probert.filesystem.arun')
     async def test_dumpe2fs_real_output(self, run):
         run.return_value = read_file('probert/tests/data/dumpe2fs_ext4.out')
         expected = {'block_count': 10240, 'block_size': 4096}
         self.assertEqual(expected, await get_dumpe2fs_info(self.device))
 
-    @patch('probert.filesystem.run')
+    @patch('probert.filesystem.arun')
     async def test_resize2fs(self, run):
         run.return_value = 'Estimated minimum size of the filesystem: 1371\n'
         expected = {'min_blocks': 1371}
@@ -107,19 +107,19 @@ Block size:  4000
         expected = {'SIZE': 20000 * 1000}
         self.assertEqual(expected, await get_ext_sizing(self.device))
 
-    @patch('probert.filesystem.run')
+    @patch('probert.filesystem.arun')
     async def test_ntfs_real_output(self, run):
         run.return_value = read_file('probert/tests/data/ntfsresize.out')
         expected = {'SIZE': 41939456, 'ESTIMATED_MIN_SIZE': 2613248}
         self.assertEqual(expected, await get_ntfs_sizing(self.device))
 
-    @patch('probert.filesystem.run')
+    @patch('probert.filesystem.arun')
     async def test_ntfs_real_output_full(self, run):
         run.return_value = read_file('probert/tests/data/ntfsresize_full.out')
         expected = {'SIZE': 83882496, 'ESTIMATED_MIN_SIZE': 83882496}
         self.assertEqual(expected, await get_ntfs_sizing(self.device))
 
-    @patch('probert.filesystem.run')
+    @patch('probert.filesystem.arun')
     async def test_ntfs_simple_output(self, run):
         run.return_value = '''
 Current volume size: 100000000 bytes (100 MB)
