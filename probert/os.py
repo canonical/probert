@@ -69,7 +69,10 @@ def _run_os_prober():
         log.error('failed to locate os-prober')
         return None
     try:
-        result = subprocess.run([cmd], stdout=subprocess.PIPE,
+        # os-prober attempts to run in a private mount namespace.
+        # However, it is not currently working.
+        # See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1034485
+        result = subprocess.run(["unshare", "-m", cmd], stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
                                 universal_newlines=True, check=True)
         return result.stdout or ''
