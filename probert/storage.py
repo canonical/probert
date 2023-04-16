@@ -106,7 +106,7 @@ def interesting_storage_devs(context):
         yield device
 
 
-def blockdev_probe(context=None, **kw):
+async def blockdev_probe(context=None, **kw):
     """ Non-class method for extracting relevant block
         devices from pyudev.Context().
     """
@@ -154,7 +154,7 @@ class Probe:
     in_default_set: bool = True
 
 
-def null_probe(context=None, **kw):
+async def null_probe(context=None, **kw):
     """Some probe types are flags that change the behavior of other probes.
        These flag probes do nothing on their own."""
     return None
@@ -197,7 +197,7 @@ class Storage():
         return {ptype for ptype, probe in self.probe_map.items()
                 if get_all or probe.in_default_set}
 
-    def probe(self, probe_types=None):
+    async def probe(self, probe_types=None):
         default_probes = self._get_probe_types(False)
         all_probes = self._get_probe_types(True)
         if not probe_types:
@@ -218,7 +218,8 @@ class Storage():
         probed_data = {}
         for ptype in to_probe:
             probe = self.probe_map[ptype]
-            result = probe.pfunc(context=self.context, enabled_probes=to_probe)
+            result = await probe.pfunc(context=self.context,
+                                       enabled_probes=to_probe)
             if result is not None:
                 probed_data[ptype] = result
 

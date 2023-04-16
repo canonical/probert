@@ -39,7 +39,7 @@ expected_probe_data = {
     }
 
 
-class TestDasd(unittest.TestCase):
+class TestDasd(unittest.IsolatedAsyncioTestCase):
 
     def _load_test_data(self, data_fname):
         testfile = fakes.TEST_DATA + '/' + data_fname
@@ -146,15 +146,16 @@ class TestDasd(unittest.TestCase):
         self.assertIsNone(dasd.get_dasd_info(device))
 
     @mock.patch('probert.dasd.platform.machine')
-    def test_dasd_probe_returns_empty_dict_non_s390x_arch(self, m_machine):
+    async def test_dasd_probe_returns_empty_dict_non_s390x_arch(
+            self, m_machine):
         machine = random_string()
         self.assertNotEqual("s390x", machine)
         m_machine.return_value = machine
-        self.assertEqual({}, dasd.probe())
+        self.assertEqual({}, await dasd.probe())
 
     @mock.patch('probert.dasd.platform.machine')
     @mock.patch('probert.dasd.dasdview')
-    def test_dasd_probe_dasdd(self, m_dasdview, m_machine):
+    async def test_dasd_probe_dasdd(self, m_dasdview, m_machine):
         m_machine.return_value = 's390x'
         m_dasdview.side_effect = iter([self._load_test_data('dasdd.view')])
 
@@ -167,11 +168,11 @@ class TestDasd(unittest.TestCase):
             '/dev/dasdd': update_probe_data(
                 expected_probe_data['/dev/dasdd'], device_id="0.0.1544")
         }
-        self.assertEqual(expected_results, dasd.probe(context=context))
+        self.assertEqual(expected_results, await dasd.probe(context=context))
 
     @mock.patch('probert.dasd.platform.machine')
     @mock.patch('probert.dasd.dasdview')
-    def test_dasd_probe_dasde(self, m_dasdview, m_machine):
+    async def test_dasd_probe_dasde(self, m_dasdview, m_machine):
         m_machine.return_value = 's390x'
         m_dasdview.side_effect = iter([self._load_test_data('dasde.view')])
 
@@ -184,11 +185,12 @@ class TestDasd(unittest.TestCase):
             '/dev/dasde': update_probe_data(
                 expected_probe_data['/dev/dasde'], device_id="0.0.2250")
             }
-        self.assertEqual(expected_results, dasd.probe(context=context))
+        self.assertEqual(expected_results, await dasd.probe(context=context))
 
     @mock.patch('probert.dasd.platform.machine')
     @mock.patch('probert.dasd.dasdview')
-    def test_dasd_probe_dasdd_skips_partitions(self, m_dasdview, m_machine):
+    async def test_dasd_probe_dasdd_skips_partitions(self, m_dasdview,
+                                                     m_machine):
         m_machine.return_value = 's390x'
         m_dasdview.side_effect = iter([self._load_test_data('dasdd.view')])
 
@@ -203,12 +205,12 @@ class TestDasd(unittest.TestCase):
             '/dev/dasdd': update_probe_data(
                 expected_probe_data['/dev/dasdd'], device_id="0.0.1544"),
             }
-        self.assertEqual(expected_results, dasd.probe(context=context))
+        self.assertEqual(expected_results, await dasd.probe(context=context))
 
     @mock.patch('probert.dasd.subprocess.run')
     @mock.patch('probert.dasd.open')
     @mock.patch('probert.dasd.platform.machine')
-    def test_dasd_probe_virtio_dasd(self, m_machine, m_open, m_run):
+    async def test_dasd_probe_virtio_dasd(self, m_machine, m_open, m_run):
         m_machine.return_value = 's390x'
 
         virtio_major = random_string()
@@ -224,7 +226,7 @@ class TestDasd(unittest.TestCase):
         expected_results = {
             devname: {'name': devname, 'type': 'virt'}
             }
-        self.assertEqual(expected_results, dasd.probe(context=context))
+        self.assertEqual(expected_results, await dasd.probe(context=context))
         m_run.assert_called_once_with(
             ['fdasd', '-i', devname],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -232,7 +234,7 @@ class TestDasd(unittest.TestCase):
     @mock.patch('probert.dasd.subprocess.run')
     @mock.patch('probert.dasd.open')
     @mock.patch('probert.dasd.platform.machine')
-    def test_dasd_probe_virtio_non_dasd(self, m_machine, m_open, m_run):
+    async def test_dasd_probe_virtio_non_dasd(self, m_machine, m_open, m_run):
         m_machine.return_value = 's390x'
 
         virtio_major = random_string()
@@ -245,7 +247,7 @@ class TestDasd(unittest.TestCase):
         context.list_devices.side_effect = iter([
             [{"MAJOR": virtio_major, "DEVNAME": devname}],
         ])
-        self.assertEqual({}, dasd.probe(context=context))
+        self.assertEqual({}, await dasd.probe(context=context))
         m_run.assert_called_once_with(
             ['fdasd', '-i', devname],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

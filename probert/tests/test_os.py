@@ -14,13 +14,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import subprocess
-from unittest import TestCase
+from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
 from probert.os import probe, _parse_osprober, _run_os_prober
 
 
-class TestOsProber(TestCase):
+class TestOsProber(IsolatedAsyncioTestCase):
     def tearDown(self):
         _run_os_prober.cache_clear()
 
@@ -122,7 +122,7 @@ class TestOsProber(TestCase):
         self.assertEqual(expected, _parse_osprober(lines))
 
     @patch('probert.os.subprocess.run')
-    def test_osx_run(self, run):
+    async def test_osx_run(self, run):
         run.return_value.stdout = '/dev/sda4:Mac OS X:MacOSX:macosx\n'
         expected = {
             '/dev/sda4': {
@@ -131,26 +131,26 @@ class TestOsProber(TestCase):
                 'type': 'macosx'
             }
         }
-        self.assertEqual(expected, probe())
+        self.assertEqual(expected, await probe())
 
     @patch('probert.os.subprocess.run')
-    def test_empty_run(self, run):
+    async def test_empty_run(self, run):
         run.return_value.stdout = ''
-        self.assertEqual({}, probe())
+        self.assertEqual({}, await probe())
 
     @patch('probert.os.subprocess.run')
-    def test_none_run(self, run):
+    async def test_none_run(self, run):
         run.return_value.stdout = None
-        self.assertEqual({}, probe())
+        self.assertEqual({}, await probe())
 
     @patch('probert.os.subprocess.run')
-    def test_osprober_fail(self, run):
+    async def test_osprober_fail(self, run):
         run.side_effect = subprocess.CalledProcessError(1, 'cmd')
-        self.assertEqual({}, probe())
+        self.assertEqual({}, await probe())
 
     @patch('probert.os.subprocess.run')
-    def test_run_once(self, run):
+    async def test_run_once(self, run):
         run.return_value.stdout = ''
-        self.assertEqual({}, probe())
-        self.assertEqual({}, probe())
+        self.assertEqual({}, await probe())
+        self.assertEqual({}, await probe())
         run.assert_called_once()

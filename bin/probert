@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import asyncio
 import argparse
 import sys
 import json
@@ -36,7 +37,7 @@ def parse_options(argv):
     return parser.parse_args(argv)
 
 
-def main():
+async def main():
     opts = parse_options(sys.argv[1:])
     setup_logger()
     logger = logging.getLogger('probert')
@@ -46,15 +47,15 @@ def main():
     p = prober.Prober()
     probe_opts = [opts.network, opts.storage]
     if opts.all or not any(probe_opts):
-        p.probe_all()
+        await p.probe_all()
     if opts.network:
-        p.probe_network()
+        await p.probe_network()
     if opts.storage:
-        p.probe_storage()
+        await p.probe_storage()
 
     results = p.get_results()
     print(json.dumps(results, indent=4, sort_keys=True))
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import asyncio
 import logging
 import re
 import shutil
@@ -167,7 +168,7 @@ def get_device_filesystem(device, sizing):
     return fs_info
 
 
-def probe(context=None, enabled_probes=None, **kw):
+async def probe(context=None, enabled_probes=None, **kw):
     """ Capture detected filesystems found on discovered block devices.  """
     filesystems = {}
     if not context:
@@ -175,7 +176,7 @@ def probe(context=None, enabled_probes=None, **kw):
 
     need_fs_sizing = 'filesystem_sizing' in enabled_probes
 
-    for device in sane_block_devices(context):
+    async def probe_filesystem(device):
         # Ignore block major=1 (ramdisk) and major=7 (loopback)
         # these won't ever be used in recreating storage on target systems.
         if device['MAJOR'] not in ["1", "7"]:
@@ -191,5 +192,10 @@ def probe(context=None, enabled_probes=None, **kw):
             if fs_info.get("USAGE") in ("filesystem", "crypto") or \
                fs_info.get("TYPE") == "swap":
                 filesystems[device['DEVNAME']] = fs_info
+
+    coroutines = [probe_filesystem(dev) for dev in sane_block_devices(context)]
+
+    for coroutine in coroutines:
+        await coroutine
 
     return filesystems

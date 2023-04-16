@@ -77,7 +77,7 @@ def _run_os_prober():
         return None
 
 
-def probe(context=None, **kw):
+async def probe(context=None, **kw):
     """Capture detected OSes. Indexed by partition as decided by os-prober."""
     output = _run_os_prober()
     if not output:
