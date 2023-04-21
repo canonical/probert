@@ -1,6 +1,6 @@
-import mock
 import subprocess
-import testtools
+import unittest
+from unittest import mock
 
 from probert import multipath
 from probert.tests.helpers import random_string
@@ -8,7 +8,7 @@ from probert.tests.helpers import random_string
 MP_SEP = multipath.MP_SEP
 
 
-class TestMultipath(testtools.TestCase):
+class TestMultipath(unittest.TestCase):
 
     @mock.patch('probert.multipath.subprocess.run')
     def test_multipath_show_paths(self, m_run):

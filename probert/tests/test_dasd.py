@@ -1,6 +1,6 @@
-import mock
 import subprocess
-import testtools
+import unittest
+from unittest import mock
 
 from probert import dasd
 from probert.tests import fakes
@@ -39,7 +39,7 @@ expected_probe_data = {
     }
 
 
-class TestDasd(testtools.TestCase):
+class TestDasd(unittest.TestCase):
 
     def _load_test_data(self, data_fname):
         testfile = fakes.TEST_DATA + '/' + data_fname

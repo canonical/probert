@@ -16,9 +16,9 @@
 import contextlib
 import imp
 import importlib
-import mock
 import random
 import string
+import unittest
 
 
 def builtin_module_name():
@@ -38,10 +38,10 @@ def builtin_module_name():
 def simple_mocked_open(content=None):
     if not content:
         content = ''
-    m_open = mock.mock_open(read_data=content)
+    m_open = unittest.mock.mock_open(read_data=content)
     mod_name = builtin_module_name()
     m_patch = '{}.open'.format(mod_name)
-    with mock.patch(m_patch, m_open, create=True):
+    with unittest.mock.patch(m_patch, m_open, create=True):
         yield m_open
 
 

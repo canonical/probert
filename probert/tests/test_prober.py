@@ -1,4 +1,4 @@
-import testtools
+import unittest
 from unittest.mock import patch
 
 from probert.prober import Prober
@@ -6,7 +6,7 @@ from probert.storage import Storage
 from probert.network import NetworkProber
 
 
-class ProbertTestProber(testtools.TestCase):
+class ProbertTestProber(unittest.TestCase):
 
     def test_prober_init(self):
         p = Prober()

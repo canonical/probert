@@ -11,11 +11,9 @@ Build-Depends: debhelper-compat (= 13),
                python3-coverage,
                python3-flake8,
                python3-jsonschema,
-               python3-mock,
                python3-nose,
                python3-pyudev,
                python3-setuptools,
-               python3-testtools
 Standards-Version: 4.5.0
 Homepage: https://github.com/canonical/probert
 Vcs-Browser: https://github.com/canonical/probert
