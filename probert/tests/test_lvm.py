@@ -67,7 +67,7 @@ VGS_REPORT_DUPES = 2 * VGS_REPORT
 
 
 @mock.patch('probert.lvm.subprocess.run')
-class TestLvm(unittest.TestCase):
+class TestLvm(unittest.IsolatedAsyncioTestCase):
 
     def test__lvm_report_returns_empty_list_on_err(self, m_run):
         m_run.side_effect = subprocess.CalledProcessError(
@@ -266,8 +266,8 @@ class TestLvm(unittest.TestCase):
     @mock.patch('probert.lvm.lvm_scan')
     @mock.patch('probert.lvm.sane_block_devices')
     @mock.patch('probert.lvm.probe_vgs_report')
-    def test_probe(self, m_vgs, m_blockdevs, m_scan, m_activate, m_size,
-                   m_run):
+    async def test_probe(self, m_vgs, m_blockdevs, m_scan, m_activate, m_size,
+                         m_run):
         size = 1000
         m_size.return_value = size
         m_blockdevs.return_value = CONTEXT
@@ -293,15 +293,15 @@ class TestLvm(unittest.TestCase):
                 }
             }
         }
-        self.assertEqual(expected_result, lvm.probe())
+        self.assertEqual(expected_result, await lvm.probe())
 
     @mock.patch('probert.lvm.read_sys_block_size_bytes')
     @mock.patch('probert.lvm.activate_volgroups')
     @mock.patch('probert.lvm.lvm_scan')
     @mock.patch('probert.lvm.sane_block_devices')
     @mock.patch('probert.lvm.probe_vgs_report')
-    def test_probe_skip_dupes(self, m_vgs, m_blockdevs, m_scan, m_activate,
-                              m_size, m_run):
+    async def test_probe_skip_dupes(self, m_vgs, m_blockdevs, m_scan,
+                                    m_activate, m_size, m_run):
         size = 1000
         m_size.return_value = size
         m_blockdevs.return_value = CONTEXT_DUPES
@@ -333,7 +333,7 @@ class TestLvm(unittest.TestCase):
                 }
             }
         }
-        self.assertEqual(expected_result, lvm.probe())
+        self.assertEqual(expected_result, await lvm.probe())
 
 
 # vi: ts=4 expandtab syntax=python

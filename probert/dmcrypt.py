@@ -48,7 +48,7 @@ def dmsetup_info(devname):
     return info
 
 
-def probe(context=None, report=False, **kw):
+async def probe(context=None, report=False, **kw):
     """ Probing for dm_crypt devices requires running dmsetup info commands
         to collect how a particular dm-X device is composed.
     """

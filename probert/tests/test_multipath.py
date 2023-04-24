@@ -8,7 +8,7 @@ from probert.tests.helpers import random_string
 MP_SEP = multipath.MP_SEP
 
 
-class TestMultipath(unittest.TestCase):
+class TestMultipath(unittest.IsolatedAsyncioTestCase):
 
     @mock.patch('probert.multipath.subprocess.run')
     def test_multipath_show_paths(self, m_run):
@@ -87,12 +87,13 @@ class TestMultipath(unittest.TestCase):
 
     @mock.patch('probert.multipath.multipath_show_paths')
     @mock.patch('probert.multipath.multipath_show_maps')
-    def test_multipath_probe_collects_maps_and_paths(self, m_maps, m_paths):
+    async def test_multipath_probe_collects_maps_and_paths(self, m_maps,
+                                                           m_paths):
         path_string = MP_SEP.join([random_string() for x in range(0, 8)])
         paths = multipath.MPath(*path_string.split(MP_SEP))._asdict()
         maps_string = MP_SEP.join([random_string() for x in range(0, 3)])
         maps = multipath.MMap(*maps_string.split(MP_SEP))._asdict()
         m_maps.return_value = [maps]
         m_paths.return_value = [paths]
-        result = multipath.probe()
+        result = await multipath.probe()
         self.assertDictEqual({'maps': [maps], 'paths': [paths]}, result)

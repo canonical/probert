@@ -6,23 +6,23 @@ from probert.storage import Storage
 from probert.network import NetworkProber
 
 
-class ProbertTestProber(unittest.TestCase):
+class ProbertTestProber(unittest.IsolatedAsyncioTestCase):
 
     def test_prober_init(self):
         p = Prober()
         self.assertNotEqual(p, None)
 
     @patch.object(Prober, 'probe_all')
-    def test_prober_probe_all(self, _probe_all):
+    async def test_prober_probe_all(self, _probe_all):
         p = Prober()
-        p.probe_all()
+        await p.probe_all()
         self.assertTrue(_probe_all.called)
 
     @patch.object(Prober, 'probe_network')
     @patch.object(Prober, 'probe_storage')
-    def test_prober_probe_all_invoke_others(self, _storage, _network):
+    async def test_prober_probe_all_invoke_others(self, _storage, _network):
         p = Prober()
-        p.probe_all()
+        await p.probe_all()
         self.assertTrue(_storage.called)
         self.assertTrue(_network.called)
 
@@ -32,7 +32,7 @@ class ProbertTestProber(unittest.TestCase):
 
     @patch.object(NetworkProber, 'probe')
     @patch.object(Storage, 'probe')
-    def test_prober_probe_all_check_results(self, _storage, _network):
+    async def test_prober_probe_all_check_results(self, _storage, _network):
         p = Prober()
         results = {
             'storage': {'lambic': 99},
@@ -40,7 +40,7 @@ class ProbertTestProber(unittest.TestCase):
         }
         _storage.return_value = results['storage']
         _network.return_value = results['network']
-        p.probe_all()
+        await p.probe_all()
         self.assertTrue(_storage.called)
         self.assertTrue(_network.called)
         self.assertEqual(results, p.get_results())

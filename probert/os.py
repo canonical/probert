@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import asyncio
 import functools
 import logging
 import re
@@ -68,7 +69,10 @@ def _run_os_prober():
         log.error('failed to locate os-prober')
         return None
     try:
-        result = subprocess.run([cmd], stdout=subprocess.PIPE,
+        # os-prober attempts to run in a private mount namespace.
+        # However, it is not currently working.
+        # See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1034485
+        result = subprocess.run(["unshare", "-m", cmd], stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
                                 universal_newlines=True, check=True)
         return result.stdout or ''
@@ -77,9 +81,10 @@ def _run_os_prober():
         return None
 
 
-def probe(context=None, **kw):
+async def probe(context=None, **kw):
     """Capture detected OSes. Indexed by partition as decided by os-prober."""
-    output = _run_os_prober()
+    output = await asyncio.get_running_loop().run_in_executor(
+            None, _run_os_prober)
     if not output:
         return {}
     return _parse_osprober(output.splitlines())

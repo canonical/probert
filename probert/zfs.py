@@ -183,7 +183,7 @@ def is_zfs_device(device):
     return device.get('ID_FS_TYPE') == 'zfs_member'
 
 
-def probe(context=None, **kw):
+async def probe(context=None, **kw):
     """The ZFS prober examines the ZFS Dubugger (zdb) output which
     produces psuedo-json output.  This is converted to a dictionary
     where for each zpool, we can extract the datasets and determine

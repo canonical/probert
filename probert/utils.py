@@ -1,3 +1,4 @@
+import asyncio
 from copy import deepcopy
 import glob
 import itertools
@@ -65,6 +66,28 @@ def run(cmdarr, env=None, **kw):
     log.debug('--------------------------------------------------')
     if sp.returncode == 0:
         return sp.stdout
+    return None
+
+
+async def arun(cmdarr, env=None, **kw):
+    """Run the given, with stdout, stderr, and return code always logged.
+    Returns the stdout on command success, or None on command failure."""
+    env = _clean_env(env)
+    sp = await asyncio.create_subprocess_exec(
+            *cmdarr, env=env, stdout=PIPE, stderr=PIPE, **kw)
+    display_cmd = shlex.join(cmdarr)
+    stdout, stderr = await sp.communicate()
+    rc = sp.returncode
+
+    stdout = stdout.decode('utf-8')
+    stderr = stderr.decode('utf-8')
+
+    log.debug(f'Command `{display_cmd}` exited with result: {rc}')
+    _log_stream(stdout, 'stdout')
+    _log_stream(stderr, 'stderr')
+    log.debug('--------------------------------------------------')
+    if sp.returncode == 0:
+        return stdout
     return None
 
 

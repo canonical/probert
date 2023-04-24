@@ -97,7 +97,7 @@ def get_mdadm_array_members(md_device):
     return (sorted(actives), sorted(spares))
 
 
-def probe(context=None, report=False, **kw):
+async def probe(context=None, report=False, **kw):
     """Initiate an mdadm assemble to awaken existing MDADM devices.
        For each md block device, extract required information needed
        to describe the array for recreation or reuse as needed.
