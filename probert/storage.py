@@ -134,17 +134,31 @@ async def blockdev_probe(context=None, **kw):
 
     blockdev = {}
     for device in interesting_storage_devs(context):
+        devname = device.properties['DEVNAME']
         attrs = udev_get_attributes(device)
         # update the size attr as it may only be the number
         # of blocks rather than size in bytes.
         attrs['size'] = \
-            str(read_sys_block_size_bytes(device['DEVNAME']))
-        blockdev[device['DEVNAME']] = dict(device)
-        blockdev[device['DEVNAME']].update({'attrs': attrs})
+            str(read_sys_block_size_bytes(devname))
+        # When dereferencing device[prop], pyudev calls bytes.decode(), which
+        # can fail if the value is invalid utf-8. We don't want a single
+        # invalid value to completely prevent probing. So we iterate
+        # over each value manually and ignore those which are invalid.  We know
+        # that PARTNAME is subject to failures when accents and other special
+        # characters are used in a GPT partition name.
+        # See LP: 2017862
+        blockdev[devname] = {}
+        for prop in device.properties:
+            try:
+                blockdev[devname][prop] = device.properties[prop]
+            except UnicodeDecodeError:
+                log.warning('ignoring property %s of device %s because it is'
+                            ' not valid utf-8', prop, devname)
+        blockdev[devname].update({'attrs': attrs})
         # include partition table info if present
-        ptable = _extract_partition_table(device['DEVNAME'])
+        ptable = _extract_partition_table(devname)
         if ptable:
-            blockdev[device['DEVNAME']].update(ptable)
+            blockdev[devname].update(ptable)
 
     return blockdev
 
