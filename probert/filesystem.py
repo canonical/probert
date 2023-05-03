@@ -156,8 +156,14 @@ sizing_tools = {
 
 async def get_device_filesystem(device, sizing):
     # extract ID_FS_* keys into dict, dropping leading ID_FS
-    fs_info = {k.replace('ID_FS_', ''): v
-               for k, v in device.items() if k.startswith('ID_FS_')}
+    # This may look like a stupid way to iterate over a dictionary-like
+    # collection. However, iterating over device.properties.items() will fail
+    # if any of the values is not utf-8 (or whatever the system's encoding is).
+    # We have had multiple reports of PARTNAME being invalid utf-8.
+    # See LP: 2017862
+    keys = [key for key in device.properties if key.startswith('ID_FS_')]
+    fs_info = {k.replace('ID_FS_', ''): device.properties[k] for k in keys}
+
     if sizing:
         fstype = fs_info.get('TYPE', None)
         if fstype in sizing_tools:

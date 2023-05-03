@@ -140,28 +140,36 @@ You might resize at 25000000 bytes or 25 MB (freeing 75 MB).
 
     async def test_get_device_filesystem_no_sizing(self):
         data = {'ID_FS_FOO': 'bar'}
-        self.device.items = lambda: data.items()
+        self.device.properties = Mock()
+        self.device.properties.__iter__ = Mock(return_value=iter(data))
+        self.device.properties.__getitem__ = lambda _, x: data[x]
         expected = {'FOO': 'bar'}
         self.assertEqual(expected,
                          await get_device_filesystem(self.device, False))
 
     async def test_get_device_filesystem_sizing_unsupported(self):
         data = {'ID_FS_TYPE': 'reiserfs'}
-        self.device.items = lambda: data.items()
+        self.device.properties = Mock()
+        self.device.properties.__iter__ = Mock(return_value=iter(data))
+        self.device.properties.__getitem__ = lambda _, x: data[x]
         expected = {'ESTIMATED_MIN_SIZE': -1, 'TYPE': 'reiserfs'}
         self.assertEqual(expected,
                          await get_device_filesystem(self.device, True))
 
     async def test_get_device_filesystem_missing_info(self):
         data = {}
-        self.device.items = lambda: data.items()
+        self.device.properties = Mock()
+        self.device.properties.__iter__ = Mock(return_value=iter(data))
+        self.device.properties.__getitem__ = lambda _, x: data[x]
         expected = {'ESTIMATED_MIN_SIZE': -1}
         self.assertEqual(expected,
                          await get_device_filesystem(self.device, True))
 
     async def test_get_device_filesystem_sizing_ext4(self):
         data = {'ID_FS_TYPE': 'ext4'}
-        self.device.items = lambda: data.items()
+        self.device.properties = Mock()
+        self.device.properties.__iter__ = Mock(return_value=iter(data))
+        self.device.properties.__getitem__ = lambda _, x: data[x]
         size_info = {'ESTIMATED_MIN_SIZE': 1 << 20, 'SIZE': 10 << 20}
         ext4 = AsyncMock()
         ext4.return_value = size_info
@@ -174,7 +182,9 @@ You might resize at 25000000 bytes or 25 MB (freeing 75 MB).
 
     async def test_get_device_filesystem_sizing_ext4_no_min(self):
         data = {'ID_FS_TYPE': 'ext4'}
-        self.device.items = lambda: data.items()
+        self.device.properties = Mock()
+        self.device.properties.__iter__ = Mock(return_value=iter(data))
+        self.device.properties.__getitem__ = lambda _, x: data[x]
         size_info = {'SIZE': 10 << 20}
         ext4 = AsyncMock()
         ext4.return_value = size_info
