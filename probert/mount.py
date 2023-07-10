@@ -22,7 +22,7 @@ log = logging.getLogger('probert.mount')
 
 def findmnt(data=None):
     if not data:
-        cmd = ['findmnt', '--bytes', '--json']
+        cmd = ['findmnt', '--bytes', '--json', '-o', '+maj:min']
         try:
             result = subprocess.run(cmd, stdout=subprocess.PIPE,
                                     stderr=subprocess.DEVNULL)
