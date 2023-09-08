@@ -154,3 +154,9 @@ class TestOsProber(IsolatedAsyncioTestCase):
         self.assertEqual({}, await probe())
         self.assertEqual({}, await probe())
         run.assert_called_once()
+
+
+@patch('probert.filesystem.shutil.which', new=Mock(return_value=None))
+class TestOsProberNotFound(IsolatedAsyncioTestCase):
+    async def test_os_prober_not_found(self):
+        self.assertEqual(None, _run_os_prober())

@@ -196,17 +196,17 @@ You might resize at 25000000 bytes or 25 MB (freeing 75 MB).
             actual = await get_device_filesystem(self.device, True)
             self.assertEqual(expected, actual)
 
-    @patch('probert.filesystem.shutil.which')
-    async def test_ntfsresize_not_found(self, which):
-        which.return_value = None
+
+@patch('probert.filesystem.shutil.which', new=Mock(return_value=None))
+class TestFilesystemToolNotFound(IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.device = Mock()
+
+    async def test_ntfsresize_not_found(self):
         self.assertEqual(None, await get_ntfs_sizing(self.device))
 
-    @patch('probert.filesystem.shutil.which')
-    async def test_dumpe2fs_not_found(self, which):
-        which.return_value = None
+    async def test_dumpe2fs_not_found(self):
         self.assertEqual(None, await get_dumpe2fs_info(self.device))
 
-    @patch('probert.filesystem.shutil.which')
-    async def test_resize2fs_not_found(self, which):
-        which.return_value = None
+    async def test_resize2fs_not_found(self):
         self.assertEqual(None, await get_resize2fs_info(self.device))
