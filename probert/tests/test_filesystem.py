@@ -60,6 +60,7 @@ class TestGetSwapSizing(IsolatedAsyncioTestCase):
         assert expected == await get_swap_sizing(device)
 
 
+@patch('probert.filesystem.shutil.which', new=Mock(return_value='/bin/false'))
 class TestFilesystem(IsolatedAsyncioTestCase):
     def setUp(self):
         self.device = Mock()

@@ -15,11 +15,12 @@
 
 import subprocess
 from unittest import IsolatedAsyncioTestCase
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from probert.os import probe, _parse_osprober, _run_os_prober
 
 
+@patch('probert.filesystem.shutil.which', new=Mock(return_value='/bin/false'))
 class TestOsProber(IsolatedAsyncioTestCase):
     def tearDown(self):
         _run_os_prober.cache_clear()
