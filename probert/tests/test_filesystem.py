@@ -27,6 +27,7 @@ from probert.filesystem import (
     get_swap_sizing,
     get_device_filesystem,
 )
+from probert.tests import ProbertTestCase
 
 
 def read_file(filename):
@@ -60,9 +61,9 @@ class TestGetSwapSizing(IsolatedAsyncioTestCase):
         assert expected == await get_swap_sizing(device)
 
 
-@patch('probert.filesystem.shutil.which', new=Mock(return_value='/bin/false'))
-class TestFilesystem(IsolatedAsyncioTestCase):
+class TestFilesystem(ProbertTestCase):
     def setUp(self):
+        super().setUp()
         self.device = Mock()
         self.device.device_node = random_string()
 
@@ -198,10 +199,11 @@ You might resize at 25000000 bytes or 25 MB (freeing 75 MB).
             self.assertEqual(expected, actual)
 
 
-@patch('probert.filesystem.shutil.which', new=Mock(return_value=None))
-class TestFilesystemToolNotFound(IsolatedAsyncioTestCase):
+class TestFilesystemToolNotFound(ProbertTestCase):
     def setUp(self):
+        super().setUp()
         self.device = Mock()
+        self.m_which.return_value = None
 
     async def test_ntfsresize_not_found(self):
         self.assertEqual(None, await get_ntfs_sizing(self.device))

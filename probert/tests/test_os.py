@@ -14,14 +14,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import subprocess
-from unittest import IsolatedAsyncioTestCase
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from probert.os import probe, _parse_osprober, _run_os_prober
+from probert.tests import ProbertTestCase
 
 
-@patch('probert.filesystem.shutil.which', new=Mock(return_value='/bin/false'))
-class TestOsProber(IsolatedAsyncioTestCase):
+class TestOsProber(ProbertTestCase):
     def tearDown(self):
         _run_os_prober.cache_clear()
 
@@ -157,7 +156,10 @@ class TestOsProber(IsolatedAsyncioTestCase):
         run.assert_called_once()
 
 
-@patch('probert.filesystem.shutil.which', new=Mock(return_value=None))
-class TestOsProberNotFound(IsolatedAsyncioTestCase):
+class TestOsProberNotFound(ProbertTestCase):
+    def setUp(self):
+        super().setUp()
+        self.m_which.return_value = None
+
     async def test_os_prober_not_found(self):
         self.assertEqual(None, _run_os_prober())
