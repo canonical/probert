@@ -5,6 +5,8 @@ usr/lib/python3.*/dist-packages/probert/filesystem.py
 usr/lib/python3.*/dist-packages/probert/lvm.py
 usr/lib/python3.*/dist-packages/probert/mount.py
 usr/lib/python3.*/dist-packages/probert/multipath.py
+usr/lib/python3.*/dist-packages/probert/nvme.py
+usr/lib/python3.*/dist-packages/probert/os.py
 usr/lib/python3.*/dist-packages/probert/raid.py
 usr/lib/python3.*/dist-packages/probert/storage.py
 usr/lib/python3.*/dist-packages/probert/zfs.py
