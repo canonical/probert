@@ -48,7 +48,7 @@ setup(name='probert',
       author='Canonical Engineering',
       author_email='ubuntu-devel@lists.ubuntu.com',
       url='https://github.com/canonical/probert',
-      license="AGPLv3+",
+      license="GPLv3",
       scripts=['bin/probert'],
       ext_modules=[
           Extension(
