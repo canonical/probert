@@ -1,13 +1,14 @@
 import contextlib
 import logging
 import os
+import pathlib
 import tempfile
 import textwrap
 import unittest
 from unittest.mock import call
 
 from probert import utils
-from probert.tests.helpers import random_string, simple_mocked_open
+from probert.tests.helpers import random_string
 
 
 class ProbertTestUtils(unittest.TestCase):
@@ -45,23 +46,31 @@ class ProbertTestUtils(unittest.TestCase):
 
     def test_utils_read_sys_block_size_bytes(self):
         devname = random_string()
-        expected_fname = '/sys/class/block/%s/size' % devname
+        expected_path = pathlib.Path(f'/sys/class/block/{devname}/size')
         expected_bytes = 10737418240
         content = '20971520'
-        with simple_mocked_open(content=content) as m_open:
+
+        with unittest.mock.patch("probert.utils.Path.read_text",
+                                 autospec=True,
+                                 return_value=content) as m_read_text:
             result = utils.read_sys_block_size_bytes(devname)
             self.assertEqual(expected_bytes, result)
-            self.assertEqual([call(expected_fname)], m_open.call_args_list)
+            m_read_text.assert_called_once()
+            self.assertEqual([call(expected_path)], m_read_text.call_args_list)
 
     def test_utils_read_sys_block_size_bytes_strips_value(self):
         devname = random_string()
-        expected_fname = '/sys/class/block/%s/size' % devname
+        expected_path = pathlib.Path(f'/sys/class/block/{devname}/size')
         expected_bytes = 10737418240
         content = ' 20971520 \n '
-        with simple_mocked_open(content=content) as m_open:
+
+        with unittest.mock.patch("probert.utils.Path.read_text",
+                                 autospec=True,
+                                 return_value=content) as m_read_text:
             result = utils.read_sys_block_size_bytes(devname)
             self.assertEqual(expected_bytes, result)
-            self.assertEqual([call(expected_fname)], m_open.call_args_list)
+            m_read_text.assert_called_once()
+            self.assertEqual([call(expected_path)], m_read_text.call_args_list)
 
     def test_utils_read_sys_devpath_size_bytes_strips_value(self):
         devpath = """\
