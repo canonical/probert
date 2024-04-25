@@ -7,6 +7,7 @@ import os
 import re
 import shlex
 import subprocess
+from pathlib import Path
 from subprocess import PIPE
 
 import pyudev
@@ -301,6 +302,14 @@ def read_sys_block_size_bytes(device):
         size = int(d.read().strip()) * SECTOR_SIZE_BYTES
 
     return size
+
+
+def read_sys_devpath_size_bytes(devpath: Path | str) -> int:
+    """ Based on the value of a DEVPATH udev property, return the associated
+    size (converted to bytes) by reading from the sysfs. """
+    path = Path("/sys") / Path(devpath).relative_to("/") / "size"
+
+    return int(path.read_text().strip()) * SECTOR_SIZE_BYTES
 
 
 def read_sys_block_slaves(device):

@@ -63,6 +63,20 @@ class ProbertTestUtils(unittest.TestCase):
             self.assertEqual(expected_bytes, result)
             self.assertEqual([call(expected_fname)], m_open.call_args_list)
 
+    def test_utils_read_sys_devpath_size_bytes_strips_value(self):
+        devpath = """\
+/devices/pci0000:00/0000:00:1d.0/0000:03:00.0/nvme/nvme0/nvme0n1/nvme0n1p3"""
+        expected_path = pathlib.Path(f'/sys{devpath}/size')
+        expected_bytes = 10737418240
+        content = ' 20971520 \n '
+
+        with unittest.mock.patch("probert.utils.Path.read_text",
+                                 autospec=True,
+                                 return_value=content) as m_read_text:
+            result = utils.read_sys_devpath_size_bytes(devpath)
+            self.assertEqual(expected_bytes, result)
+            self.assertEqual([call(expected_path)], m_read_text.call_args_list)
+
 
 @contextlib.contextmanager
 def create_script(content):
