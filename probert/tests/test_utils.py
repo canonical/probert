@@ -86,6 +86,28 @@ class ProbertTestUtils(unittest.TestCase):
             self.assertEqual(expected_bytes, result)
             self.assertEqual([call(expected_path)], m_read_text.call_args_list)
 
+    def test_utils_read_sys_devpath_size_bytes__inexistent_nologging(self):
+        with self.assertRaises(FileNotFoundError):
+            utils.read_sys_devpath_size_bytes("/devices/that/does/not/exist")
+
+    def test_utils_read_sys_devpath_size_bytes__existent_directory(self):
+        with self.assertRaises(FileNotFoundError) as cm_exc:
+            # /sys/devices/<size> should not exist but /sys/devices should
+            with self.assertLogs("probert.utils", level="WARNING") as cm_log:
+                utils.read_sys_devpath_size_bytes("/devices", log_inexistent=True)
+        self.assertEqual("%s contains %s", cm_log.records[0].msg)
+        path, child_paths = cm_log.records[0].args
+        self.assertEqual(pathlib.Path("/sys/devices"), path)
+        for child in child_paths:
+            self.assertIsInstance(child, pathlib.Path)
+        self.assertIsNone(cm_exc.exception.__context__)
+
+    def test_utils_read_sys_devpath_size_bytes__inexistent_directory(self):
+        with self.assertRaises(FileNotFoundError) as cm_exc:
+            utils.read_sys_devpath_size_bytes("/devices/that/does/not/exist/nvme0n1p3",
+                                              log_inexistent=True)
+        self.assertIsInstance(cm_exc.exception.__context__, FileNotFoundError)
+
 
 @contextlib.contextmanager
 def create_script(content):
