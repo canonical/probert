@@ -7,15 +7,6 @@ usr/lib/python3.*/dist-packages/probert/__init__.py
 usr/lib/python3.*/dist-packages/probert/log.py
 usr/lib/python3.*/dist-packages/probert/prober.py
 usr/lib/python3.*/dist-packages/probert/tests/__init__.py
-usr/lib/python3.*/dist-packages/probert/tests/data/dasdd.view
-usr/lib/python3.*/dist-packages/probert/tests/data/dasde.view
-usr/lib/python3.*/dist-packages/probert/tests/data/fake_probe_all.json
-usr/lib/python3.*/dist-packages/probert/tests/fakes.py
-usr/lib/python3.*/dist-packages/probert/tests/helpers.py
-usr/lib/python3.*/dist-packages/probert/tests/test_dasd.py
-usr/lib/python3.*/dist-packages/probert/tests/test_lvm.py
-usr/lib/python3.*/dist-packages/probert/tests/test_multipath.py
-usr/lib/python3.*/dist-packages/probert/tests/test_prober.py
-usr/lib/python3.*/dist-packages/probert/tests/test_storage.py
-usr/lib/python3.*/dist-packages/probert/tests/test_utils.py
+usr/lib/python3.*/dist-packages/probert/tests/data/*
+usr/lib/python3.*/dist-packages/probert/tests/*.py
 usr/lib/python3.*/dist-packages/probert/utils.py
