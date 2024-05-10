@@ -14,7 +14,7 @@
 
 import subprocess
 from unittest import IsolatedAsyncioTestCase
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from probert.os import probe, _parse_osprober, _run_os_prober
 
@@ -121,6 +121,7 @@ class TestOsProber(IsolatedAsyncioTestCase):
         self.assertEqual(expected, _parse_osprober(lines))
 
     @patch('probert.os.subprocess.run')
+    @patch('probert.os.shutil.which', Mock())
     async def test_osx_run(self, run):
         run.return_value.stdout = '/dev/sda4:Mac OS X:MacOSX:macosx\n'
         expected = {
@@ -133,21 +134,25 @@ class TestOsProber(IsolatedAsyncioTestCase):
         self.assertEqual(expected, await probe())
 
     @patch('probert.os.subprocess.run')
+    @patch('probert.os.shutil.which', Mock())
     async def test_empty_run(self, run):
         run.return_value.stdout = ''
         self.assertEqual({}, await probe())
 
     @patch('probert.os.subprocess.run')
+    @patch('probert.os.shutil.which', Mock())
     async def test_none_run(self, run):
         run.return_value.stdout = None
         self.assertEqual({}, await probe())
 
     @patch('probert.os.subprocess.run')
+    @patch('probert.os.shutil.which', Mock())
     async def test_osprober_fail(self, run):
         run.side_effect = subprocess.CalledProcessError(1, 'cmd')
         self.assertEqual({}, await probe())
 
     @patch('probert.os.subprocess.run')
+    @patch('probert.os.shutil.which', Mock())
     async def test_run_once(self, run):
         run.return_value.stdout = ''
         self.assertEqual({}, await probe())

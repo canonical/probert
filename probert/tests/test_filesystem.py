@@ -107,18 +107,21 @@ Block size:  4000
         self.assertEqual(expected, await get_ext_sizing(self.device))
 
     @patch('probert.filesystem.arun')
+    @patch('probert.filesystem.shutil.which', Mock())
     async def test_ntfs_real_output(self, run):
         run.return_value = read_file('probert/tests/data/ntfsresize.out')
         expected = {'SIZE': 41939456, 'ESTIMATED_MIN_SIZE': 2613248}
         self.assertEqual(expected, await get_ntfs_sizing(self.device))
 
     @patch('probert.filesystem.arun')
+    @patch('probert.filesystem.shutil.which', Mock())
     async def test_ntfs_real_output_full(self, run):
         run.return_value = read_file('probert/tests/data/ntfsresize_full.out')
         expected = {'SIZE': 83882496, 'ESTIMATED_MIN_SIZE': 83882496}
         self.assertEqual(expected, await get_ntfs_sizing(self.device))
 
     @patch('probert.filesystem.arun')
+    @patch('probert.filesystem.shutil.which', Mock())
     async def test_ntfs_simple_output(self, run):
         run.return_value = '''
 Current volume size: 100000000 bytes (100 MB)
