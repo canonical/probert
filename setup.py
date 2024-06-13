@@ -41,11 +41,6 @@ def pkgconfig(package):
         'extra_link_args': subprocess.check_output(['pkg-config', '--libs', package]).decode('utf8').split(),
     }
 
-
-def read_requirement():
-    return [req.strip() for req in open('requirements.txt')]
-
-
 setup(name='probert',
       version=probert.__version__,
       description="Hardware probing tool",
@@ -53,7 +48,7 @@ setup(name='probert',
       author='Canonical Engineering',
       author_email='ubuntu-devel@lists.ubuntu.com',
       url='https://github.com/canonical/probert',
-      license="AGPLv3+",
+      license="GPLv3",
       scripts=['bin/probert'],
       ext_modules=[
           Extension(
@@ -66,6 +61,6 @@ setup(name='probert',
             **pkgconfig("libnl-genl-3.0")),
           ],
       packages=find_packages(),
-      install_requires=read_requirement(),
+      install_requires=['jsonschema', 'pyudev'],
       include_package_data=True,
 )
