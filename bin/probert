@@ -52,7 +52,7 @@ async def main():
     if opts.all or not any(probe_opts):
         await p.probe_all(parallelize=opts.parallel)
     if opts.network:
-        await p.probe_network()
+        p.probe_network()
     if opts.storage:
         await p.probe_storage(parallelize=opts.parallel)
     if opts.firmware:
