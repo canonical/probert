@@ -74,3 +74,16 @@ Description: Hardware probing tool - network probing
  and emitting a JSON report.
  .
  This package contains network probing capability.
+
+Package: probert-firmware
+Architecture: all
+Depends: probert-common (= ${source:Version}),
+         dmidecode,
+         ${misc:Depends},
+         ${python3:Depends},
+         ${shlibs:Depends}
+Description: Hardware probing tool - firmware probing
+ This package provides a tool for probing host hardware information
+ and emitting a JSON report.
+ .
+ This package contains firmware probing capability.
