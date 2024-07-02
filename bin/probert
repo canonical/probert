@@ -33,6 +33,8 @@ def parse_options(argv):
                         help='Probe storage hardware.')
     parser.add_argument('--network', action='store_true',
                         help='Probe network hardware.')
+    parser.add_argument("--firmware", action='store_true',
+                        help='Probe firmware')
     parser.add_argument('--parallel', action='store_true',
                         help='Run storage probes in parallel')
     return parser.parse_args(argv)
@@ -46,13 +48,15 @@ async def main():
     logger.info("Arguments passed: {}".format(sys.argv))
 
     p = prober.Prober()
-    probe_opts = [opts.network, opts.storage]
+    probe_opts = [opts.network, opts.storage, opts.firmware]
     if opts.all or not any(probe_opts):
         await p.probe_all(parallelize=opts.parallel)
     if opts.network:
         await p.probe_network()
     if opts.storage:
         await p.probe_storage(parallelize=opts.parallel)
+    if opts.firmware:
+        await p.probe_firmware(parallelize=opts.parallel)
 
     results = p.get_results()
     print(json.dumps(results, indent=4, sort_keys=True))
