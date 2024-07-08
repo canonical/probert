@@ -19,6 +19,7 @@ class Prober():
 
     async def probe_all(self, *, parallelize=False):
         await self.probe_storage()
+        await self.probe_firmware()
         self.probe_network()
 
     async def probe_storage(self, *, parallelize=False):
@@ -26,6 +27,11 @@ class Prober():
         self._storage = Storage()
         self._results['storage'] = await self._storage.probe(
                 parallelize=parallelize)
+
+    async def probe_firmware(self, *, parallelize=False):
+        from probert.firmware import FirmwareProber
+        self._firmware = FirmwareProber()
+        self._results['firmware'] = await self._firmware.probe()
 
     def probe_network(self):
         from probert.network import NetworkProber

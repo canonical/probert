@@ -1,3 +1,9 @@
+probert (0.0.21) UNRELEASED; urgency=medium
+
+  * Add probert-firmware to probe information about the firmware.
+
+ -- Olivier Gayot <olivier.gayot@canonical.com>  Tue, 02 Jul 2024 15:55:59 +0200
+
 probert (0.0.20) groovy; urgency=medium
 
   [ Ryan Harper ]
