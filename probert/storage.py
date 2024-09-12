@@ -230,6 +230,10 @@ class Storage():
             print('Unavilable probe types: %s' % not_avail)
             return self.results
 
+        # Run operations that have side-effects, before we start reading udev
+        # cache.
+        await self.activate_devices(to_probe)
+
         probed_data = {}
 
         async def run_probe(ptype):
@@ -250,3 +254,20 @@ class Storage():
 
         self.results = probed_data
         return probed_data
+
+    async def activate_devices(self, probe_types: set[str]) -> None:
+        """Before querying udev, we want to let it know of the existence of
+        some block devices (which may not be currently visible). This includes
+        connecting to NVMe drives using the NVMe/TCP protocol, but also
+        activating LVM VGs to make LVM LVs visible.
+        Typically, commands must be run in a specific order to make all the
+        devices visible; so running the commands in the code of the probes
+        themselves (which run in an undefined order) feels wrong.
+        Ideally, the code of the probes should have no side effect, and we
+        should move operations that have side effect here."""
+        if "nvme" in probe_types:
+            await nvme.connect_nbft()
+
+        # TODO we should probably move the LVM VG activation code here ; so
+        # that blockdev, filesystem_sizing, OS detection and other probes
+        # include information about LVs.

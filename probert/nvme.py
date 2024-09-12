@@ -13,10 +13,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import subprocess
 
 import pyudev
 
-from probert.utils import udev_get_attributes
+from probert.utils import arun, udev_get_attributes
 
 log = logging.getLogger('probert.nvme')
 
@@ -32,3 +33,11 @@ async def probe(context=None, **kw):
         nvme_controllers[controller.sys_name] = props
 
     return nvme_controllers
+
+
+async def connect_nbft() -> None:
+    cmd = ['nvme', 'connect-all', '--nbft']
+    try:
+        await arun(cmd)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        log.error('Failed to run cmd: %s', cmd)

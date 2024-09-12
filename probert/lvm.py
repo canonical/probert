@@ -196,6 +196,8 @@ async def probe(context=None, **kw):
         older LVM2 stacks, the LVM probe may be incomplete.
     """
     # scan and activate lvm vgs/lvs
+    # TODO it feels like the activation code should be moved to
+    # Storage.activate_devices.
     lvm_scan()
     activate_volgroups()
 
