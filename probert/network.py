@@ -785,7 +785,7 @@ class UdevObserver(NetworkObserver):
             link.wlan['ssid'] = None
 
 
-class StoredDataObserver:
+class StoredDataObserver(NetworkObserver):
     """A cheaty observer that just pretends the network is in some
        pre-arranged state."""
 
