@@ -642,7 +642,11 @@ class UdevObserver(NetworkObserver):
         assert isinstance(receiver, NetworkEventReceiver)
         self.receiver = receiver
         self._calls = None
-        self.with_wlan_listener = with_wlan_listener
+
+        if with_wlan_listener:
+            self.wlan_listener = _nl80211.listener(self)
+        else:
+            self.wlan_listener = None
 
     def start(self):
         self.rtlistener = _rtnetlink.listener(self)
@@ -653,9 +657,8 @@ class UdevObserver(NetworkObserver):
             self.rtlistener.fileno(): self.rtlistener.data_ready,
         }
 
-        if self.with_wlan_listener:
+        if self.wlan_listener is not None:
             try:
-                self.wlan_listener = _nl80211.listener(self)
                 self.wlan_listener.start()
                 self._fdmap.update({
                     self.wlan_listener.fileno(): self.wlan_listener.data_ready,
@@ -737,7 +740,7 @@ class UdevObserver(NetworkObserver):
         self.receiver.route_change(action, data)
 
     def trigger_scan(self, ifindex):
-        if not self.with_wlan_listener:
+        if self.wlan_listener is None:
             log.debug("ignoring request to trigger a scan: no WLAN listener")
             return
         self.wlan_listener.trigger_scan(ifindex)
