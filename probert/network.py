@@ -633,7 +633,7 @@ def CoalescedCalls(obj):
 class UdevObserver(NetworkObserver):
     """Use udev/netlink to observe network changes."""
 
-    def __init__(self, receiver=None):
+    def __init__(self, receiver=None, *, with_wlan_listener: bool = True):
         self._links = {}
         self.context = pyudev.Context()
         if receiver is None:
@@ -641,6 +641,7 @@ class UdevObserver(NetworkObserver):
         assert isinstance(receiver, NetworkEventReceiver)
         self.receiver = receiver
         self._calls = None
+        self.with_wlan_listener = with_wlan_listener
 
     def start(self):
         self.rtlistener = _rtnetlink.listener(self)
@@ -651,14 +652,15 @@ class UdevObserver(NetworkObserver):
             self.rtlistener.fileno(): self.rtlistener.data_ready,
         }
 
-        try:
-            self.wlan_listener = _nl80211.listener(self)
-            self.wlan_listener.start()
-            self._fdmap.update({
-                self.wlan_listener.fileno(): self.wlan_listener.data_ready,
-            })
-        except RuntimeError:
-            log.debug('could not start wlan_listener')
+        if self.with_wlan_listener:
+            try:
+                self.wlan_listener = _nl80211.listener(self)
+                self.wlan_listener.start()
+                self._fdmap.update({
+                    self.wlan_listener.fileno(): self.wlan_listener.data_ready,
+                })
+            except RuntimeError:
+                log.debug('could not start wlan_listener')
 
         return list(self._fdmap)
 
@@ -734,6 +736,9 @@ class UdevObserver(NetworkObserver):
         self.receiver.route_change(action, data)
 
     def trigger_scan(self, ifindex):
+        if not self.with_wlan_listener:
+            log.debug("ignoring request to trigger a scan: no WLAN listener")
+            return
         self.wlan_listener.trigger_scan(ifindex)
 
     def wlan_event(self, arg):
@@ -777,12 +782,14 @@ class StoredDataObserver:
     """A cheaty observer that just pretends the network is in some
        pre-arranged state."""
 
-    def __init__(self, saved_data, receiver):
+    def __init__(self, saved_data, receiver,
+                 *, with_wlan_listener: bool = True):
         self.saved_data = saved_data
         for data in self.saved_data['links']:
             jsonschema.validate(data, link_schema)
         self.links = {}
         self.receiver = receiver
+        self.with_wlan_listener = with_wlan_listener
         self.rd, self.wr = os.pipe()
 
     def start(self):
@@ -800,6 +807,9 @@ class StoredDataObserver:
         os.write(self.wr, b'x')
 
     def trigger_scan(self, ifindex):
+        if not self.with_wlan_listener:
+            log.debug("ignoring request to trigger a scan: no WLAN listener")
+            return
         import asyncio
         link = self.links[ifindex]
         link.wlan['scan_state'] = 'scanning'
