@@ -29,9 +29,9 @@ from probert.utils import udev_get_attributes
 log = logging.getLogger('probert.network')
 
 try:
-    from probert import _nl80211, _rtnetlink
+    from probert import _rtnetlink
 except ImportError as e:
-    log.warning('Failed import network library modules: %s', e)
+    log.warning('Failed import _rtnetlink library modules: %s', e)
 
 # Standard interface flags (net/if.h)
 IFF_UP = 0x1                   # Interface is up.
@@ -635,6 +635,9 @@ class UdevObserver(NetworkObserver):
     """Use udev/netlink to observe network changes."""
 
     def __init__(self, receiver=None, *, with_wlan_listener: bool = True):
+        """ Listen to and handle network events using our _rtnetlink Python
+            extension. Also optionally use our _nl80211 Python extension for
+            scanning when with_wlan_listener is True. """
         self._links = {}
         self.context = pyudev.Context()
         if receiver is None:
@@ -644,6 +647,7 @@ class UdevObserver(NetworkObserver):
         self._calls = None
 
         if with_wlan_listener:
+            from probert import _nl80211
             self.wlan_listener = _nl80211.listener(self)
         else:
             self.wlan_listener = None
