@@ -28,9 +28,9 @@ from probert.utils import udev_get_attributes
 log = logging.getLogger('probert.network')
 
 try:
-    from probert import _nl80211, _rtnetlink
+    from probert import _rtnetlink
 except ImportError as e:
-    log.warning('Failed import network library modules: %s', e)
+    log.warning('Failed import _rtnetlink library modules: %s', e)
 
 # Standard interface flags (net/if.h)
 IFF_UP = 0x1                   # Interface is up.
@@ -633,7 +633,10 @@ def CoalescedCalls(obj):
 class UdevObserver(NetworkObserver):
     """Use udev/netlink to observe network changes."""
 
-    def __init__(self, receiver=None):
+    def __init__(self, receiver=None, *, with_wlan_listener: bool = True):
+        """ Listen to and handle network events using our _rtnetlink Python
+            extension. Also optionally use our _nl80211 Python extension for
+            scanning when with_wlan_listener is True. """
         self._links = {}
         self.context = pyudev.Context()
         if receiver is None:
@@ -641,6 +644,12 @@ class UdevObserver(NetworkObserver):
         assert isinstance(receiver, NetworkEventReceiver)
         self.receiver = receiver
         self._calls = None
+
+        if with_wlan_listener:
+            from probert import _nl80211
+            self.wlan_listener = _nl80211.listener(self)
+        else:
+            self.wlan_listener = None
 
     def start(self):
         self.rtlistener = _rtnetlink.listener(self)
@@ -651,14 +660,14 @@ class UdevObserver(NetworkObserver):
             self.rtlistener.fileno(): self.rtlistener.data_ready,
         }
 
-        try:
-            self.wlan_listener = _nl80211.listener(self)
-            self.wlan_listener.start()
-            self._fdmap.update({
-                self.wlan_listener.fileno(): self.wlan_listener.data_ready,
-            })
-        except RuntimeError:
-            log.debug('could not start wlan_listener')
+        if self.wlan_listener is not None:
+            try:
+                self.wlan_listener.start()
+                self._fdmap.update({
+                    self.wlan_listener.fileno(): self.wlan_listener.data_ready,
+                })
+            except RuntimeError:
+                log.debug('could not start wlan_listener')
 
         return list(self._fdmap)
 
@@ -734,6 +743,9 @@ class UdevObserver(NetworkObserver):
         self.receiver.route_change(action, data)
 
     def trigger_scan(self, ifindex):
+        if self.wlan_listener is None:
+            log.debug("ignoring request to trigger a scan: no WLAN listener")
+            return
         self.wlan_listener.trigger_scan(ifindex)
 
     def wlan_event(self, arg):
@@ -773,16 +785,18 @@ class UdevObserver(NetworkObserver):
             link.wlan['ssid'] = None
 
 
-class StoredDataObserver:
+class StoredDataObserver(NetworkObserver):
     """A cheaty observer that just pretends the network is in some
        pre-arranged state."""
 
-    def __init__(self, saved_data, receiver):
+    def __init__(self, saved_data, receiver,
+                 *, with_wlan_listener: bool = True):
         self.saved_data = saved_data
         for data in self.saved_data['links']:
             jsonschema.validate(data, link_schema)
         self.links = {}
         self.receiver = receiver
+        self.with_wlan_listener = with_wlan_listener
         self.rd, self.wr = os.pipe()
 
     def start(self):
@@ -800,6 +814,9 @@ class StoredDataObserver:
         os.write(self.wr, b'x')
 
     def trigger_scan(self, ifindex):
+        if not self.with_wlan_listener:
+            log.debug("ignoring request to trigger a scan: no WLAN listener")
+            return
         import asyncio
         link = self.links[ifindex]
         link.wlan['scan_state'] = 'scanning'
