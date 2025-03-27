@@ -366,7 +366,13 @@ static int nl80211_trigger_scan(struct Listener *listener, int ifidx) {
 }
 
 static char *nl80211_get_ie(char *ies, size_t ies_len, char ie) {
-	char *end, *pos;
+	/*
+	 * It is important to work with unsigned here because the length field of
+	 * an IE is one byte. If the length is > 0x7F and we're working with signed
+	 * chars, we will interpret it as a negative length, causing various issues
+	 * like infinite loops.
+	 */
+	unsigned char *end, *pos;
 
 	if (ies == NULL)
 		return NULL;
