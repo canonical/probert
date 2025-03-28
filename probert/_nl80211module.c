@@ -426,6 +426,18 @@ static void extract_ssid(struct nlattr *data, struct scan_handler_params *p)
 	char *ie = nla_data(bss[NL80211_BSS_INFORMATION_ELEMENTS]);
 	size_t ie_len = nla_len(bss[NL80211_BSS_INFORMATION_ELEMENTS]);
 	char *ssid = nl80211_get_ie(ie, ie_len, 0);
+
+	if (ssid == NULL) {
+		/*
+		 * LP: #2104087 For reasons yet to be determined, the SSID information
+		 * element (aka. IE) can sometimes be completely missing.
+		 * We have speculated that it could be related to hidden SSIDs but
+		 * testing showed that having an SSID information element with size 0
+		 * is a thing.
+		 */
+		return;
+	}
+
 	ssize_t ssid_len = (ssize_t)ssid[1];
 	PyObject* v = Py_BuildValue("(y#s)", ssid + 2, ssid_len, cstatus);
 	if (v == NULL) {
