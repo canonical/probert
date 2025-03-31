@@ -390,6 +390,41 @@ listener_data_ready(PyObject *self, PyObject* args)
 	return maybe_restore(listener);
 }
 
+/*
+ * Behave like rtnl_link_get(cache, ifindex), except that it filters out
+ * rtnl_link objects having family=AF_INET6. Since libnl 3.6, a single
+ * link_cache object can contain two rtnl_link instances for the same ifindex
+ * (i.e., one with family=AF_INET6 and one with family=AF_UNSPEC (or
+ * family=AF_BRIDGE)).
+ * See LP: #2105510
+ */
+static struct rtnl_link *
+get_correct_link_object(struct nl_cache *link_cache, int ifindex)
+{
+	struct rtnl_link *rv = NULL;
+	struct rtnl_link *filter = rtnl_link_alloc();
+
+	if (filter == NULL) {
+		PyErr_Format(PyExc_MemoryError, "rtnl_link_alloc() failed\n");
+		return rv;
+	}
+
+	rtnl_link_set_ifindex(filter, ifindex);
+
+	void cb(struct rtnl_link *candidate, struct rtnl_link **linkp) {
+		if (rtnl_link_get_family(candidate) != AF_INET6) {
+			nl_object_get(candidate);
+			*linkp = candidate;
+		}
+	}
+
+	nl_cache_foreach_filter(link_cache, filter, cb, &rv);
+
+	rtnl_link_put(filter);
+
+	return rv;
+}
+
 static PyObject*
 listener_set_link_flags(PyObject *self, PyObject* args, PyObject* kw)
 {
@@ -400,7 +435,7 @@ listener_set_link_flags(PyObject *self, PyObject* args, PyObject* kw)
 	if (!PyArg_ParseTupleAndKeywords(args, kw, "ii:set_link_flags", kwlist, &ifindex, &flags))
 		return NULL;
 	struct Listener* listener = (struct Listener*)self;
-	struct rtnl_link *link = rtnl_link_get(listener->link_cache, ifindex);
+	struct rtnl_link *link = get_correct_link_object(listener->link_cache, ifindex);
 	if (link == NULL) {
 		PyErr_SetString(PyExc_RuntimeError, "link not found");
 		return NULL;
@@ -439,7 +474,7 @@ listener_unset_link_flags(PyObject *self, PyObject* args, PyObject* kw)
 	if (!PyArg_ParseTupleAndKeywords(args, kw, "ii:unset_link_flags", kwlist, &ifindex, &flags))
 		return NULL;
 	struct Listener* listener = (struct Listener*)self;
-	struct rtnl_link *link = rtnl_link_get(listener->link_cache, ifindex);
+	struct rtnl_link *link = get_correct_link_object(listener->link_cache, ifindex);
 	if (link == NULL) {
 		PyErr_SetString(PyExc_RuntimeError, "link not found");
 		return NULL;
