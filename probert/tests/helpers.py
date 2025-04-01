@@ -14,24 +14,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import contextlib
-import imp
-import importlib
 import random
 import string
 import unittest
-
-
-def builtin_module_name():
-    options = ('builtins', '__builtin__')
-    for name in options:
-        try:
-            imp.find_module(name)
-        except ImportError:
-            continue
-        else:
-            print('importing and returning: %s' % name)
-            importlib.import_module(name)
-            return name
 
 
 @contextlib.contextmanager
@@ -39,9 +24,7 @@ def simple_mocked_open(content=None):
     if not content:
         content = ''
     m_open = unittest.mock.mock_open(read_data=content)
-    mod_name = builtin_module_name()
-    m_patch = '{}.open'.format(mod_name)
-    with unittest.mock.patch(m_patch, m_open, create=True):
+    with unittest.mock.patch('builtins.open', m_open, create=True):
         yield m_open
 
 
