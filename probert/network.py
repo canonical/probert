@@ -871,7 +871,7 @@ if __name__ == '__main__':
     c = UdevObserver()
     fds = c.start()
 
-    pprint.pprint(c.links)
+    pprint.pprint(c._links)
 
     poll_ob = select.epoll()
     for fd in fds:
@@ -880,4 +880,4 @@ if __name__ == '__main__':
         events = poll_ob.poll()
         for (fd, e) in events:
             c.data_ready(fd)
-        pprint.pprint(c.links)
+        pprint.pprint(c._links)
