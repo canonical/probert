@@ -377,14 +377,14 @@ static char *nl80211_get_ie(char *ies, size_t ies_len, char ie) {
 	if (ies == NULL)
 		return NULL;
 
-	pos = ies;
-	end = ies + ies_len;
+	pos = (unsigned char *)ies;
+	end = (unsigned char *)ies + ies_len;
 
 	while (pos + 1 < end) {
 		if (pos + 2 + pos[1] > end)
 			break;
 		if (pos[0] == ie)
-			return pos;
+			return (char *)pos;
 		pos += 2 + pos[1];
 	}
 

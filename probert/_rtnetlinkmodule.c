@@ -411,14 +411,15 @@ get_correct_link_object(struct nl_cache *link_cache, int ifindex)
 
 	rtnl_link_set_ifindex(filter, ifindex);
 
+	typedef void (*cb_type_t)(struct nl_object *, void *);
 	void cb(struct rtnl_link *candidate, struct rtnl_link **linkp) {
 		if (rtnl_link_get_family(candidate) != AF_INET6) {
-			nl_object_get(candidate);
+			nl_object_get(OBJ_CAST(candidate));
 			*linkp = candidate;
 		}
 	}
 
-	nl_cache_foreach_filter(link_cache, filter, cb, &rv);
+	nl_cache_foreach_filter(link_cache, OBJ_CAST(filter), (cb_type_t)cb, &rv);
 
 	rtnl_link_put(filter);
 
