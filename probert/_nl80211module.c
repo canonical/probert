@@ -366,19 +366,25 @@ static int nl80211_trigger_scan(struct Listener *listener, int ifidx) {
 }
 
 static char *nl80211_get_ie(char *ies, size_t ies_len, char ie) {
-	char *end, *pos;
+	/*
+	 * It is important to work with unsigned here because the length field of
+	 * an IE is one byte. If the length is > 0x7F and we're working with signed
+	 * chars, we will interpret it as a negative length, causing various issues
+	 * like infinite loops.
+	 */
+	unsigned char *end, *pos;
 
 	if (ies == NULL)
 		return NULL;
 
-	pos = ies;
-	end = ies + ies_len;
+	pos = (unsigned char *)ies;
+	end = (unsigned char *)ies + ies_len;
 
 	while (pos + 1 < end) {
 		if (pos + 2 + pos[1] > end)
 			break;
 		if (pos[0] == ie)
-			return pos;
+			return (char *)pos;
 		pos += 2 + pos[1];
 	}
 
@@ -420,6 +426,18 @@ static void extract_ssid(struct nlattr *data, struct scan_handler_params *p)
 	char *ie = nla_data(bss[NL80211_BSS_INFORMATION_ELEMENTS]);
 	size_t ie_len = nla_len(bss[NL80211_BSS_INFORMATION_ELEMENTS]);
 	char *ssid = nl80211_get_ie(ie, ie_len, 0);
+
+	if (ssid == NULL) {
+		/*
+		 * LP: #2104087 For reasons yet to be determined, the SSID information
+		 * element (aka. IE) can sometimes be completely missing.
+		 * We have speculated that it could be related to hidden SSIDs but
+		 * testing showed that having an SSID information element with size 0
+		 * is a thing.
+		 */
+		return;
+	}
+
 	ssize_t ssid_len = (ssize_t)ssid[1];
 	PyObject* v = Py_BuildValue("(y#s)", ssid + 2, ssid_len, cstatus);
 	if (v == NULL) {
