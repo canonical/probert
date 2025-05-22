@@ -23,6 +23,7 @@ import socket
 
 import pyudev
 
+import probert.nl80211
 from probert.utils import udev_get_attributes
 
 log = logging.getLogger('probert.network')
@@ -646,8 +647,7 @@ class UdevObserver(NetworkObserver):
         self._calls = None
 
         if with_wlan_listener:
-            from probert import _nl80211
-            self.wlan_listener = _nl80211.listener(self)
+            self.wlan_listener = probert.nl80211.Listener(self)
         else:
             self.wlan_listener = None
 

@@ -19,24 +19,9 @@ from probert.network import UdevObserver
 
 
 class TestUdevObserver(unittest.TestCase):
-    def test_init_no_nl80211(self):
+    def test_init(self):
         def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
-            if name == "probert" and "_nl80211" in fromlist:
-                raise ImportError
-            return orig_import(name)
-
-        orig_import = __import__
-
-        with patch("builtins.__import__", side_effect=fake_import):
-            with self.assertRaises(ImportError):
-                UdevObserver(with_wlan_listener=True)
-            observer = UdevObserver(with_wlan_listener=False)
-
-        self.assertIsNone(observer.wlan_listener)
-
-    def test_init_with_nl80211(self):
-        def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
-            if name == "probert" and "_nl80211" in fromlist:
+            if name == "probert" and "nl80211" in fromlist:
                 return Mock()
             return orig_import(name)
 
