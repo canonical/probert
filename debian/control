@@ -13,6 +13,7 @@ Build-Depends: debhelper-compat (= 13),
                python3-jsonschema <!nocheck>,
                python3-nose <!nocheck>,
                python3-parameterized <!nocheck>,
+               python3-pyroute2 <!nocheck>,
                python3-pyudev <!nocheck>,
                python3-setuptools,
 Standards-Version: 4.5.0
