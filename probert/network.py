@@ -671,18 +671,9 @@ class UdevObserver(NetworkObserver):
         with CoalescedCalls(self):
             self._fdmap[fd]()
 
-    @coalesce('ifindex', 'family')
+    @coalesce('ifindex')
     def link_change(self, action, data):
         log.debug('link_change %s %s', action, data)
-
-        # In version 3.6, libnl introduced a feature which triggers extra
-        # link_change events having family=AF_INET6. We need to make sure we
-        # do not reassign self._links, otherwise Subiquity's Link instance and
-        # probert's Link instance will be out-of-sync.
-        # See LP: #2105510
-        if data['family'] == socket.AF_INET6:
-            log.debug("ignoring link_change event having family=AF_INET6")
-            return
 
         for k, v in data.items():
             if isinstance(v, bytes):
