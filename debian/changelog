@@ -1,6 +1,7 @@
 probert (0.0.21) UNRELEASED; urgency=medium
 
   * Add probert-firmware to probe information about the firmware.
+  * Stop leaning on modules implemented in C, use pyroute2 instead.
 
  -- Olivier Gayot <olivier.gayot@canonical.com>  Tue, 02 Jul 2024 15:55:59 +0200
 
