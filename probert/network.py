@@ -633,7 +633,7 @@ class UdevObserver(NetworkObserver):
 
     def __init__(self, receiver=None, *, with_wlan_listener: bool = True):
         """ Listen to and handle network events using our rtnetlink Python
-            module. Also optionally use our _nl80211 Python extension for
+            module. Also optionally use our nl80211 Python module for
             scanning when with_wlan_listener is True. """
         self._links = {}
         self.context = pyudev.Context()
