@@ -35,12 +35,6 @@ if sys.argv[-1] == 'clean':
     os.system('rm -rf probert.egg-info build dist')
     sys.exit()
 
-def pkgconfig(package):
-    return {
-        'extra_compile_args': subprocess.check_output(['pkg-config', '--cflags', package]).decode('utf8').split(),
-        'extra_link_args': subprocess.check_output(['pkg-config', '--libs', package]).decode('utf8').split(),
-    }
-
 
 def read_requirement():
     return [req.strip() for req in open('requirements.txt')]
@@ -55,12 +49,6 @@ setup(name='probert',
       url='https://github.com/canonical/probert',
       license="AGPLv3+",
       scripts=['bin/probert'],
-      ext_modules=[
-          Extension(
-            "probert._rtnetlink",
-            ['probert/_rtnetlinkmodule.c'],
-            **pkgconfig("libnl-route-3.0")),
-          ],
       packages=find_packages(),
       install_requires=read_requirement(),
       include_package_data=True,
