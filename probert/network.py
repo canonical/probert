@@ -24,14 +24,10 @@ import socket
 import pyudev
 
 import probert.nl80211
+import probert.rtnetlink.listener
 from probert.utils import udev_get_attributes
 
 log = logging.getLogger('probert.network')
-
-try:
-    from probert import _rtnetlink
-except ImportError as e:
-    log.warning('Failed import _rtnetlink library modules: %s', e)
 
 # Standard interface flags (net/if.h)
 IFF_UP = 0x1                   # Interface is up.
@@ -635,8 +631,8 @@ class UdevObserver(NetworkObserver):
     """Use udev/netlink to observe network changes."""
 
     def __init__(self, receiver=None, *, with_wlan_listener: bool = True):
-        """ Listen to and handle network events using our _rtnetlink Python
-            extension. Also optionally use our _nl80211 Python extension for
+        """ Listen to and handle network events using our rtnetlink Python
+            module. Also optionally use our nl80211 Python module for
             scanning when with_wlan_listener is True. """
         self._links = {}
         self.context = pyudev.Context()
@@ -652,7 +648,7 @@ class UdevObserver(NetworkObserver):
             self.wlan_listener = None
 
     def start(self):
-        self.rtlistener = _rtnetlink.listener(self)
+        self.rtlistener = probert.rtnetlink.listener.Listener(self)
         with CoalescedCalls(self):
             self.rtlistener.start()
 
@@ -675,18 +671,9 @@ class UdevObserver(NetworkObserver):
         with CoalescedCalls(self):
             self._fdmap[fd]()
 
-    @coalesce('ifindex', 'family')
+    @coalesce('ifindex')
     def link_change(self, action, data):
         log.debug('link_change %s %s', action, data)
-
-        # In version 3.6, libnl introduced a feature which triggers extra
-        # link_change events having family=AF_INET6. We need to make sure we
-        # do not reassign self._links, otherwise Subiquity's Link instance and
-        # probert's Link instance will be out-of-sync.
-        # See LP: #2105510
-        if data['family'] == socket.AF_INET6:
-            log.debug("ignoring link_change event having family=AF_INET6")
-            return
 
         for k, v in data.items():
             if isinstance(v, bytes):

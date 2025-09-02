@@ -4,15 +4,13 @@ Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Build-Depends: debhelper-compat (= 13),
                dh-python,
-               libnl-genl-3-dev,
-               libnl-route-3-dev,
-               pkg-config,
-               python3-all-dev,
+               python3-all,
                python3-coverage <!nocheck>,
                python3-flake8 <!nocheck>,
                python3-jsonschema <!nocheck>,
                python3-nose <!nocheck>,
                python3-parameterized <!nocheck>,
+               python3-pyroute2 <!nocheck>,
                python3-pyudev <!nocheck>,
                python3-setuptools,
 Standards-Version: 4.5.0
@@ -32,7 +30,7 @@ Description: Hardware probing tool - metapackage
 
 Package: probert-common
 Architecture: all
-Depends: ${misc:Depends}, ${python3:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends}, ${python3:Depends}
 Breaks: probert (<< 0.0.16)
 Replaces: probert (<< 0.0.16)
 Description: Hardware probing tool - common
@@ -52,7 +50,6 @@ Depends: bcache-tools,
          zfsutils-linux,
          ${misc:Depends},
          ${python3:Depends},
-         ${shlibs:Depends}
 Breaks: probert (<< 0.0.16)
 Replaces: probert (<< 0.0.16)
 Description: Hardware probing tool - storage probing
@@ -62,11 +59,10 @@ Description: Hardware probing tool - storage probing
  This package contains storage probing capability.
 
 Package: probert-network
-Architecture: any
+Architecture: all
 Depends: probert-common (= ${source:Version}),
          ${misc:Depends},
          ${python3:Depends},
-         ${shlibs:Depends}
 Breaks: probert (<< 0.0.16)
 Replaces: probert (<< 0.0.16)
 Description: Hardware probing tool - network probing
@@ -81,7 +77,6 @@ Depends: probert-common (= ${source:Version}),
          dmidecode,
          ${misc:Depends},
          ${python3:Depends},
-         ${shlibs:Depends}
 Description: Hardware probing tool - firmware probing
  This package provides a tool for probing host hardware information
  and emitting a JSON report.
