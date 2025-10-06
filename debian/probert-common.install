@@ -6,7 +6,4 @@ usr/lib/python3.*/dist-packages/probert-*.egg-info/top_level.txt
 usr/lib/python3.*/dist-packages/probert/__init__.py
 usr/lib/python3.*/dist-packages/probert/log.py
 usr/lib/python3.*/dist-packages/probert/prober.py
-usr/lib/python3.*/dist-packages/probert/tests/__init__.py
-usr/lib/python3.*/dist-packages/probert/tests/data/*
-usr/lib/python3.*/dist-packages/probert/tests/*.py
 usr/lib/python3.*/dist-packages/probert/utils.py
