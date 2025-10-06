@@ -2,6 +2,7 @@ probert (0.0.20ubuntu0~24.04) UNRELEASED; urgency=medium
 
   * Stop leaning on modules implemented in C, backport the pyroute2
     implementation from core24 instead (LP: #2139131).
+  * Drop tests and tests data from .deb packages
 
  -- Olivier Gayot <olivier.gayot@canonical.com>  Fri, 23 Jan 2026 11:51:59 +0100
 
