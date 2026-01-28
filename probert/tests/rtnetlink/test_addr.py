@@ -23,6 +23,10 @@ from probert.tests.rtnetlink.common import WithGetAttrMixin
 
 class MyMockAddr(WithGetAttrMixin, MockAddress):
     """Subclass of pyroute2's MockAddr that makes it behave like a nlmsg"""
+    # MockAddress in pyroute2 0.9 has default values for index and address but
+    # the version in pyroute2 0.7.11 (noble) does not.
+    def __init__(self, index=0, address=None, *args, **kwargs) -> None:
+        super().__init__(index, address, *args, **kwargs)
 
 
 class TestAddrBuildEventData(unittest.TestCase):

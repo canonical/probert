@@ -25,7 +25,9 @@ from probert.tests.rtnetlink.common import WithGetAttrMixin
 class MyMockRoute(WithGetAttrMixin, MockRoute):
     """Subclass of pyroute2's MockRoute that makes it behave like a nlmsg...
        and works around a bug"""
-    def __init__(self, *args, **kwargs):
+    # MockRoute in pyroute2 0.9 has default values for dst and oif but the
+    # version in pyroute2 0.7.11 (noble) does not.
+    def __init__(self, dst=None, oif=0, *args, **kwargs) -> None:
         # Workaround ambiguity with route type.
         # See https://github.com/svinota/pyroute2/pull/1409
         if "type" in kwargs:
@@ -34,7 +36,8 @@ class MyMockRoute(WithGetAttrMixin, MockRoute):
             kwargs["type"] = kwargs["route_type"]
         else:
             kwargs["type"] = rtypes["RTN_UNICAST"]
-        super().__init__(*args, **kwargs)
+
+        super().__init__(dst, oif, *args, **kwargs)
 
 
 class TestGetIfindex(unittest.TestCase):

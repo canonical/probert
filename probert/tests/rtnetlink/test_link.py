@@ -23,6 +23,10 @@ from probert.tests.rtnetlink.common import WithGetAttrMixin
 
 class MyMockLink(WithGetAttrMixin, MockLink):
     """Subclass of pyroute2's MockLink that makes it behave like a nlmsg"""
+    # MockLink in pyroute2 0.9 has default values for index and ifname but
+    # the version in pyroute2 0.7.11 (noble) does not.
+    def __init__(self, index=0, ifname="", *args, **kwargs) -> None:
+        super().__init__(index, ifname, *args, **kwargs)
 
 
 class TestLinkBuildEventData(unittest.TestCase):
