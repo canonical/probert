@@ -1,5 +1,8 @@
-usr/lib/python3.*/dist-packages/probert/_nl80211.*.so
-usr/lib/python3.*/dist-packages/probert/_nl80211module.c
-usr/lib/python3.*/dist-packages/probert/_rtnetlink.*.so
-usr/lib/python3.*/dist-packages/probert/_rtnetlinkmodule.c
 usr/lib/python3.*/dist-packages/probert/network.py
+usr/lib/python3.*/dist-packages/probert/nl80211.py
+usr/lib/python3.*/dist-packages/probert/rtnetlink/addr.py
+usr/lib/python3.*/dist-packages/probert/rtnetlink/cache.py
+usr/lib/python3.*/dist-packages/probert/rtnetlink/route.py
+usr/lib/python3.*/dist-packages/probert/rtnetlink/link.py
+usr/lib/python3.*/dist-packages/probert/rtnetlink/listener.py
+usr/lib/python3.*/dist-packages/probert/rtnetlink/__init__.py
