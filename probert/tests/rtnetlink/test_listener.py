@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import importlib.metadata
 import socket
 import unittest
 from unittest import mock
@@ -201,8 +202,16 @@ class TestListener(unittest.TestCase):
                 m_handle.mock_calls)
 
     def test_fileno(self):
-        # We need to patch the class, not the instance for some reason.
-        with mock.patch.object(IPRoute, "fileno", return_value=42):
+        version_str = importlib.metadata.version("pyroute2")
+        pyroute2_version = tuple(int(x) for x in version_str.split("."))
+
+        if pyroute2_version < (0, 9):
+            target = self.listener.ipr
+        else:
+            # We need to patch the class, not the instance for some reason.
+            target = IPRoute
+
+        with mock.patch.object(target, "fileno", return_value=42):
             self.assertEqual(42, self.listener.fileno())
 
     def test_set_link_flags(self):
