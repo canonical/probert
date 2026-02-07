@@ -20,7 +20,7 @@ import pyudev
 import subprocess
 
 from probert.utils import (
-    read_sys_block_size_bytes,
+    read_sys_devpath_size_bytes,
     sane_block_devices,
     udev_get_attributes,
     )
@@ -134,11 +134,12 @@ async def blockdev_probe(context=None, **kw):
     blockdev = {}
     for device in interesting_storage_devs(context):
         devname = device.properties['DEVNAME']
+        devpath = device.properties['DEVPATH']
         attrs = udev_get_attributes(device)
         # update the size attr as it may only be the number
         # of blocks rather than size in bytes.
-        attrs['size'] = \
-            str(read_sys_block_size_bytes(devname))
+        attrs['size'] = str(read_sys_devpath_size_bytes(
+            devpath, log_inexistent=True))
         # When dereferencing device[prop], pyudev calls bytes.decode(), which
         # can fail if the value is invalid utf-8. We don't want a single
         # invalid value to completely prevent probing. So we iterate
