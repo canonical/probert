@@ -40,11 +40,13 @@ VGS_REPORT = [
     {
         "vg_name": "vg1",
         "pv_name": "/dev/vda5",
+        "pv_missing": "",
         "pv_uuid": "46GvlZ-5UAL-tvnf-AX60-3pwg-A9p3-5pBAq6",
         "vg_size": "206145847296B"
     }, {
         "vg_name": "vg1",
         "pv_name": "/dev/vda6",
+        "pv_missing": "",
         "pv_uuid": "J3bQo5-scWX-fIwg-Je9J-LkRC-rkLp-1X6KPg",
         "vg_size": "206145847296B"
     },
@@ -133,7 +135,7 @@ class TestLvm(unittest.IsolatedAsyncioTestCase):
         lvm.probe_vgs_report()
         m_lvreport.assert_called_with(
             ['vgs', '--reportformat=json', '--units=B',
-             '-o', 'vg_name,pv_name,pv_uuid,vg_size'], 'vg')
+             '-o', 'vg_name,pv_name,pv_missing,pv_uuid,vg_size'], 'vg')
 
     @mock.patch('probert.lvm._lvm_report')
     def test_probe_lvs_report_calls_lvs(self, m_lvreport, m_run):
@@ -208,21 +210,47 @@ class TestLvm(unittest.IsolatedAsyncioTestCase):
                 [
                     {"vg_name": "vg0",
                      "pv_name": "/dev/md0",
+                     "pv_missing": "",
                      "pv_uuid": "p3oDow-dRHp-L8jq-t6gQ-67tv-B8B6-JWLKZP",
                      "vg_size": "1000B"},
                     {"vg_name": "vg0",
                      "pv_name": "/dev/md1",
+                     "pv_missing": "",
                      "pv_uuid": "pRR5Zn-c4a9-teVZ-TFaU-yDxf-FSDo-cORcEq",
                      "vg_size": "21449670656B"},
                     {"vg_name": "vg0",
                      "pv_name": "/dev/md2",
+                     "pv_missing": "",
                      "pv_uuid": "Xsjd5a-c4a9-teVZ-TFaU-yDxf-FSDo-cORcEq",
                      "vg_size": "doesnt_end_with_B_"}
                 ]"""))
         self.assertEqual(
             ("vg0", {'name': "vg0",
                      'devices': sorted(['/dev/md0', '/dev/md1', '/dev/md2']),
-                     'size': '21449670656B'}),
+                     'size': '21449670656B',
+                     'partial': False}),
+            lvm.extract_lvm_volgroup('vg0', input_data))
+
+    def test_extract_lvm_volgroup__partial(self, m_run):
+        input_data = json.loads(
+            textwrap.dedent("""
+                [
+                    {"vg_name": "vg0",
+                     "pv_name": "/dev/md0",
+                     "pv_missing": "",
+                     "pv_uuid": "p3oDow-dRHp-L8jq-t6gQ-67tv-B8B6-JWLKZP",
+                     "vg_size": "21449670656B"},
+                    {"vg_name": "vg0",
+                     "pv_name": "[unknown]",
+                     "pv_missing": "missing",
+                     "pv_uuid": "pRR5Zn-c4a9-teVZ-TFaU-yDxf-FSDo-cORcEq",
+                     "vg_size": "21449670656B"}
+                ]"""))
+        self.assertEqual(
+            ("vg0", {'name': "vg0",
+                     'devices': sorted(['/dev/md0']),
+                     'size': '21449670656B',
+                     'partial': True}),
             lvm.extract_lvm_volgroup('vg0', input_data))
 
     def test_extract_lvm_volgroup_no_size_set_to_zero_bytes(self, m_run):
@@ -231,17 +259,20 @@ class TestLvm(unittest.IsolatedAsyncioTestCase):
                 [
                     {"vg_name": "vg0",
                      "pv_name": "/dev/md0",
+                     "pv_missing": "",
                      "pv_uuid": "p3oDow-dRHp-L8jq-t6gQ-67tv-B8B6-JWLKZP",
                      "vg_size": null},
                     {"vg_name": "vg0",
                      "pv_name": "/dev/md1",
+                     "pv_missing": "",
                      "pv_uuid": "pRR5Zn-c4a9-teVZ-TFaU-yDxf-FSDo-cORcEq",
                      "vg_size": null}
                 ]"""))
         self.assertEqual(
             ("vg0", {'name': "vg0",
                      'devices': sorted(['/dev/md0', '/dev/md1']),
-                     'size': '0B'}),
+                     'size': '0B',
+                     'partial': False}),
             lvm.extract_lvm_volgroup('vg0', input_data))
 
     @mock.patch('probert.lvm.read_sys_block_size_bytes')
@@ -289,7 +320,8 @@ class TestLvm(unittest.IsolatedAsyncioTestCase):
                 'vg1': {
                     'devices': ['/dev/vda5', '/dev/vda6'],
                     'name': 'vg1',
-                    'size': '206145847296B'
+                    'size': '206145847296B',
+                    'partial': False,
                 }
             }
         }
@@ -329,7 +361,8 @@ class TestLvm(unittest.IsolatedAsyncioTestCase):
                 'vg1': {
                     'devices': ['/dev/vda5', '/dev/vda6'],
                     'name': 'vg1',
-                    'size': '206145847296B'
+                    'size': '206145847296B',
+                    'partial': False,
                 }
             }
         }
