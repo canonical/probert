@@ -7,6 +7,7 @@ import os
 import re
 import shlex
 import subprocess
+from pathlib import Path
 from subprocess import PIPE
 
 import pyudev
@@ -293,14 +294,28 @@ def parse_etc_network_interfaces(ifaces, contents, path):
             ifaces[iface]['auto'] = False
 
 
-def read_sys_block_size_bytes(device):
-    """ /sys/class/block/<device>/size and return integer value in bytes"""
-    device_dir = os.path.join('/sys/class/block', os.path.basename(device))
-    blockdev_size = os.path.join(device_dir, 'size')
-    with open(blockdev_size) as d:
-        size = int(d.read().strip()) * SECTOR_SIZE_BYTES
+def read_sys_block_size_bytes(device: str) -> int:
+    """ /sys/class/block/<device>/size and return integer value in bytes.
+    NOTE: if you are not sure whether the /sys/class/block/<device> directory
+    exists, consider using read_sys_devpath_size_bytes instead. """
+    path = Path("/sys/class/block") / os.path.basename(device) / "size"
+    return int(path.read_text().strip()) * SECTOR_SIZE_BYTES
 
-    return size
+
+def read_sys_devpath_size_bytes(devpath: Path | str,
+                                log_inexistent=False) -> int:
+    """ Based on the value of a DEVPATH udev property, return the associated
+    size (converted to bytes) by reading from the sysfs. """
+    path = Path("/sys") / Path(devpath).relative_to("/") / "size"
+
+    try:
+        return int(path.read_text().strip()) * SECTOR_SIZE_BYTES
+    except FileNotFoundError:
+        if log_inexistent:
+            # path.parent.iterdir can raise another FileNotFoundError exception
+            # This is fine, we will know it means the directory does not exist.
+            log.warning("%s contains %s", path.parent, list(path.parent.iterdir()))
+        raise
 
 
 def read_sys_block_slaves(device):
