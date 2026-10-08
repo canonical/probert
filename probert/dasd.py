@@ -15,12 +15,12 @@
 import logging
 import os
 import platform
-import pyudev
 import re
 import subprocess
 
-from probert.utils import sane_block_devices
+import pyudev
 
+from probert.utils import sane_block_devices
 
 log = logging.getLogger('probert.dasd')
 

@@ -12,9 +12,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from collections import namedtuple
 import logging
 import subprocess
+from collections import namedtuple
 
 MPath = namedtuple("MPath", ('device', 'serial', 'multipath', 'host_wwnn',
                              'target_wwnn', 'host_wwpn', 'target_wwpn',

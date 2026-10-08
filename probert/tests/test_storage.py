@@ -1,14 +1,14 @@
+import json
 import subprocess
 import unittest
 from unittest import mock
 from unittest.mock import AsyncMock, Mock
-import json
+
+from parameterized import parameterized
 
 from probert.storage import (Storage, StorageInfo, blockdev_probe,
                              interesting_storage_devs)
 from probert.tests.fakes import FAKE_PROBE_ALL_JSON
-
-from parameterized import parameterized
 
 
 class ProbertTestInterestingDevs(unittest.TestCase):

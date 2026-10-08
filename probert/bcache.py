@@ -18,7 +18,6 @@ import subprocess
 
 from probert.utils import sane_block_devices
 
-
 log = logging.getLogger('probert.bcache')
 
 

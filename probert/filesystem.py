@@ -21,12 +21,8 @@ import tempfile
 
 import pyudev
 
-from probert.utils import (
-    arun,
-    read_sys_block_size_bytes,
-    sane_block_devices,
-    SECTOR_SIZE_BYTES,
-)
+from probert.utils import (SECTOR_SIZE_BYTES, arun, read_sys_block_size_bytes,
+                           sane_block_devices)
 
 log = logging.getLogger('probert.filesystems')
 

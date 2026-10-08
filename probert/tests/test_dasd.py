@@ -2,12 +2,11 @@ import subprocess
 import unittest
 from unittest import mock
 
+from parameterized import parameterized
+
 from probert import dasd
 from probert.tests import fakes
 from probert.tests.helpers import random_string
-
-from parameterized import parameterized
-
 
 # The tests parse canned dasdview output, and to be able to write
 # tests one needs to simply know what the correct parsed values

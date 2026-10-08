@@ -14,9 +14,9 @@
 
 import subprocess
 from unittest import IsolatedAsyncioTestCase
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
-from probert.os import probe, _parse_osprober, _run_os_prober
+from probert.os import _parse_osprober, _run_os_prober, probe
 
 
 class TestOsProber(IsolatedAsyncioTestCase):

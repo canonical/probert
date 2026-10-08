@@ -18,11 +18,7 @@ import subprocess
 
 import pyudev
 
-from probert.utils import (
-    read_sys_block_size_bytes,
-    sane_block_devices,
-    )
-
+from probert.utils import read_sys_block_size_bytes, sane_block_devices
 
 log = logging.getLogger('probert.raid')
 
