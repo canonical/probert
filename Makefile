@@ -36,5 +36,9 @@ clean:
 run:
 	(PYTHONPATH=$(shell pwd) bin/probert --all)
 
+.PHONY: isort
+isort:
+	pre-commit run -a $@
+
 test:
 	tox
