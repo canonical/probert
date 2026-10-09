@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import patch
 
-from probert.prober import Prober
 from probert.firmware import FirmwareProber
-from probert.storage import Storage
 from probert.network import NetworkProber
+from probert.prober import Prober
+from probert.storage import Storage
 
 
 class ProbertTestProber(unittest.IsolatedAsyncioTestCase):

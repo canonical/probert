@@ -19,7 +19,6 @@ import pyudev
 
 from probert.utils import sane_block_devices
 
-
 log = logging.getLogger('probert.dmcrypt')
 
 

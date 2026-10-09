@@ -13,19 +13,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import asyncio
-from dataclasses import dataclass
 import json
 import logging
-import pyudev
 import subprocess
+from dataclasses import dataclass
 
-from probert.utils import (
-    read_sys_block_size_bytes,
-    sane_block_devices,
-    udev_get_attributes,
-    )
+import pyudev
+
 from probert import (bcache, dasd, dmcrypt, filesystem, lvm, mount, multipath,
                      nvme, os, raid, zfs)
+from probert.utils import (read_sys_block_size_bytes, sane_block_devices,
+                           udev_get_attributes)
 
 log = logging.getLogger('probert.storage')
 

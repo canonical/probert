@@ -22,7 +22,6 @@ from typing import Any
 
 from probert.utils import arun
 
-
 log = logging.getLogger('probert.firmware')
 
 

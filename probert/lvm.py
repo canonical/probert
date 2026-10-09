@@ -12,17 +12,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import logging
 import json
+import logging
 import os
 import subprocess
 
 import pyudev
 
-from probert.utils import (
-    read_sys_block_size_bytes,
-    sane_block_devices,
-    )
+from probert.utils import read_sys_block_size_bytes, sane_block_devices
 
 log = logging.getLogger('probert.lvm')
 

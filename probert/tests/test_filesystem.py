@@ -14,20 +14,13 @@
 
 import random
 import string
-
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, Mock, patch
 
-from probert.filesystem import (
-    get_dumpe2fs_info,
-    get_resize2fs_info,
-    get_ext_sizing,
-    get_ntfs_sizing,
-    get_swap_sizing,
-    get_btrfs_min_dev_size,
-    get_btrfs_sizing,
-    get_device_filesystem,
-)
+from probert.filesystem import (get_btrfs_min_dev_size, get_btrfs_sizing,
+                                get_device_filesystem, get_dumpe2fs_info,
+                                get_ext_sizing, get_ntfs_sizing,
+                                get_resize2fs_info, get_swap_sizing)
 
 
 def read_file(filename):

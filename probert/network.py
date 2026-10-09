@@ -13,14 +13,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import abc
-from collections import OrderedDict
 import contextlib
 import ipaddress
-import jsonschema
 import logging
 import os
 import socket
+from collections import OrderedDict
 
+import jsonschema
 import pyudev
 
 import probert.nl80211

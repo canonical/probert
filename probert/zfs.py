@@ -12,14 +12,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from collections import namedtuple
 import logging
 import operator
 import os
 import re
 import subprocess
+from collections import namedtuple
 from functools import reduce
-
 
 log = logging.getLogger('probert.zfs')
 ZfsListEntry = namedtuple('ZfsListEntry',

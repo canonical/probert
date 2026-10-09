@@ -14,9 +14,9 @@
 
 import unittest
 
-from probert import nl80211
-
 import pyroute2
+
+from probert import nl80211
 
 
 class TestNlExceptToRuntimeError(unittest.TestCase):
