@@ -1,0 +1,6 @@
+# reposcan ignorefile — see https://github.com/canonical/reposcan
+#   <tool>  <ruleId>  <path-glob>  [content-regex]
+
+# treat as verified action creators
+poutine  github_action_from_unverified_creator_used  **  "uses: canonical/"
+poutine  github_action_from_unverified_creator_used  **  "uses: pre-commit/action"
