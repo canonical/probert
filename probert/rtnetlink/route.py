@@ -1,4 +1,3 @@
-
 # Copyright 2025 Canonical, Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
@@ -13,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-""" This module is a pyroute2-based rewrite of _rtnetlinkmodule.c (which was a
+"""This module is a pyroute2-based rewrite of _rtnetlinkmodule.c (which was a
 C implementation using libnl).
 """
 
@@ -70,11 +69,12 @@ class RouteCache(Cache):
                             ROUTE_ATTR_PRIO),
             .oo_id_attrs_get        = route_id_attrs_get
         """
+
         family: int
         tos: int
         table: int
         dst: str | None
-        prio: int | None    # None for MPLS
+        prio: int | None  # None for MPLS
         # NOTE: Multiple special routes (e.g. multicast routes) can have the
         # same destination address but a different output interface (i.e.,
         # RTA_OIF). They should probably not be considered the same route (and
@@ -124,18 +124,14 @@ class RouteCache(Cache):
             CacheEntryComparer.attr("RTA_TTL_PROPAGATE"),
             CacheEntryComparer.attr("RTA_METRICS"),
             CacheEntryComparer.direct("flags"),
-
             # Nexthop without multipath
             CacheEntryComparer.attr("RTA_OIF"),
             CacheEntryComparer.attr("RTA_GATEWAY"),
             CacheEntryComparer.attr("RTA_FLOW"),
             CacheEntryComparer.attr("RTA_NEWDST"),
             CacheEntryComparer.attr("RTA_VIA"),
-
             # Nexthops with Multipath
-            CacheEntryComparer.attr_foreach_value("RTA_MULTIPATH",
-                                                  nexthop_multipath)
-
+            CacheEntryComparer.attr_foreach_value("RTA_MULTIPATH", nexthop_multipath),
             # NOTE: For completeness, we should also dig into the RTA_ENCAP
             # nested attribute but this contains implementation specific
             # attributes that are unlikely relevant for us.

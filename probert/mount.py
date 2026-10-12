@@ -16,33 +16,33 @@ import json
 import logging
 import subprocess
 
-log = logging.getLogger('probert.mount')
+log = logging.getLogger("probert.mount")
 
 
 def findmnt(data=None):
     if not data:
-        cmd = ['findmnt', '--bytes', '--json', '-o', '+maj:min']
+        cmd = ["findmnt", "--bytes", "--json", "-o", "+maj:min"]
         try:
-            result = subprocess.run(cmd, stdout=subprocess.PIPE,
-                                    stderr=subprocess.DEVNULL,
-                                    check=True)
+            result = subprocess.run(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True
+            )
         except (subprocess.CalledProcessError, FileNotFoundError):
             return {}
 
-        data = result.stdout.decode('utf-8')
+        data = result.stdout.decode("utf-8")
 
     mounts = {}
     try:
         mounts = json.loads(data)
     except json.decoder.JSONDecodeError as e:
-        log.error('Failed to load findmnt json output: %s', e)
+        log.error("Failed to load findmnt json output: %s", e)
 
     return mounts
 
 
 async def probe(context=None, **kw):
     """The probert uses the util-linux 'findmnt' command which
-       dumps a JSON tree of detailed information about _all_
-       mounts in the current linux system.
+    dumps a JSON tree of detailed information about _all_
+    mounts in the current linux system.
     """
-    return findmnt().get('filesystems', {})
+    return findmnt().get("filesystems", {})

@@ -19,8 +19,7 @@ from collections import UserDict
 behave like nlmsg when it comes to accessing data."""
 
 
-def get_attr(data: dict[str, typing.Any],
-             name: str, default=None) -> typing.Any:
+def get_attr(data: dict[str, typing.Any], name: str, default=None) -> typing.Any:
     for attr_name, attr_val in data["attrs"]:
         if attr_name == name:
             if isinstance(attr_val, dict) and "attrs" in attr_val:

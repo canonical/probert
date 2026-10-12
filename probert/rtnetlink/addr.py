@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-""" This module is part of the pyroute2-based rewrite of _rtnetlinkmodule.c
+"""This module is part of the pyroute2-based rewrite of _rtnetlinkmodule.c
 (which was a C implementation using libnl).
 """
 
@@ -65,6 +65,7 @@ class AddrCache(Cache):
             .oo_id_attrs     = (ADDR_ATTR_FAMILY | ADDR_ATTR_IFINDEX |
                                 ADDR_ATTR_LOCAL | ADDR_ATTR_PREFIXLEN)
         """
+
         ifindex: int
         family: int
         prefixlen: int

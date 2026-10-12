@@ -1,4 +1,9 @@
 repos:
+  - repo: https://github.com/psf/black
+    rev: 4f1883b1f15305a0e83a7c87991f46292bf09f85  # 26.10.0
+    hooks:
+      - id: black
+        files: "(probert|bin)"
   - repo: https://github.com/pycqa/isort
     rev: 9f905615631c545f5aea2516508109350d1d2f7d  # 9.0.2
     hooks:

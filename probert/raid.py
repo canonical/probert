@@ -20,26 +20,27 @@ import pyudev
 
 from probert.utils import read_sys_block_size_bytes, sane_block_devices
 
-log = logging.getLogger('probert.raid')
+log = logging.getLogger("probert.raid")
 
-SUPPORTED_RAID_TYPES = ['raid0', 'raid1', 'raid5', 'raid6', 'raid10']
+SUPPORTED_RAID_TYPES = ["raid0", "raid1", "raid5", "raid6", "raid10"]
 
 
 def mdadm_assemble(scan=True, ignore_errors=True):
-    cmd = ['mdadm', '--detail', '--scan', '-v']
+    cmd = ["mdadm", "--detail", "--scan", "-v"]
     try:
-        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                       check=True)
+        subprocess.run(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True
+        )
     except subprocess.CalledProcessError as e:
-        log.error('Failed mdadm_assemble command %s: %s', cmd, e)
+        log.error("Failed mdadm_assemble command %s: %s", cmd, e)
     except FileNotFoundError as e:
-        log.error('Failed mdadm_assemble, mdadm command not found: %s', e)
+        log.error("Failed mdadm_assemble, mdadm command not found: %s", e)
 
     return
 
 
 def get_mdadm_array_members(md_device):
-    ''' extract array devices and spares from mdadm --detail --export output
+    """extract array devices and spares from mdadm --detail --export output
 
     MD_LEVEL=raid5
     MD_DEVICES=3
@@ -56,15 +57,15 @@ def get_mdadm_array_members(md_device):
     MD_DEVICE_ev_dm_2_DEV=/dev/dm-2
 
     returns (['/dev/dm2', '/dev/dm-3', '/dev/dm-4'], ['/dev/dm-5'])
-    '''
-    cmd = ['mdadm', '--detail', '--export', md_device]
+    """
+    cmd = ["mdadm", "--detail", "--export", md_device]
     try:
-        result = subprocess.run(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL,
-                                check=True)
-        output = result.stdout.decode('utf-8')
+        result = subprocess.run(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True
+        )
+        output = result.stdout.decode("utf-8")
     except subprocess.CalledProcessError as e:
-        log.error('failed to get detail for %s: %s', md_device, e)
+        log.error("failed to get detail for %s: %s", md_device, e)
         return ([], [])
 
     devices = {}
@@ -72,22 +73,22 @@ def get_mdadm_array_members(md_device):
 
     for line in output.splitlines():
         line = line.strip()
-        if '=' not in line:
+        if "=" not in line:
             continue
-        k, v = line.split('=', 1)
-        if k.startswith('MD_DEVICE_'):
+        k, v = line.split("=", 1)
+        if k.startswith("MD_DEVICE_"):
             if k.endswith("_DEV"):
-                dev_key = k[len('MD_DEVICE_'):-len('_DEV')]
+                dev_key = k[len("MD_DEVICE_") : -len("_DEV")]
                 devices[dev_key] = v
             elif k.endswith("_ROLE"):
-                dev_key = k[len('MD_DEVICE_'):-len('_ROLE')]
+                dev_key = k[len("MD_DEVICE_") : -len("_ROLE")]
                 roles[dev_key] = v
 
     actives = []
     spares = []
 
     for dev_key, devname in devices.items():
-        if roles.get(dev_key) == 'spare':
+        if roles.get(dev_key) == "spare":
             spares.append(devname)
         else:
             actives.append(devname)
@@ -96,11 +97,11 @@ def get_mdadm_array_members(md_device):
 
 async def probe(context=None, report=False, **kw):
     """Initiate an mdadm assemble to awaken existing MDADM devices.
-       For each md block device, extract required information needed
-       to describe the array for recreation or reuse as needed.
+    For each md block device, extract required information needed
+    to describe the array for recreation or reuse as needed.
 
-       mdadm tooling provides information about the raid type,
-       the members, the size, the name, uuids, metadata version.
+    mdadm tooling provides information about the raid type,
+    the members, the size, the name, uuids, metadata version.
     """
     mdadm_assemble()
 
@@ -109,26 +110,30 @@ async def probe(context=None, report=False, **kw):
 
     raids = {}
     for device in sane_block_devices(context):
-        if device.get('DEVTYPE') != 'disk':
+        if device.get("DEVTYPE") != "disk":
             continue
-        devname = device['DEVNAME']
-        if not os.path.basename(devname).startswith('md'):
+        devname = device["DEVNAME"]
+        if not os.path.basename(devname).startswith("md"):
             continue
-        if 'MD_CONTAINER' in device:
+        if "MD_CONTAINER" in device:
             cfg = dict(device)
-            cfg.update({
-                'container': device['MD_CONTAINER'],
-                'size': str(read_sys_block_size_bytes(devname)),
-                })
-            if 'MD_LEVEL' in device:
-                cfg.update({
-                    'raidlevel': device['MD_LEVEL'],
-                })
+            cfg.update(
+                {
+                    "container": device["MD_CONTAINER"],
+                    "size": str(read_sys_block_size_bytes(devname)),
+                }
+            )
+            if "MD_LEVEL" in device:
+                cfg.update(
+                    {
+                        "raidlevel": device["MD_LEVEL"],
+                    }
+                )
             raids[devname] = cfg
         else:
             devices, spares = get_mdadm_array_members(devname)
             cfg = dict(device)
-            if device.get('MD_METADATA') == 'imsm':
+            if device.get("MD_METADATA") == "imsm":
                 # All disks in a imsm container show up as spares, in some
                 # sense because they are not "used" by the container (there is
                 # a concept of a spare drive in a container -- where there is a
@@ -139,15 +144,19 @@ async def probe(context=None, report=False, **kw):
                 # component disks as active.
                 devices = devices + spares
                 spares = []
-            cfg.update({
-                'devices': devices,
-                'spare_devices': spares,
-                'size': str(read_sys_block_size_bytes(devname)),
-                })
-            if 'MD_LEVEL' in device:
-                cfg.update({
-                    'raidlevel': device['MD_LEVEL'],
-                })
+            cfg.update(
+                {
+                    "devices": devices,
+                    "spare_devices": spares,
+                    "size": str(read_sys_block_size_bytes(devname)),
+                }
+            )
+            if "MD_LEVEL" in device:
+                cfg.update(
+                    {
+                        "raidlevel": device["MD_LEVEL"],
+                    }
+                )
             raids[devname] = cfg
 
     return raids

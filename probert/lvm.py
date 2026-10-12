@@ -21,36 +21,37 @@ import pyudev
 
 from probert.utils import read_sys_block_size_bytes, sane_block_devices
 
-log = logging.getLogger('probert.lvm')
+log = logging.getLogger("probert.lvm")
 
 
 def _lvm_report(cmd, report_key):
-    """ [pvs --reportformat=json -o foo,bar] report_key='pv'
-     {
-         "report": [
-             {
-                 "pv": [
-                     {"pv_name":"/dev/md0", "vg_name":"vg0",
-                      "pv_fmt":"lvm2", "pv_attr":"a--",
-                      "pv_size":"<9.99g", "pv_free":"<6.99g"},
-                     {"pv_name":"/dev/md1", "vg_name":"vg0",
-                      "pv_fmt":"lvm2", "pv_attr":"a--",
-                      "pv_size":"<9.99g", "pv_free":"<9.99g"}
-                 ]
-             }
-         ]
-     }
+    """[pvs --reportformat=json -o foo,bar] report_key='pv'
+    {
+        "report": [
+            {
+                "pv": [
+                    {"pv_name":"/dev/md0", "vg_name":"vg0",
+                     "pv_fmt":"lvm2", "pv_attr":"a--",
+                     "pv_size":"<9.99g", "pv_free":"<6.99g"},
+                    {"pv_name":"/dev/md1", "vg_name":"vg0",
+                     "pv_fmt":"lvm2", "pv_attr":"a--",
+                     "pv_size":"<9.99g", "pv_free":"<9.99g"}
+                ]
+            }
+        ]
+    }
     """
+
     def _flatten_list(data):
         return [y for x in data for y in x]
 
     try:
-        result = subprocess.run(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL,
-                                check=True)
-        output = result.stdout.decode('utf-8')
+        result = subprocess.run(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True
+        )
+        output = result.stdout.decode("utf-8")
     except subprocess.CalledProcessError as e:
-        log.error('Failed to probe LVM devices on system: %s', e)
+        log.error("Failed to probe LVM devices on system: %s", e)
         return []
 
     if not output:
@@ -60,43 +61,51 @@ def _lvm_report(cmd, report_key):
     try:
         reports = json.loads(output)
     except json.decoder.JSONDecodeError as e:
-        log.error('Failed to load LVM json report: %s', e)
+        log.error("Failed to load LVM json report: %s", e)
         return []
 
-    return _flatten_list([report.get(report_key)
-                          for report in reports.get('report', [])
-                          if report_key in report])
+    return _flatten_list(
+        [
+            report.get(report_key)
+            for report in reports.get("report", [])
+            if report_key in report
+        ]
+    )
 
 
 def probe_pvs_report():
-    return _lvm_report(['pvs', '--reportformat=json'], 'pv')
+    return _lvm_report(["pvs", "--reportformat=json"], "pv")
 
 
 def probe_vgs_report():
-    report_cmd = ['vgs', '--reportformat=json', '--units=B',
-                  '-o', 'vg_name,pv_name,pv_missing,pv_uuid,vg_size']
-    return _lvm_report(report_cmd, 'vg')
+    report_cmd = [
+        "vgs",
+        "--reportformat=json",
+        "--units=B",
+        "-o",
+        "vg_name,pv_name,pv_missing,pv_uuid,vg_size",
+    ]
+    return _lvm_report(report_cmd, "vg")
 
 
 def probe_lvs_report():
-    return _lvm_report(['lvs'], 'lv')
+    return _lvm_report(["lvs"], "lv")
 
 
 def lvmetad_running():
-    return os.path.exists(os.environ.get('LVM_LVMETAD_PIDFILE',
-                                         '/run/lvmetad.pid'))
+    return os.path.exists(os.environ.get("LVM_LVMETAD_PIDFILE", "/run/lvmetad.pid"))
 
 
 def lvm_scan():
-    for cmd in [['pvscan'], ['vgscan']]:
+    for cmd in [["pvscan"], ["vgscan"]]:
         if lvmetad_running():
-            cmd.append('--cache')
+            cmd.append("--cache")
         try:
-            subprocess.run(cmd, stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL,
-                           check=True)
+            subprocess.run(
+                cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True
+            )
         except subprocess.CalledProcessError as e:
-            log.error('Failed lvm_scan command %s: %s', cmd, e)
+            log.error("Failed lvm_scan command %s: %s", cmd, e)
 
 
 def activate_volgroups():
@@ -112,20 +121,27 @@ def activate_volgroups():
 
     # vgchange handles syncing with udev by default
     # see man 8 vgchange and flag --noudevsync
-    result = subprocess.run(['vgchange', '--activate=y'], check=False,
-                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    result = subprocess.run(
+        ["vgchange", "--activate=y"],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
     if result.stdout:
         log.info(result.stdout)
 
 
 def extract_lvm_partition(probe_data):
-    lv_id = "%s/%s" % (probe_data['DM_VG_NAME'], probe_data['DM_LV_NAME'])
+    lv_id = "%s/%s" % (probe_data["DM_VG_NAME"], probe_data["DM_LV_NAME"])
     return (
-        lv_id, {'fullname': lv_id,
-                'name': probe_data['DM_LV_NAME'],
-                'volgroup': probe_data['DM_VG_NAME'],
-                'size': "%sB" % read_sys_block_size_bytes(
-                    probe_data['DEVNAME'])})
+        lv_id,
+        {
+            "fullname": lv_id,
+            "name": probe_data["DM_LV_NAME"],
+            "volgroup": probe_data["DM_VG_NAME"],
+            "size": "%sB" % read_sys_block_size_bytes(probe_data["DEVNAME"]),
+        },
+    )
 
 
 def extract_lvm_volgroup(vg_name, report_data):
@@ -139,8 +155,9 @@ def extract_lvm_volgroup(vg_name, report_data):
          "vg_size":"21449670656B"}
     ]
     """
+
     def _int(size_val):
-        if size_val and size_val.endswith('B'):
+        if size_val and size_val.endswith("B"):
             return int(size_val[:-1])
         return 0
 
@@ -149,8 +166,8 @@ def extract_lvm_volgroup(vg_name, report_data):
     missing_pvs = 0
     for report in report_data:
         # There will be multiple matching entries, one for each PV in the VG.
-        if report['vg_name'] == vg_name:
-            vg_size = report['vg_size']
+        if report["vg_name"] == vg_name:
+            vg_size = report["vg_size"]
             # set size to the largest size we find
             if vg_size:
                 # unset, take current value
@@ -163,45 +180,47 @@ def extract_lvm_volgroup(vg_name, report_data):
 
             # If the PV is missing the value is typically set to "missing" but
             # LVM2 checks for empty strings.
-            if report['pv_missing']:
+            if report["pv_missing"]:
                 missing_pvs += 1
             else:
-                devices.add(report.get('pv_name'))
+                devices.add(report.get("pv_name"))
 
     if size is None:
-        size = '0B'
+        size = "0B"
 
-    return {'name': vg_name,
-            'devices': sorted(list(devices)),
-            'size': size,
-            'partial': missing_pvs > 0}
+    return {
+        "name": vg_name,
+        "devices": sorted(list(devices)),
+        "size": size,
+        "partial": missing_pvs > 0,
+    }
 
 
 async def probe(context=None, **kw):
-    """ Probing for LVM devices requires initiating a kernel level scan
-        of block devices to look for physical volumes, volume groups and
-        logical volumes.  Once detected, the prober will activate any
-        volume groups detected.
+    """Probing for LVM devices requires initiating a kernel level scan
+    of block devices to look for physical volumes, volume groups and
+    logical volumes.  Once detected, the prober will activate any
+    volume groups detected.
 
-        The prober will refresh the udev context which brings in addition
-        information relating to LVM devices.
+    The prober will refresh the udev context which brings in addition
+    information relating to LVM devices.
 
-        This prober relies on udev detecting devices via the 'DM_UUID'
-        field and for each of such devices, the prober records the
-        logical volume.
+    This prober relies on udev detecting devices via the 'DM_UUID'
+    field and for each of such devices, the prober records the
+    logical volume.
 
-        For each logical volume, the prober determines the hosting
-        volume_group and records detailed information about the group
-        including members.  The process is repeated to determine the
-        underlying physical volumes that are used to construct a
-        volume group.
+    For each logical volume, the prober determines the hosting
+    volume_group and records detailed information about the group
+    including members.  The process is repeated to determine the
+    underlying physical volumes that are used to construct a
+    volume group.
 
-        Care is taken to handle scenarios where physical volumes are
-        not yet allocated to a volume group (such as a linear VG).
+    Care is taken to handle scenarios where physical volumes are
+    not yet allocated to a volume group (such as a linear VG).
 
-        On newer systems (Disco+) the lvm2 software stack provides
-        a rich reporting data dump in JSON format.  On systems with
-        older LVM2 stacks, the LVM probe may be incomplete.
+    On newer systems (Disco+) the lvm2 software stack provides
+    a rich reporting data dump in JSON format.  On systems with
+    older LVM2 stacks, the LVM probe may be incomplete.
     """
     # scan and activate lvm vgs/lvs
     lvm_scan()
@@ -215,25 +234,25 @@ async def probe(context=None, **kw):
     pvols = {}
     vg_report = probe_vgs_report()
 
-    for vg_name in {vg['vg_name'] for vg in vg_report}:
+    for vg_name in {vg["vg_name"] for vg in vg_report}:
         vgroups[vg_name] = extract_lvm_volgroup(vg_name, vg_report)
-        pvols[vg_name] = vgroups[vg_name]['devices']
+        pvols[vg_name] = vgroups[vg_name]["devices"]
 
     for device in sane_block_devices(context):
-        if 'DM_UUID' in device and device['DM_UUID'].startswith('LVM'):
-            (lv_id, new_lv) = extract_lvm_partition(device)
+        if "DM_UUID" in device and device["DM_UUID"].startswith("LVM"):
+            lv_id, new_lv = extract_lvm_partition(device)
             if lv_id not in lvols:
                 lvols[lv_id] = new_lv
             else:
-                log.error('Found duplicate logical volume: %s', lv_id)
+                log.error("Found duplicate logical volume: %s", lv_id)
                 continue
 
     lvm = {}
     if lvols:
-        lvm.update({'logical_volumes': lvols})
+        lvm.update({"logical_volumes": lvols})
     if pvols:
-        lvm.update({'physical_volumes': pvols})
+        lvm.update({"physical_volumes": pvols})
     if vgroups:
-        lvm.update({'volume_groups': vgroups})
+        lvm.update({"volume_groups": vgroups})
 
     return lvm

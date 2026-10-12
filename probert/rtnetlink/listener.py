@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-""" This module is part of the pyroute2-based rewrite of _rtnetlinkmodule.c
+"""This module is part of the pyroute2-based rewrite of _rtnetlinkmodule.c
 (which was a C implementation using libnl).
 """
 
@@ -32,9 +32,10 @@ from probert.rtnetlink.cache import Cache, CacheEntry
 
 class EventResult(enum.Enum):
     """Enumerates the different outcomes that an event can produce."""
-    NEW = "NEW"          # Send a NEW event to the observer
-    CHANGE = "CHANGE"    # Send a CHANGE event to the observer
-    DEL = "DEL"          # Send a DEL event to the observer
+
+    NEW = "NEW"  # Send a NEW event to the observer
+    CHANGE = "CHANGE"  # Send a CHANGE event to the observer
+    DEL = "DEL"  # Send a DEL event to the observer
 
     DISCARD = "DISCARD"  # Do not send any event to the observer
 
@@ -70,8 +71,7 @@ class Listener:
                 self.cache.pop(identifier, None)
                 return EventResult.DEL
 
-    def on_link_change(self, old_link: CacheEntry,
-                       new_link: CacheEntry) -> None:
+    def on_link_change(self, old_link: CacheEntry, new_link: CacheEntry) -> None:
         # When an interface goes down, the kernel does not send RTM_DELROUTE
         # message for all routes involving the interface.
         # We still need to notify the observer that such routes are no longer
@@ -91,7 +91,8 @@ class Listener:
         for route_to_del in routes_to_del:
             route = self.route_cache.pop(route_to_del)
             self.observer.route_change(
-                    "DEL", probert.rtnetlink.route.build_event_data(route))
+                "DEL", probert.rtnetlink.route.build_event_data(route)
+            )
 
     def __init__(self, observer) -> None:
         self.observer = observer
@@ -122,13 +123,15 @@ class Listener:
                 observer_callback=self.observer.link_change,
                 build_event_data=probert.rtnetlink.link.build_event_data,
                 change_callback=self.on_link_change,
-            ), "RTM_NEWADDR": self.MsgHandler(
+            ),
+            "RTM_NEWADDR": self.MsgHandler(
                 new="RTM_NEWADDR",
                 cache=self.addr_cache,
                 observer_callback=self.observer.addr_change,
                 build_event_data=probert.rtnetlink.addr.build_event_data,
                 change_callback=None,
-            ), "RTM_NEWROUTE": self.MsgHandler(
+            ),
+            "RTM_NEWROUTE": self.MsgHandler(
                 new="RTM_NEWROUTE",
                 cache=self.route_cache,
                 observer_callback=self.observer.route_change,
@@ -175,4 +178,4 @@ class Listener:
         self.ipr.link("set", index=ifindex, flags=flags, mask=flags)
 
     def unset_link_flags(self, ifindex: int, flags: int) -> None:
-        self.ipr.link('set', index=ifindex, flags=0x0, mask=flags)
+        self.ipr.link("set", index=ifindex, flags=0x0, mask=flags)

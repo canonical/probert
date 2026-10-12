@@ -27,24 +27,24 @@ import probert.nl80211
 import probert.rtnetlink.listener
 from probert.utils import udev_get_attributes
 
-log = logging.getLogger('probert.network')
+log = logging.getLogger("probert.network")
 
 # Standard interface flags (net/if.h)
-IFF_UP = 0x1                   # Interface is up.
-IFF_BROADCAST = 0x2            # Broadcast address valid.
-IFF_DEBUG = 0x4                # Turn on debugging.
-IFF_LOOPBACK = 0x8             # Is a loopback net.
-IFF_POINTOPOINT = 0x10         # Interface is point-to-point link.
-IFF_NOTRAILERS = 0x20          # Avoid use of trailers.
-IFF_RUNNING = 0x40             # Resources allocated.
-IFF_NOARP = 0x80               # No address resolution protocol.
-IFF_PROMISC = 0x100            # Receive all packets.
-IFF_ALLMULTI = 0x200           # Receive all multicast packets.
-IFF_MASTER = 0x400             # Master of a load balancer.
-IFF_SLAVE = 0x800              # Slave of a load balancer.
-IFF_MULTICAST = 0x1000         # Supports multicast.
-IFF_PORTSEL = 0x2000           # Can set media type.
-IFF_AUTOMEDIA = 0x4000         # Auto media select active.
+IFF_UP = 0x1  # Interface is up.
+IFF_BROADCAST = 0x2  # Broadcast address valid.
+IFF_DEBUG = 0x4  # Turn on debugging.
+IFF_LOOPBACK = 0x8  # Is a loopback net.
+IFF_POINTOPOINT = 0x10  # Interface is point-to-point link.
+IFF_NOTRAILERS = 0x20  # Avoid use of trailers.
+IFF_RUNNING = 0x40  # Resources allocated.
+IFF_NOARP = 0x80  # No address resolution protocol.
+IFF_PROMISC = 0x100  # Receive all packets.
+IFF_ALLMULTI = 0x200  # Receive all multicast packets.
+IFF_MASTER = 0x400  # Master of a load balancer.
+IFF_SLAVE = 0x800  # Slave of a load balancer.
+IFF_MULTICAST = 0x1000  # Supports multicast.
+IFF_PORTSEL = 0x2000  # Can set media type.
+IFF_AUTOMEDIA = 0x4000  # Auto media select active.
 
 IFA_F_PERMANENT = 0x80
 
@@ -79,8 +79,7 @@ link_schema = {
     "title": "link",
     "type": "object",
     "additionalProperties": False,
-    "required": ["addresses", "bond", "bridge", "netlink_data", "type",
-                 "udev_data"],
+    "required": ["addresses", "bond", "bridge", "netlink_data", "type", "udev_data"],
     "properties": {
         "addresses": {
             "type": "array",
@@ -197,67 +196,67 @@ link_schema = {
 
 def _compute_type(iface, arptype):
     if not iface:
-        return '???'
+        return "???"
 
-    sysfs_path = os.path.join('/sys/class/net', iface)
+    sysfs_path = os.path.join("/sys/class/net", iface)
     if not os.path.exists(sysfs_path):
-        log.debug('No sysfs path to {}'.format(sysfs_path))
+        log.debug("No sysfs path to {}".format(sysfs_path))
         return None
 
-    DEV_TYPE = '???'
+    DEV_TYPE = "???"
 
     if arptype == 1:
-        DEV_TYPE = 'eth'
-        if os.path.isdir(os.path.join(sysfs_path, 'wireless')) or \
-           os.path.islink(os.path.join(sysfs_path, 'phy80211')):
-            DEV_TYPE = 'wlan'
-        elif os.path.isdir(os.path.join(sysfs_path, 'bridge')):
-            DEV_TYPE = 'bridge'
-        elif os.path.isdir(os.path.join(sysfs_path, 'bonding')):
-            DEV_TYPE = 'bond'
-        elif os.path.isfile(os.path.join(sysfs_path, 'tun_flags')):
-            DEV_TYPE = 'tap'
-        elif os.path.isdir(
-                os.path.join('/sys/devices/virtual/net', iface)):
-            if iface.startswith('dummy'):
-                DEV_TYPE = 'dummy'
+        DEV_TYPE = "eth"
+        if os.path.isdir(os.path.join(sysfs_path, "wireless")) or os.path.islink(
+            os.path.join(sysfs_path, "phy80211")
+        ):
+            DEV_TYPE = "wlan"
+        elif os.path.isdir(os.path.join(sysfs_path, "bridge")):
+            DEV_TYPE = "bridge"
+        elif os.path.isdir(os.path.join(sysfs_path, "bonding")):
+            DEV_TYPE = "bond"
+        elif os.path.isfile(os.path.join(sysfs_path, "tun_flags")):
+            DEV_TYPE = "tap"
+        elif os.path.isdir(os.path.join("/sys/devices/virtual/net", iface)):
+            if iface.startswith("dummy"):
+                DEV_TYPE = "dummy"
     elif arptype == 24:  # firewire ;; IEEE 1394 - RFC 2734
-        DEV_TYPE = 'eth'
+        DEV_TYPE = "eth"
     elif arptype == 32:  # InfiniBand
-        if os.path.isdir(os.path.join(sysfs_path, 'bonding')):
-            DEV_TYPE = 'bond'
-        elif os.path.isdir(os.path.join(sysfs_path, 'create_child')):
-            DEV_TYPE = 'ib'
+        if os.path.isdir(os.path.join(sysfs_path, "bonding")):
+            DEV_TYPE = "bond"
+        elif os.path.isdir(os.path.join(sysfs_path, "create_child")):
+            DEV_TYPE = "ib"
         else:
-            DEV_TYPE = 'ibchild'
+            DEV_TYPE = "ibchild"
     elif arptype == 280:
-        DEV_TYPE = 'can'
+        DEV_TYPE = "can"
     elif arptype == 512:
-        DEV_TYPE = 'ppp'
+        DEV_TYPE = "ppp"
     elif arptype == 768:
-        DEV_TYPE = 'ipip'      # IPIP tunnel
+        DEV_TYPE = "ipip"  # IPIP tunnel
     elif arptype == 769:
-        DEV_TYPE = 'ip6tnl'   # IP6IP6 tunnel
+        DEV_TYPE = "ip6tnl"  # IP6IP6 tunnel
     elif arptype == 772:
-        DEV_TYPE = 'lo'
+        DEV_TYPE = "lo"
     elif arptype == 776:
-        DEV_TYPE = 'sit'      # sit0 device - IPv6-in-IPv4
+        DEV_TYPE = "sit"  # sit0 device - IPv6-in-IPv4
     elif arptype == 778:
-        DEV_TYPE = 'gre'      # GRE over IP
+        DEV_TYPE = "gre"  # GRE over IP
     elif arptype == 783:
-        DEV_TYPE = 'irda'     # Linux-IrDA
+        DEV_TYPE = "irda"  # Linux-IrDA
     elif arptype == 801:
-        DEV_TYPE = 'wlan_aux'
+        DEV_TYPE = "wlan_aux"
     elif arptype == 65534:
-        DEV_TYPE = 'tun'
+        DEV_TYPE = "tun"
 
-    if iface.startswith('ippp') or iface.startswith('isdn'):
-        DEV_TYPE = 'isdn'
-    elif iface.startswith('mip6mnha'):
-        DEV_TYPE = 'mip6mnha'
+    if iface.startswith("ippp") or iface.startswith("isdn"):
+        DEV_TYPE = "isdn"
+    elif iface.startswith("mip6mnha"):
+        DEV_TYPE = "mip6mnha"
 
     if len(DEV_TYPE) == 0:
-        print('Failed to determine interface type for {}'.format(iface))
+        print("Failed to determine interface type for {}".format(iface))
         return None
 
     return DEV_TYPE
@@ -274,7 +273,7 @@ def _get_bonding(ifname, flags):
     def _get_slave_iface_list():
         try:
             if _iface_is_master():
-                bond = open('/sys/class/net/%s/bonding/slaves' % ifname).read()
+                bond = open("/sys/class/net/%s/bonding/slaves" % ifname).read()
                 return bond.split()
             else:
                 return []
@@ -284,7 +283,7 @@ def _get_bonding(ifname, flags):
     def _get_bond_master():
         try:
             if _iface_is_slave():
-                master = os.readlink('/sys/class/net/%s/master' % ifname)
+                master = os.readlink("/sys/class/net/%s/master" % ifname)
                 return os.path.basename(master)
             else:
                 return None
@@ -294,7 +293,7 @@ def _get_bonding(ifname, flags):
     def _get_bond_param(param):
         try:
             if _iface_is_master():
-                bond_param = '/sys/class/net/%s/bonding/%s' % (ifname, param)
+                bond_param = "/sys/class/net/%s/bonding/%s" % (ifname, param)
                 with open(bond_param) as bp:
                     bond_param = bp.read().split()
                 return bond_param[0] if bond_param else None
@@ -302,39 +301,39 @@ def _get_bonding(ifname, flags):
             return None
 
     return {
-        'is_master': _iface_is_master(),
-        'is_slave': _iface_is_slave(),
-        'master': _get_bond_master(),
-        'slaves': _get_slave_iface_list(),
-        'mode': _get_bond_param('mode'),
-        'xmit_hash_policy': _get_bond_param('xmit_hash_policy'),
-        'lacp_rate': _get_bond_param('lacp_rate'),
+        "is_master": _iface_is_master(),
+        "is_slave": _iface_is_slave(),
+        "master": _get_bond_master(),
+        "slaves": _get_slave_iface_list(),
+        "mode": _get_bond_param("mode"),
+        "xmit_hash_policy": _get_bond_param("xmit_hash_policy"),
+        "lacp_rate": _get_bond_param("lacp_rate"),
     }
 
 
 def _get_bridging(ifname):
 
     def _iface_is_bridge():
-        bridge_path = os.path.join('/sys/class/net', ifname, 'bridge')
+        bridge_path = os.path.join("/sys/class/net", ifname, "bridge")
         return os.path.exists(bridge_path)
 
     def _iface_is_bridge_port():
-        bridge_port = os.path.join('/sys/class/net', ifname, 'brport')
+        bridge_port = os.path.join("/sys/class/net", ifname, "brport")
         return os.path.exists(bridge_port)
 
     def _get_bridge_iface_list():
         if _iface_is_bridge():
-            bridge_path = os.path.join('/sys/class/net', ifname, 'brif')
+            bridge_path = os.path.join("/sys/class/net", ifname, "brif")
             return os.listdir(bridge_path)
         return []
 
     def _get_bridge_options():
-        skip_attrs = set(['flush', 'bridge'])  # needs root access, not useful
+        skip_attrs = set(["flush", "bridge"])  # needs root access, not useful
 
         if _iface_is_bridge():
-            bridge_path = os.path.join('/sys/class/net', ifname, 'bridge')
+            bridge_path = os.path.join("/sys/class/net", ifname, "bridge")
         elif _iface_is_bridge_port():
-            bridge_path = os.path.join('/sys/class/net', ifname, 'brport')
+            bridge_path = os.path.join("/sys/class/net", ifname, "brport")
         else:
             return {}
 
@@ -349,16 +348,17 @@ def _get_bridging(ifname):
         return options
 
     return {
-        'is_bridge': _iface_is_bridge(),
-        'is_port': _iface_is_bridge_port(),
-        'interfaces': _get_bridge_iface_list(),
-        'options': _get_bridge_options(),
+        "is_bridge": _iface_is_bridge(),
+        "is_port": _iface_is_bridge_port(),
+        "interfaces": _get_bridge_iface_list(),
+        "options": _get_bridge_options(),
     }
 
 
 def netlink_attr(attr):
     def get(obj):
         return obj.netlink_data[attr]
+
     return property(get)
 
 
@@ -368,6 +368,7 @@ def udev_attr(keys, missing):
             if k in obj.udev_data:
                 return obj.udev_data[k]
         return missing
+
     return property(get)
 
 
@@ -379,37 +380,39 @@ class Link:
         # already been renamed by udev by the time we get here, so we
         # can't use netlink_data['name'] to go poking about in
         # /sys/class/net.
-        name = socket.if_indextoname(netlink_data['ifindex'])
-        if netlink_data['is_vlan']:
-            typ = 'vlan'
+        name = socket.if_indextoname(netlink_data["ifindex"])
+        if netlink_data["is_vlan"]:
+            typ = "vlan"
         else:
-            typ = _compute_type(name, netlink_data['arptype'])
+            typ = _compute_type(name, netlink_data["arptype"])
         link = cls(
             addresses={},
             type=typ,
             udev_data=udev_data,
             netlink_data=netlink_data,
-            bond=_get_bonding(name, netlink_data['flags']),
-            bridge=_get_bridging(name))
-        if udev_data.get('DEVTYPE') == 'wlan':
+            bond=_get_bonding(name, netlink_data["flags"]),
+            bridge=_get_bridging(name),
+        )
+        if udev_data.get("DEVTYPE") == "wlan":
             link.wlan = {
-                'visible_ssids': [],
-                'ssid': None,
-                'scan_state': None,
+                "visible_ssids": [],
+                "ssid": None,
+                "scan_state": None,
             }
         return link
 
     @classmethod
     def from_saved_data(cls, link_data):
         address_objs = {}
-        for addr in link_data['addresses']:
+        for addr in link_data["addresses"]:
             a = Address.from_saved_data(addr)
             address_objs[str(a.ip)] = a
-        link_data['addresses'] = address_objs
+        link_data["addresses"] = address_objs
         return cls(**link_data)
 
-    def __init__(self, addresses, type, udev_data, netlink_data, bond,
-                 bridge, wlan=None):
+    def __init__(
+        self, addresses, type, udev_data, netlink_data, bond, bridge, wlan=None
+    ):
         self.addresses = addresses
         self.type = type
         self.udev_data = udev_data
@@ -435,36 +438,37 @@ class Link:
     flags = netlink_attr("flags")
     ifindex = netlink_attr("ifindex")
     name = netlink_attr("name")
-    hwaddr = property(lambda self: self.udev_data['attrs']['address'])
+    hwaddr = property(lambda self: self.udev_data["attrs"]["address"])
 
-    vendor = udev_attr(['ID_VENDOR_FROM_DATABASE', 'ID_VENDOR',
-                        'ID_VENDOR_ID'], "Unknown Vendor")
-    model = udev_attr(['ID_MODEL_FROM_DATABASE', 'ID_MODEL', 'ID_MODEL_ID'],
-                      "Unknown Model")
-    driver = udev_attr(['ID_NET_DRIVER', 'ID_USB_DRIVER'], "Unknown Driver")
-    devpath = udev_attr(['DEVPATH'], "Unknown devpath")
+    vendor = udev_attr(
+        ["ID_VENDOR_FROM_DATABASE", "ID_VENDOR", "ID_VENDOR_ID"], "Unknown Vendor"
+    )
+    model = udev_attr(
+        ["ID_MODEL_FROM_DATABASE", "ID_MODEL", "ID_MODEL_ID"], "Unknown Model"
+    )
+    driver = udev_attr(["ID_NET_DRIVER", "ID_USB_DRIVER"], "Unknown Driver")
+    devpath = udev_attr(["DEVPATH"], "Unknown devpath")
 
-    hwaddr = property(lambda self: self.udev_data['attrs']['address'])
+    hwaddr = property(lambda self: self.udev_data["attrs"]["address"])
 
     # This is the logic ip from iproute2 uses to determine whether
     # to show NO-CARRIER or not. It only really makes sense for a
     # wired connection.
-    is_connected = (
-        property(lambda self: (
-            (not (self.flags & IFF_UP)) or (self.flags & IFF_RUNNING))))
-    is_virtual = (
-        property(lambda self: self.devpath.startswith('/devices/virtual/')))
+    is_connected = property(
+        lambda self: ((not (self.flags & IFF_UP)) or (self.flags & IFF_RUNNING))
+    )
+    is_virtual = property(lambda self: self.devpath.startswith("/devices/virtual/"))
 
     @property
     def ssid(self):
         if self.wlan:
-            return self.wlan['ssid']
+            return self.wlan["ssid"]
         else:
             return None
 
 
 _scope_str = {
-    0: 'global',
+    0: "global",
     200: "site",
     253: "link",
     254: "host",
@@ -483,21 +487,21 @@ class Address:
 
     def serialize(self):
         return {
-            'source': self.source,
-            'family': self.family,
-            'address': str(self.address),
-            'scope': self.scope,
+            "source": self.source,
+            "family": self.family,
+            "address": str(self.address),
+            "scope": self.scope,
         }
 
     @classmethod
     def from_probe_data(cls, netlink_data):
-        address = netlink_data['local'].decode('latin-1')
-        family = netlink_data['family']
-        if netlink_data.get('flags', 0) & IFA_F_PERMANENT:
-            source = 'static'
+        address = netlink_data["local"].decode("latin-1")
+        family = netlink_data["family"]
+        if netlink_data.get("flags", 0) & IFA_F_PERMANENT:
+            source = "static"
         else:
-            source = 'dhcp'
-        scope = netlink_data['scope']
+            source = "dhcp"
+        scope = netlink_data["scope"]
         scope = str(_scope_str.get(scope, scope))
         return cls(address, family, source, scope)
 
@@ -523,7 +527,7 @@ class NetworkObserver(abc.ABC):
 
 class NetworkEventReceiver(abc.ABC):
     """NetworkEventReceiver has methods called on it in response to network
-       changes."""
+    changes."""
 
     @abc.abstractmethod
     def new_link(self, ifindex, link):
@@ -556,6 +560,7 @@ class TrivialEventReceiver(NetworkEventReceiver):
     def route_change(self, action, data):
         pass
 
+
 # Coalescing netlink events
 #
 # If the client of this library delays calling UdevObserver.data_ready
@@ -578,25 +583,25 @@ def coalesce(*keys):
     # link events but ifindex + address is needed for address events.
     def decorator(func):
         def w(self, action, data):
-            log.debug('event for %s: %s %s', func.__name__, action, data)
+            log.debug("event for %s: %s %s", func.__name__, action, data)
             key = (func.__name__,)
             for k in keys:
                 key += (data[k],)
             if key in self._calls:
                 prev_meth, prev_action, prev_data = self._calls[key]
-                if action == 'NEW':
+                if action == "NEW":
                     # this clearly shouldn't happen, but take the new data
                     # just in case
                     self._calls[key] = (func, action, data)
-                elif action == 'CHANGE':
+                elif action == "CHANGE":
                     # If the object appeared and then changed before we
                     # looked at it all, just pretend it was a NEW object
                     # with the changed data. (the other cases for
                     # prev_action work out ok, although DEL followed by
                     # CHANGE is obviously not something we expect)
                     self._calls[key] = (func, prev_action, data)
-                elif action == 'DEL':
-                    if prev_action == 'NEW':
+                elif action == "DEL":
+                    if prev_action == "NEW":
                         # link disappeared before we did anything with it.
                         # forget about it.
                         del self._calls[key]
@@ -606,13 +611,16 @@ def coalesce(*keys):
                         self._calls[key] = (func, action, data)
             else:
                 self._calls[key] = (func, action, data)
+
         return w
+
     return decorator
 
 
 def nocoalesce(func):
     def w(self, action, data):
         self._calls[object()] = (func, action, data)
+
     return w
 
 
@@ -631,9 +639,9 @@ class UdevObserver(NetworkObserver):
     """Use udev/netlink to observe network changes."""
 
     def __init__(self, receiver=None, *, with_wlan_listener: bool = True):
-        """ Listen to and handle network events using our rtnetlink Python
-            module. Also optionally use our nl80211 Python module for
-            scanning when with_wlan_listener is True. """
+        """Listen to and handle network events using our rtnetlink Python
+        module. Also optionally use our nl80211 Python module for
+        scanning when with_wlan_listener is True."""
         self._links = {}
         self.context = pyudev.Context()
         if receiver is None:
@@ -659,11 +667,13 @@ class UdevObserver(NetworkObserver):
         if self.wlan_listener is not None:
             try:
                 self.wlan_listener.start()
-                self._fdmap.update({
-                    self.wlan_listener.fileno(): self.wlan_listener.data_ready,
-                })
+                self._fdmap.update(
+                    {
+                        self.wlan_listener.fileno(): self.wlan_listener.data_ready,
+                    }
+                )
             except RuntimeError:
-                log.debug('could not start wlan_listener')
+                log.debug("could not start wlan_listener")
 
         return list(self._fdmap)
 
@@ -671,39 +681,39 @@ class UdevObserver(NetworkObserver):
         with CoalescedCalls(self):
             self._fdmap[fd]()
 
-    @coalesce('ifindex')
+    @coalesce("ifindex")
     def link_change(self, action, data):
-        log.debug('link_change %s %s', action, data)
+        log.debug("link_change %s %s", action, data)
 
         for k, v in data.items():
             if isinstance(v, bytes):
-                data[k] = v.decode('utf-8', 'replace')
-        ifindex = data['ifindex']
-        if action == 'DEL':
+                data[k] = v.decode("utf-8", "replace")
+        ifindex = data["ifindex"]
+        if action == "DEL":
             if ifindex in self._links:
                 del self._links[ifindex]
                 self.receiver.del_link(ifindex)
             return
-        if action == 'CHANGE':
+        if action == "CHANGE":
             if ifindex in self._links:
                 dev = self._links[ifindex]
                 # Trigger a scan when a wlan device goes up
                 # Not sure if this is required as devices seem to scan as soon
                 # as they go up? (in which case this fails with EBUSY, so it's
                 # just spam in the logs).
-                if dev.type == 'wlan':
-                    if (not (dev.flags & IFF_UP)) and (data['flags'] & IFF_UP):
+                if dev.type == "wlan":
+                    if (not (dev.flags & IFF_UP)) and (data["flags"] & IFF_UP):
                         try:
                             self.trigger_scan(ifindex)
                         except RuntimeError:
-                            log.exception('on-up trigger_scan failed')
+                            log.exception("on-up trigger_scan failed")
                 dev.netlink_data = data
                 # If a device appears and is immediately renamed, the
                 # initial _compute_type can fail to find the sysfs
                 # directory. Have another go now.
                 if dev.type is None:
                     dev.type = _compute_type(dev.name)
-                dev.bond = _get_bonding(dev.name, dev.netlink_data['flags'])
+                dev.bond = _get_bonding(dev.name, dev.netlink_data["flags"])
             self.receiver.update_link(ifindex)
             return
         udev_devices = list(self.context.list_devices(IFINDEX=str(ifindex)))
@@ -712,31 +722,31 @@ class UdevObserver(NetworkObserver):
             return
         udev_device = udev_devices[0]
         udev_data = dict(udev_device)
-        udev_data['attrs'] = udev_get_attributes(udev_device)
+        udev_data["attrs"] = udev_get_attributes(udev_device)
         link = Link.from_probe_data(data, udev_data)
         self._links[ifindex] = link
         self.receiver.new_link(ifindex, link)
 
-    @coalesce('ifindex', 'local')
+    @coalesce("ifindex", "local")
     def addr_change(self, action, data):
-        log.debug('addr_change %s %s', action, data)
-        link = self._links.get(data['ifindex'])
+        log.debug("addr_change %s %s", action, data)
+        link = self._links.get(data["ifindex"])
         if link is None:
             return
-        ip = data['local'].decode('latin-1')
-        if action == 'DEL':
+        ip = data["local"].decode("latin-1")
+        if action == "DEL":
             link.addresses.pop(ip, None)
-            self.receiver.update_link(data['ifindex'])
+            self.receiver.update_link(data["ifindex"])
             return
         link.addresses[ip] = Address.from_probe_data(data)
-        self.receiver.update_link(data['ifindex'])
+        self.receiver.update_link(data["ifindex"])
 
     @nocoalesce
     def route_change(self, action, data):
-        log.debug('route_change %s %s', action, data)
+        log.debug("route_change %s %s", action, data)
         for k, v in data.items():
             if isinstance(v, bytes):
-                data[k] = v.decode('utf-8', 'replace')
+                data[k] = v.decode("utf-8", "replace")
         self.receiver.route_change(action, data)
 
     def trigger_scan(self, ifindex):
@@ -746,50 +756,48 @@ class UdevObserver(NetworkObserver):
         self.wlan_listener.trigger_scan(ifindex)
 
     def wlan_event(self, arg):
-        log.debug('wlan_event %s', arg)
-        ifindex = arg['ifindex']
+        log.debug("wlan_event %s", arg)
+        ifindex = arg["ifindex"]
         if ifindex < 0 or ifindex not in self._links:
             return
         link = self._links[ifindex]
-        if arg['cmd'] == 'TRIGGER_SCAN':
-            link.wlan['scan_state'] = 'scanning'
-        if arg['cmd'] == 'NEW_SCAN_RESULTS' and 'ssids' in arg:
+        if arg["cmd"] == "TRIGGER_SCAN":
+            link.wlan["scan_state"] = "scanning"
+        if arg["cmd"] == "NEW_SCAN_RESULTS" and "ssids" in arg:
             ssids = set()
-            for (ssid, status) in arg['ssids']:
-                ssid = ssid.decode('utf-8', 'replace')
+            for ssid, status in arg["ssids"]:
+                ssid = ssid.decode("utf-8", "replace")
                 ssids.add(ssid)
                 if status != "no status":
-                    link.wlan['ssid'] = ssid
-            link.wlan['visible_ssids'] = sorted(ssids)
-            link.wlan['scan_state'] = None
-        if arg['cmd'] == 'NEW_INTERFACE':
+                    link.wlan["ssid"] = ssid
+            link.wlan["visible_ssids"] = sorted(ssids)
+            link.wlan["scan_state"] = None
+        if arg["cmd"] == "NEW_INTERFACE":
             if link.flags & IFF_UP:
                 try:
                     self.trigger_scan(ifindex)
                 except RuntimeError:
                     # Can't trigger a scan as non-root, that's OK.
-                    log.exception('initial trigger_scan failed')
+                    log.exception("initial trigger_scan failed")
             else:
                 try:
                     self.rtlistener.set_link_flags(ifindex, IFF_UP)
                 except RuntimeError:
-                    log.exception('set_link_flags failed')
-        if arg['cmd'] == 'NEW_INTERFACE' or arg['cmd'] == 'ASSOCIATE':
-            if len(arg.get('ssids', [])) > 0:
-                link.wlan['ssid'] = (
-                    arg['ssids'][0][0].decode('utf-8', 'replace'))
-        if arg['cmd'] == 'DISCONNECT':
-            link.wlan['ssid'] = None
+                    log.exception("set_link_flags failed")
+        if arg["cmd"] == "NEW_INTERFACE" or arg["cmd"] == "ASSOCIATE":
+            if len(arg.get("ssids", [])) > 0:
+                link.wlan["ssid"] = arg["ssids"][0][0].decode("utf-8", "replace")
+        if arg["cmd"] == "DISCONNECT":
+            link.wlan["ssid"] = None
 
 
 class StoredDataObserver(NetworkObserver):
     """A cheaty observer that just pretends the network is in some
-       pre-arranged state."""
+    pre-arranged state."""
 
-    def __init__(self, saved_data, receiver,
-                 *, with_wlan_listener: bool = True):
+    def __init__(self, saved_data, receiver, *, with_wlan_listener: bool = True):
         self.saved_data = saved_data
-        for data in self.saved_data['links']:
+        for data in self.saved_data["links"]:
             jsonschema.validate(data, link_schema)
         self.links = {}
         self.receiver = receiver
@@ -797,29 +805,29 @@ class StoredDataObserver(NetworkObserver):
         self.rd, self.wr = os.pipe()
 
     def start(self):
-        for data in self.saved_data['links']:
+        for data in self.saved_data["links"]:
             link = Link.from_saved_data(data)
             self.receiver.new_link(link.ifindex, link)
             self.links[link.ifindex] = link
-        for data in self.saved_data['routes']:
+        for data in self.saved_data["routes"]:
             self.receiver.route_change("NEW", data)
         return [self.rd]
 
     def _scan_results(self, link):
-        link.wlan['visible_ssids'] = ["AA", "BB"]
-        link.wlan['scan_state'] = None
-        os.write(self.wr, b'x')
+        link.wlan["visible_ssids"] = ["AA", "BB"]
+        link.wlan["scan_state"] = None
+        os.write(self.wr, b"x")
 
     def trigger_scan(self, ifindex):
         if not self.with_wlan_listener:
             log.debug("ignoring request to trigger a scan: no WLAN listener")
             return
         import asyncio
+
         link = self.links[ifindex]
-        link.wlan['scan_state'] = 'scanning'
-        asyncio.get_event_loop().call_later(
-            2.0, self._scan_results, link)
-        os.write(self.wr, b'x')
+        link.wlan["scan_state"] = "scanning"
+        asyncio.get_event_loop().call_later(2.0, self._scan_results, link)
+        os.write(self.wr, b"x")
 
     def data_ready(self, fd):
         os.read(self.rd, 1)
@@ -838,23 +846,25 @@ class NetworkProber:
 
             def route_change(self, action, data):
                 self.route_data.append(data)
+
         collector = CollectingReceiver()
         observer = UdevObserver(collector)
         observer.start()
         results = {
-            'links': [],
-            'routes': [],
+            "links": [],
+            "routes": [],
         }
         for link in collector.all_links:
-            results['links'].append(link.serialize())
+            results["links"].append(link.serialize())
         for route_data in collector.route_data:
-            results['routes'].append(route_data)
+            results["routes"].append(route_data)
         return results
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import pprint
     import select
+
     c = UdevObserver()
     fds = c.start()
 
@@ -865,6 +875,6 @@ if __name__ == '__main__':
         poll_ob.register(fd, select.EPOLLIN)
     while True:
         events = poll_ob.poll()
-        for (fd, e) in events:
+        for fd, e in events:
             c.data_ready(fd)
         pprint.pprint(c._links)

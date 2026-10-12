@@ -36,8 +36,9 @@ clean:
 run:
 	(PYTHONPATH=$(shell pwd) bin/probert --all)
 
-.PHONY: isort
-isort:
+.PHONY: format black isort
+format: black isort
+isort black:
 	pre-commit run -a $@
 
 test:
