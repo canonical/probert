@@ -23,10 +23,13 @@ from typing import Any
 
 import pyroute2
 from pyroute2.netlink import NLM_F_ACK, NLM_F_DUMP, NLM_F_REQUEST
-from pyroute2.netlink.nl80211 import (NL80211_BSS_STATUS_ASSOCIATED,
-                                      NL80211_BSS_STATUS_AUTHENTICATED,
-                                      NL80211_BSS_STATUS_IBSS_JOINED,
-                                      NL80211_NAMES, nl80211cmd)
+from pyroute2.netlink.nl80211 import (
+    NL80211_BSS_STATUS_ASSOCIATED,
+    NL80211_BSS_STATUS_AUTHENTICATED,
+    NL80211_BSS_STATUS_IBSS_JOINED,
+    NL80211_NAMES,
+    nl80211cmd,
+)
 
 
 def nl_except_to_runtime_err(txt: str):

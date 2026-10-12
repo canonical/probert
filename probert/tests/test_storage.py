@@ -6,8 +6,12 @@ from unittest.mock import AsyncMock, Mock
 
 from parameterized import parameterized
 
-from probert.storage import (Storage, StorageInfo, blockdev_probe,
-                             interesting_storage_devs)
+from probert.storage import (
+    Storage,
+    StorageInfo,
+    blockdev_probe,
+    interesting_storage_devs,
+)
 from probert.tests.fakes import FAKE_PROBE_ALL_JSON
 
 

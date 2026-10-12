@@ -20,10 +20,24 @@ from dataclasses import dataclass
 
 import pyudev
 
-from probert import (bcache, dasd, dmcrypt, filesystem, lvm, mount, multipath,
-                     nvme, os, raid, zfs)
-from probert.utils import (read_sys_block_size_bytes, sane_block_devices,
-                           udev_get_attributes)
+from probert import (
+    bcache,
+    dasd,
+    dmcrypt,
+    filesystem,
+    lvm,
+    mount,
+    multipath,
+    nvme,
+    os,
+    raid,
+    zfs,
+)
+from probert.utils import (
+    read_sys_block_size_bytes,
+    sane_block_devices,
+    udev_get_attributes,
+)
 
 log = logging.getLogger('probert.storage')
 
