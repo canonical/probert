@@ -20,13 +20,14 @@ import subprocess
 from collections import namedtuple
 from functools import reduce
 
-log = logging.getLogger('probert.zfs')
-ZfsListEntry = namedtuple('ZfsListEntry',
-                          ('name', 'used', 'avail', 'refer', 'mountpoint'))
+log = logging.getLogger("probert.zfs")
+ZfsListEntry = namedtuple(
+    "ZfsListEntry", ("name", "used", "avail", "refer", "mountpoint")
+)
 
 
 def parse_zdb_output(data):
-    """ Parse structured zdb output into a dictionary.
+    """Parse structured zdb output into a dictionary.
 
     hogshead:
         version: 5000
@@ -65,7 +66,7 @@ def parse_zdb_output(data):
         get_from_dict(datadict, maplist[:-1])[maplist[-1]] = value
 
     def parse_line_key_value(line):
-        """ use ': ' token to split line into key, value pairs
+        """use ': ' token to split line into key, value pairs
 
         com.delphi:vdev_zap_top: 230
                                ^^
@@ -73,12 +74,12 @@ def parse_zdb_output(data):
         key = 'com.delphi:vdev_zap_top'
         value = '230'
         """
-        match = re.search(r': ', line)
+        match = re.search(r": ", line)
         if match:
             tok_start, tok_end = match.span()
             key, value = (line[:tok_start], line[tok_end:])
         else:
-            key, value = line.split(':')
+            key, value = line.split(":")
 
         return (key.lstrip(), value.replace("'", ""))
 
@@ -90,7 +91,7 @@ def parse_zdb_output(data):
     lvl_tok = 4
     prev_item = []
     for line in data.splitlines():
-        current_level = int((len(line) - len(line.lstrip(' '))) / lvl_tok)
+        current_level = int((len(line) - len(line.lstrip(" "))) / lvl_tok)
         prev_level = len(prev_item) - 1
         key, value = parse_line_key_value(line)
         # TODO: handle children[N] keyname an convert to list
@@ -98,8 +99,7 @@ def parse_zdb_output(data):
             root[key] = {}
             prev_item = [(current_level, key)]
         else:
-            new_item_path = [item[1]
-                             for item in prev_item[0: current_level]] + [key]
+            new_item_path = [item[1] for item in prev_item[0:current_level]] + [key]
             if value:
                 set_in_dict(root, new_item_path, value)
             else:
@@ -113,42 +113,42 @@ def parse_zdb_output(data):
 
 
 def zdb_asdict(data=None):
-    """ Convert output from zdb into a dictionary"""
+    """Convert output from zdb into a dictionary"""
     if not data:
-        cmd = ['zdb']
+        cmd = ["zdb"]
         # exported, altroot, and uncached pools need -e
-        if not os.path.exists('/etc/zfs/zpool.cache'):
-            cmd.append('-e')
+        if not os.path.exists("/etc/zfs/zpool.cache"):
+            cmd.append("-e")
         try:
-            result = subprocess.run(cmd, stdout=subprocess.PIPE,
-                                    stderr=subprocess.DEVNULL,
-                                    check=True)
+            result = subprocess.run(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True
+            )
         except (subprocess.CalledProcessError, FileNotFoundError):
             return {}
 
-        data = result.stdout.decode('utf-8')
+        data = result.stdout.decode("utf-8")
 
     return parse_zdb_output(data)
 
 
 def zfs_list_filesystems(raw_output=False):
-    cmd = ['zfs', 'list', '-Hp', '-t', 'filesystem']
+    cmd = ["zfs", "list", "-Hp", "-t", "filesystem"]
     try:
-        result = subprocess.run(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL,
-                                check=True)
+        result = subprocess.run(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True
+        )
     except subprocess.CalledProcessError:
         return []
 
-    data = result.stdout.decode('utf-8')
+    data = result.stdout.decode("utf-8")
     if raw_output:
         return data
 
     # NAME, USED, AVAIL, REFER, MOUNTPOINT
     zfs_entries = []
     for line in data.splitlines():
-        (name, used, avail, refer, mpoint) = line.split('\t')
-        if mpoint == 'none':
+        name, used, avail, refer, mpoint = line.split("\t")
+        if mpoint == "none":
             mpoint = None
         zfs_entries.append(ZfsListEntry(name, used, avail, refer, mpoint))
 
@@ -159,29 +159,29 @@ def zfs_get_properties(zfs_name, raw_output=False):
     if not zfs_name:
         raise ValueError(f'Invalid zfs_name parameter: "{zfs_name}"')
 
-    cmd = ['zfs', 'get', 'all', '-Hp', zfs_name]
+    cmd = ["zfs", "get", "all", "-Hp", zfs_name]
     try:
-        result = subprocess.run(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL,
-                                check=True)
+        result = subprocess.run(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True
+        )
     except subprocess.CalledProcessError:
         return []
 
-    data = result.stdout.decode('utf-8')
+    data = result.stdout.decode("utf-8")
     if raw_output:
         return data
 
     # NAME, PROPERTY, VALUE, SOURCE
     zprops = {}
     for line in data.splitlines():
-        (name, prop, value, source) = line.split('\t')
-        zprops[prop] = {'value': value, 'source': source}
+        name, prop, value, source = line.split("\t")
+        zprops[prop] = {"value": value, "source": source}
 
-    return {zfs_name: {'properties': zprops}}
+    return {zfs_name: {"properties": zprops}}
 
 
 def is_zfs_device(device):
-    return device.get('ID_FS_TYPE') == 'zfs_member'
+    return device.get("ID_FS_TYPE") == "zfs_member"
 
 
 async def probe(context=None, **kw):
@@ -205,6 +205,6 @@ async def probe(context=None, **kw):
         zlf = zfs_list_filesystems()
         for zfs_entry in zlf:
             datasets.update(zfs_get_properties(zfs_entry.name))
-        zpools[zpool] = {'zdb': zdb_dump, 'datasets': datasets}
+        zpools[zpool] = {"zdb": zdb_dump, "datasets": datasets}
 
-    return {'zpools': zpools}
+    return {"zpools": zpools}

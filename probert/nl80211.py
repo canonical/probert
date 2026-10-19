@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-""" This module is a pyroute2-based rewrite of _nl80211module.c (which was a C
+"""This module is a pyroute2-based rewrite of _nl80211module.c (which was a C
 implementation using libnl).
 
 NOTE: pyroute2 comes with a "pyroute2.iwutil" module (along with the IW class).
@@ -23,10 +23,13 @@ from typing import Any
 
 import pyroute2
 from pyroute2.netlink import NLM_F_ACK, NLM_F_DUMP, NLM_F_REQUEST
-from pyroute2.netlink.nl80211 import (NL80211_BSS_STATUS_ASSOCIATED,
-                                      NL80211_BSS_STATUS_AUTHENTICATED,
-                                      NL80211_BSS_STATUS_IBSS_JOINED,
-                                      NL80211_NAMES, nl80211cmd)
+from pyroute2.netlink.nl80211 import (
+    NL80211_BSS_STATUS_ASSOCIATED,
+    NL80211_BSS_STATUS_AUTHENTICATED,
+    NL80211_BSS_STATUS_IBSS_JOINED,
+    NL80211_NAMES,
+    nl80211cmd,
+)
 
 
 def nl_except_to_runtime_err(txt: str):
@@ -34,13 +37,16 @@ def nl_except_to_runtime_err(txt: str):
     exceptions. Pyroute2, on the other hand, raises pyroute2 exceptions (which
     do not inherit from RuntimeError). Use this decorator on nl80211 function
     that previously raised RuntimeErrors - to get a similar behavior."""
+
     def decorator(func):
         def inner(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
             except pyroute2.netlink.exceptions.NetlinkError as nle:
                 raise RuntimeError(f"{txt} -{nle.code}") from nle
+
         return inner
+
     return decorator
 
 
@@ -66,8 +72,7 @@ class Listener:
         msg["cmd"] = NL80211_NAMES["NL80211_CMD_GET_INTERFACE"]
 
         responses = self.nl80211.nlm_request(
-            msg, msg_type=self.nl80211.prid,
-            msg_flags=NLM_F_REQUEST | NLM_F_DUMP
+            msg, msg_type=self.nl80211.prid, msg_flags=NLM_F_REQUEST | NLM_F_DUMP
         )
 
         for response in responses:
@@ -87,8 +92,7 @@ class Listener:
         msg["attrs"] = [["NL80211_ATTR_IFINDEX", ifindex]]
 
         responses = self.nl80211.nlm_request(
-            msg, msg_type=self.nl80211.prid,
-            msg_flags=NLM_F_REQUEST | NLM_F_DUMP
+            msg, msg_type=self.nl80211.prid, msg_flags=NLM_F_REQUEST | NLM_F_DUMP
         )
 
         ssids: list[tuple[bytes, str]] = []
@@ -108,8 +112,7 @@ class Listener:
                 if only_connected:
                     continue
 
-            if (ssid := bss.get_nested("NL80211_BSS_INFORMATION_ELEMENTS",
-                                       "SSID")):
+            if ssid := bss.get_nested("NL80211_BSS_INFORMATION_ELEMENTS", "SSID"):
                 ssids.append((ssid, status))
 
         return ssids
@@ -161,6 +164,5 @@ class Listener:
         msg["attrs"] = [["NL80211_ATTR_IFINDEX", ifindex]]
 
         self.nl80211.nlm_request(
-            msg, msg_type=self.nl80211.prid,
-            msg_flags=NLM_F_REQUEST | NLM_F_ACK
+            msg, msg_type=self.nl80211.prid, msg_flags=NLM_F_REQUEST | NLM_F_ACK
         )

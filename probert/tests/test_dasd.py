@@ -21,73 +21,78 @@ def update_probe_data(base, **kw):
 
 
 expected_probe_data = {
-    '/dev/dasdd': {
-        'blocksize': 4096,
-        'cylinders': 30051,
-        'disk_layout': 'cdl',
-        'name': '/dev/dasdd',
-        'tracks_per_cylinder': 15,
-        'type': 'ECKD',
-        },
-    '/dev/dasde': {
-        'blocksize': 512,
-        'cylinders': 10017,
-        'disk_layout': 'not-formatted',
-        'name': '/dev/dasde',
-        'tracks_per_cylinder': 15,
-        'type': 'ECKD',
-        },
-    }
+    "/dev/dasdd": {
+        "blocksize": 4096,
+        "cylinders": 30051,
+        "disk_layout": "cdl",
+        "name": "/dev/dasdd",
+        "tracks_per_cylinder": 15,
+        "type": "ECKD",
+    },
+    "/dev/dasde": {
+        "blocksize": 512,
+        "cylinders": 10017,
+        "disk_layout": "not-formatted",
+        "name": "/dev/dasde",
+        "tracks_per_cylinder": 15,
+        "type": "ECKD",
+    },
+}
 
 
 class TestDasd(unittest.IsolatedAsyncioTestCase):
 
     def _load_test_data(self, data_fname):
-        testfile = fakes.TEST_DATA + '/' + data_fname
-        with open(testfile, 'r') as fh:
+        testfile = fakes.TEST_DATA + "/" + data_fname
+        with open(testfile, "r") as fh:
             return fh.read()
 
-    @mock.patch('probert.dasd.os.path.exists')
-    @mock.patch('probert.dasd.subprocess.run')
+    @mock.patch("probert.dasd.os.path.exists")
+    @mock.patch("probert.dasd.subprocess.run")
     def test_dasdview_returns_stdout(self, m_run, m_exists):
         devname = random_string()
         dasdview_out = random_string()
-        cp = subprocess.CompletedProcess(args=['foo'], returncode=0,
-                                         stdout=dasdview_out.encode('utf-8'),
-                                         stderr="")
+        cp = subprocess.CompletedProcess(
+            args=["foo"], returncode=0, stdout=dasdview_out.encode("utf-8"), stderr=""
+        )
         m_run.return_value = cp
         m_exists.return_value = True
         result = dasd.dasdview(devname)
         self.assertEqual(dasdview_out, result)
-        m_run.assert_called_with(['dasdview', '--extended', devname],
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.DEVNULL,
-                                 check=True)
+        m_run.assert_called_with(
+            ["dasdview", "--extended", devname],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            check=True,
+        )
 
-    @parameterized.expand([
-        (subprocess.CalledProcessError(cmd=['dasdview'], returncode=1),),
-        (FileNotFoundError(),),
-    ])
+    @parameterized.expand(
+        [
+            (subprocess.CalledProcessError(cmd=["dasdview"], returncode=1),),
+            (FileNotFoundError(),),
+        ]
+    )
     def test_dasdview__failure(self, exc):
-        devname = '/dev/dasda'
-        expected_cmd = ['dasdview', '--extended', devname]
-        with mock.patch('probert.dasd.os.path.exists',
-                        return_value=True), \
-             mock.patch('probert.dasd.subprocess.run') as m_run:
+        devname = "/dev/dasda"
+        expected_cmd = ["dasdview", "--extended", devname]
+        with (
+            mock.patch("probert.dasd.os.path.exists", return_value=True),
+            mock.patch("probert.dasd.subprocess.run") as m_run,
+        ):
             m_run.side_effect = exc
-            with self.assertLogs('probert.dasd', level='ERROR') as logs:
+            with self.assertLogs("probert.dasd", level="ERROR") as logs:
                 result = dasd.dasdview(devname)
         self.assertIsNone(result)
         m_run.assert_called_with(
-                expected_cmd, stdout=mock.ANY, stderr=mock.ANY, check=True)
+            expected_cmd, stdout=mock.ANY, stderr=mock.ANY, check=True
+        )
         # Check that we logged the command that failed
         self.assertEqual(len(logs.records), 1)
-        self.assertEqual(
-            logs.records[0].msg, 'Failed to run cmd: %s')
+        self.assertEqual(logs.records[0].msg, "Failed to run cmd: %s")
         self.assertEqual(logs.records[0].args, (expected_cmd,))
 
-    @mock.patch('probert.dasd.os.path.exists')
-    @mock.patch('probert.dasd.subprocess.run')
+    @mock.patch("probert.dasd.os.path.exists")
+    @mock.patch("probert.dasd.subprocess.run")
     def test_dasdview_raises_valueerror(self, m_run, m_exists):
         devname = random_string()
         m_exists.return_value = False
@@ -97,135 +102,157 @@ class TestDasd(unittest.IsolatedAsyncioTestCase):
     def test_dasd_parses_blocksize(self):
         self.assertEqual(
             4096,
-            dasd.find_val_int(
-                dasd.DASD_BLKSIZE, self._load_test_data('dasdd.view')))
+            dasd.find_val_int(dasd.DASD_BLKSIZE, self._load_test_data("dasdd.view")),
+        )
 
     def test_dasd_blocksize_returns_none_on_invalid_output(self):
-        self.assertIsNone(
-            dasd.find_val_int(
-                dasd.DASD_BLKSIZE, random_string()))
+        self.assertIsNone(dasd.find_val_int(dasd.DASD_BLKSIZE, random_string()))
 
     def test_dasd_parses_disk_format(self):
-        self.assertEqual('cdl',
-                         dasd.disk_format(self._load_test_data('dasdd.view')))
-        self.assertEqual('not-formatted',
-                         dasd.disk_format(self._load_test_data('dasde.view')))
+        self.assertEqual("cdl", dasd.disk_format(self._load_test_data("dasdd.view")))
+        self.assertEqual(
+            "not-formatted", dasd.disk_format(self._load_test_data("dasde.view"))
+        )
 
     def test_dasd_parses_disk_format_ldl(self):
         output = "format : hex 1 dec 1 LDL formatted"
-        self.assertEqual('ldl', dasd.disk_format(output))
+        self.assertEqual("ldl", dasd.disk_format(output))
 
     def test_dasd_disk_format_returns_none_on_invalid_output(self):
         self.assertIsNone(dasd.disk_format(random_string()))
 
-    @mock.patch('probert.dasd.dasdview')
+    @mock.patch("probert.dasd.dasdview")
     def test_get_dasd_info(self, m_dview):
         devname = random_string()
         id_path = random_string()
-        device = {'DEVNAME': devname, 'ID_PATH': 'ccw-' + id_path}
-        m_dview.return_value = self._load_test_data('dasdd.view')
+        device = {"DEVNAME": devname, "ID_PATH": "ccw-" + id_path}
+        m_dview.return_value = self._load_test_data("dasdd.view")
         self.assertEqual(
             update_probe_data(
-                expected_probe_data['/dev/dasdd'],
-                name=devname, device_id=id_path),
-            dasd.get_dasd_info(device))
+                expected_probe_data["/dev/dasdd"], name=devname, device_id=id_path
+            ),
+            dasd.get_dasd_info(device),
+        )
 
-    @mock.patch('probert.dasd.dasdview')
+    @mock.patch("probert.dasd.dasdview")
     def test_get_dasd_info_returns_none_if_not_all(self, m_dview):
         devname = random_string()
         id_path = random_string()
-        device = {'DEVNAME': devname, 'ID_PATH': 'ccw-' + id_path}
+        device = {"DEVNAME": devname, "ID_PATH": "ccw-" + id_path}
         m_dview.return_value = random_string()
         self.assertIsNone(dasd.get_dasd_info(device))
 
-    @mock.patch('probert.dasd.find_val_int')
-    @mock.patch('probert.dasd.dasdview')
-    def test_get_dasd_info_returns_none_if_bad_blocksize(self, m_dview,
-                                                         m_find_val_int):
+    @mock.patch("probert.dasd.find_val_int")
+    @mock.patch("probert.dasd.dasdview")
+    def test_get_dasd_info_returns_none_if_bad_blocksize(self, m_dview, m_find_val_int):
         devname = random_string()
         id_path = random_string()
-        device = {'DEVNAME': devname, 'ID_PATH': 'ccw-' + id_path}
-        m_dview.return_value = self._load_test_data('dasdd.view')
+        device = {"DEVNAME": devname, "ID_PATH": "ccw-" + id_path}
+        m_dview.return_value = self._load_test_data("dasdd.view")
         m_find_val_int.return_value = None
         self.assertIsNone(dasd.get_dasd_info(device))
 
-    @mock.patch('probert.dasd.disk_format')
-    @mock.patch('probert.dasd.dasdview')
-    def test_get_dasd_info_returns_none_if_bad_disk_format(self, m_dview,
-                                                           m_disk):
+    @mock.patch("probert.dasd.disk_format")
+    @mock.patch("probert.dasd.dasdview")
+    def test_get_dasd_info_returns_none_if_bad_disk_format(self, m_dview, m_disk):
         devname = random_string()
         id_path = random_string()
-        device = {'DEVNAME': devname, 'ID_PATH': 'ccw-' + id_path}
-        m_dview.return_value = self._load_test_data('dasdd.view')
+        device = {"DEVNAME": devname, "ID_PATH": "ccw-" + id_path}
+        m_dview.return_value = self._load_test_data("dasdd.view")
         m_disk.return_value = None
         self.assertIsNone(dasd.get_dasd_info(device))
 
-    @mock.patch('probert.dasd.platform.machine')
-    async def test_dasd_probe_returns_empty_dict_non_s390x_arch(
-            self, m_machine):
+    @mock.patch("probert.dasd.platform.machine")
+    async def test_dasd_probe_returns_empty_dict_non_s390x_arch(self, m_machine):
         machine = random_string()
         self.assertNotEqual("s390x", machine)
         m_machine.return_value = machine
         self.assertEqual({}, await dasd.probe())
 
-    @mock.patch('probert.dasd.platform.machine')
-    @mock.patch('probert.dasd.dasdview')
+    @mock.patch("probert.dasd.platform.machine")
+    @mock.patch("probert.dasd.dasdview")
     async def test_dasd_probe_dasdd(self, m_dasdview, m_machine):
-        m_machine.return_value = 's390x'
-        m_dasdview.side_effect = iter([self._load_test_data('dasdd.view')])
+        m_machine.return_value = "s390x"
+        m_dasdview.side_effect = iter([self._load_test_data("dasdd.view")])
 
         context = mock.MagicMock()
-        context.list_devices.side_effect = iter([
-            [{"MAJOR": "94", "DEVNAME": "/dev/dasdd", "ID_SERIAL": "0X1544",
-             "ID_PATH": "ccw-0.0.1544"}],
-        ])
+        context.list_devices.side_effect = iter(
+            [
+                [
+                    {
+                        "MAJOR": "94",
+                        "DEVNAME": "/dev/dasdd",
+                        "ID_SERIAL": "0X1544",
+                        "ID_PATH": "ccw-0.0.1544",
+                    }
+                ],
+            ]
+        )
         expected_results = {
-            '/dev/dasdd': update_probe_data(
-                expected_probe_data['/dev/dasdd'], device_id="0.0.1544")
+            "/dev/dasdd": update_probe_data(
+                expected_probe_data["/dev/dasdd"], device_id="0.0.1544"
+            )
         }
         self.assertEqual(expected_results, await dasd.probe(context=context))
 
-    @mock.patch('probert.dasd.platform.machine')
-    @mock.patch('probert.dasd.dasdview')
+    @mock.patch("probert.dasd.platform.machine")
+    @mock.patch("probert.dasd.dasdview")
     async def test_dasd_probe_dasde(self, m_dasdview, m_machine):
-        m_machine.return_value = 's390x'
-        m_dasdview.side_effect = iter([self._load_test_data('dasde.view')])
+        m_machine.return_value = "s390x"
+        m_dasdview.side_effect = iter([self._load_test_data("dasde.view")])
 
         context = mock.MagicMock()
-        context.list_devices.side_effect = iter([
-            [{"MAJOR": "94", "DEVNAME": "/dev/dasde",
-             "ID_PATH": "ccw-0.0.2250"}],
-        ])
+        context.list_devices.side_effect = iter(
+            [
+                [{"MAJOR": "94", "DEVNAME": "/dev/dasde", "ID_PATH": "ccw-0.0.2250"}],
+            ]
+        )
         expected_results = {
-            '/dev/dasde': update_probe_data(
-                expected_probe_data['/dev/dasde'], device_id="0.0.2250")
-            }
+            "/dev/dasde": update_probe_data(
+                expected_probe_data["/dev/dasde"], device_id="0.0.2250"
+            )
+        }
         self.assertEqual(expected_results, await dasd.probe(context=context))
 
-    @mock.patch('probert.dasd.platform.machine')
-    @mock.patch('probert.dasd.dasdview')
-    async def test_dasd_probe_dasdd_skips_partitions(self, m_dasdview,
-                                                     m_machine):
-        m_machine.return_value = 's390x'
-        m_dasdview.side_effect = iter([self._load_test_data('dasdd.view')])
+    @mock.patch("probert.dasd.platform.machine")
+    @mock.patch("probert.dasd.dasdview")
+    async def test_dasd_probe_dasdd_skips_partitions(self, m_dasdview, m_machine):
+        m_machine.return_value = "s390x"
+        m_dasdview.side_effect = iter([self._load_test_data("dasdd.view")])
 
         context = mock.MagicMock()
-        context.list_devices.side_effect = iter([
-            [{"MAJOR": "94", "DEVNAME": "/dev/dasdd", "ID_SERIAL": "0X1544",
-             "ID_PATH": "ccw-0.0.1544"}],
-            [{"MAJOR": "94", "DEVNAME": "/dev/dasdd1", "ID_SERIAL": "0X1544",
-             "ID_PATH": "ccw-0.0.1544", "PARTN": "1"}],
-        ])
+        context.list_devices.side_effect = iter(
+            [
+                [
+                    {
+                        "MAJOR": "94",
+                        "DEVNAME": "/dev/dasdd",
+                        "ID_SERIAL": "0X1544",
+                        "ID_PATH": "ccw-0.0.1544",
+                    }
+                ],
+                [
+                    {
+                        "MAJOR": "94",
+                        "DEVNAME": "/dev/dasdd1",
+                        "ID_SERIAL": "0X1544",
+                        "ID_PATH": "ccw-0.0.1544",
+                        "PARTN": "1",
+                    }
+                ],
+            ]
+        )
         expected_results = {
-            '/dev/dasdd': update_probe_data(
-                expected_probe_data['/dev/dasdd'], device_id="0.0.1544"),
-            }
+            "/dev/dasdd": update_probe_data(
+                expected_probe_data["/dev/dasdd"], device_id="0.0.1544"
+            ),
+        }
         self.assertEqual(expected_results, await dasd.probe(context=context))
 
-    @mock.patch('probert.dasd.subprocess.run')
-    @mock.patch('probert.dasd.platform.machine')
+    @mock.patch("probert.dasd.subprocess.run")
+    @mock.patch("probert.dasd.platform.machine")
     async def test_dasd_probe_virtio_dasd(self, m_machine, m_run):
-        m_machine.return_value = 's390x'
+        m_machine.return_value = "s390x"
 
         virtio_major = random_string()
         devname = random_string()
@@ -233,24 +260,26 @@ class TestDasd(unittest.IsolatedAsyncioTestCase):
         m_run.return_value.returncode = 0
 
         context = mock.MagicMock()
-        context.list_devices.side_effect = iter([
-            [{"MAJOR": virtio_major, "DEVNAME": devname}],
-        ])
-        expected_results = {
-            devname: {'name': devname, 'type': 'virt'}
-            }
-        with mock.patch('probert.dasd.open',
-                        mock.mock_open(read_data=f'{virtio_major} virtblk\n')):
-            self.assertEqual(expected_results,
-                             await dasd.probe(context=context))
+        context.list_devices.side_effect = iter(
+            [
+                [{"MAJOR": virtio_major, "DEVNAME": devname}],
+            ]
+        )
+        expected_results = {devname: {"name": devname, "type": "virt"}}
+        with mock.patch(
+            "probert.dasd.open", mock.mock_open(read_data=f"{virtio_major} virtblk\n")
+        ):
+            self.assertEqual(expected_results, await dasd.probe(context=context))
         m_run.assert_called_once_with(
-            ['fdasd', '-i', devname],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ["fdasd", "-i", devname],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
-    @mock.patch('probert.dasd.subprocess.run')
-    @mock.patch('probert.dasd.platform.machine')
+    @mock.patch("probert.dasd.subprocess.run")
+    @mock.patch("probert.dasd.platform.machine")
     async def test_dasd_probe_virtio_non_dasd(self, m_machine, m_run):
-        m_machine.return_value = 's390x'
+        m_machine.return_value = "s390x"
 
         virtio_major = random_string()
         devname = random_string()
@@ -258,12 +287,17 @@ class TestDasd(unittest.IsolatedAsyncioTestCase):
         m_run.return_value.returncode = 1
 
         context = mock.MagicMock()
-        context.list_devices.side_effect = iter([
-            [{"MAJOR": virtio_major, "DEVNAME": devname}],
-        ])
-        with mock.patch('probert.dasd.open',
-                        mock.mock_open(read_data=f'{virtio_major} virtblk\n')):
+        context.list_devices.side_effect = iter(
+            [
+                [{"MAJOR": virtio_major, "DEVNAME": devname}],
+            ]
+        )
+        with mock.patch(
+            "probert.dasd.open", mock.mock_open(read_data=f"{virtio_major} virtblk\n")
+        ):
             self.assertEqual({}, await dasd.probe(context=context))
         m_run.assert_called_once_with(
-            ['fdasd', '-i', devname],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ["fdasd", "-i", devname],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )

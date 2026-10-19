@@ -3,3 +3,7 @@
 
 # initial import sorting with isort 9.0.2
 1ae5a1f2710b5235d9304a502553f1771cadb691
+# switched isort profile to be compatible with black
+85cdfc11f48eb53e2a46cec68f6b94cb6fdc2b5f
+# initial format with black 26.10.0
+68678ed980fc30cbc7414f8613a1fc4223a20953

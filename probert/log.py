@@ -22,19 +22,17 @@ def setup_logger(name=__name__):
     LOGFILE = os.path.join(LOGDIR, "debug.log")
     if not os.path.isdir(LOGDIR):
         os.makedirs(LOGDIR)
-    log = TimedRotatingFileHandler(LOGFILE,
-                                   when='D',
-                                   interval=1,
-                                   backupCount=7)
-    log.setLevel('DEBUG')
-    log.setFormatter(logging.Formatter(
-        "%(asctime)s "
-        "%(name)s:%(lineno)d %(message)s",
-        datefmt='%m/%d %H:%M'))
-    log_filter = logging.Filter(name='probert')
+    log = TimedRotatingFileHandler(LOGFILE, when="D", interval=1, backupCount=7)
+    log.setLevel("DEBUG")
+    log.setFormatter(
+        logging.Formatter(
+            "%(asctime)s " "%(name)s:%(lineno)d %(message)s", datefmt="%m/%d %H:%M"
+        )
+    )
+    log_filter = logging.Filter(name="probert")
     log.addFilter(log_filter)
 
-    logger = logging.getLogger('')
-    logger.setLevel('DEBUG')
+    logger = logging.getLogger("")
+    logger.setLevel("DEBUG")
     logger.addHandler(log)
     return logger

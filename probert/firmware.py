@@ -22,7 +22,7 @@ from typing import Any
 
 from probert.utils import arun
 
-log = logging.getLogger('probert.firmware')
+log = logging.getLogger("probert.firmware")
 
 
 schema = {
@@ -48,14 +48,12 @@ class FirmwareProber:
     async def _probe_bios_string(self, string: str) -> str | None:
         dmidecode = shutil.which("dmidecode")
         if dmidecode is None:
-            log.debug("could not determine bios %s: dmidecode not found",
-                      string)
+            log.debug("could not determine bios %s: dmidecode not found", string)
             return None
 
         out = await arun([dmidecode, "--string", string])
         if out is None:
-            log.warning("could not determine bios %s: dmidecode failure",
-                        string)
+            log.warning("could not determine bios %s: dmidecode failure", string)
         else:
             out = out.strip()
         return out
@@ -64,6 +62,5 @@ class FirmwareProber:
         return {
             "bios-vendor": await self._probe_bios_string("bios-vendor"),
             "bios-version": await self._probe_bios_string("bios-version"),
-            "bios-release-date":
-                await self._probe_bios_string("bios-release-date"),
+            "bios-release-date": await self._probe_bios_string("bios-release-date"),
         }

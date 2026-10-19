@@ -13,7 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-class Prober():
+class Prober:
     def __init__(self):
         self._results = {}
 
@@ -24,19 +24,21 @@ class Prober():
 
     async def probe_storage(self, *, parallelize=False):
         from probert.storage import Storage
+
         self._storage = Storage()
-        self._results['storage'] = await self._storage.probe(
-                parallelize=parallelize)
+        self._results["storage"] = await self._storage.probe(parallelize=parallelize)
 
     async def probe_firmware(self, *, parallelize=False):
         from probert.firmware import FirmwareProber
+
         self._firmware = FirmwareProber()
-        self._results['firmware'] = await self._firmware.probe()
+        self._results["firmware"] = await self._firmware.probe()
 
     def probe_network(self):
         from probert.network import NetworkProber
+
         self._network = NetworkProber()
-        self._results['network'] = self._network.probe()
+        self._results["network"] = self._network.probe()
 
     def get_results(self):
         return self._results

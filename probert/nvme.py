@@ -18,7 +18,7 @@ import pyudev
 
 from probert.utils import udev_get_attributes
 
-log = logging.getLogger('probert.nvme')
+log = logging.getLogger("probert.nvme")
 
 
 async def probe(context=None, **kw):
@@ -26,9 +26,9 @@ async def probe(context=None, **kw):
         context = pyudev.Context()
 
     nvme_controllers = {}
-    for controller in context.list_devices(subsystem='nvme'):
+    for controller in context.list_devices(subsystem="nvme"):
         props = dict(controller.properties)
-        props['attrs'] = udev_get_attributes(controller)
+        props["attrs"] = udev_get_attributes(controller)
         nvme_controllers[controller.sys_name] = props
 
     return nvme_controllers

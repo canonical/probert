@@ -19,11 +19,11 @@ import pyudev
 
 from probert.utils import sane_block_devices
 
-log = logging.getLogger('probert.dmcrypt')
+log = logging.getLogger("probert.dmcrypt")
 
 
 def dmsetup_info(devname):
-    ''' returns dict of info about device mapper dev.
+    """returns dict of info about device mapper dev.
 
     {'blkdevname': 'dm-0',
      'blkdevs_used': 'sda5',
@@ -31,24 +31,35 @@ def dmsetup_info(devname):
      'subsystem': 'CRYPT',
      'uuid': 'CRYPT-LUKS1-2b370697149743b0b2407d11f88311f1-sda5_crypt'
     }
-    '''
-    _SEP = '='
-    fields = ('name,uuid,blkdevname,blkdevs_used,subsystem'.split(','))
+    """
+    _SEP = "="
+    fields = "name,uuid,blkdevname,blkdevs_used,subsystem".split(",")
     try:
         output = subprocess.check_output(
-            ['sudo', 'dmsetup', 'info', devname, '-C', '-o',
-             ','.join(fields), '--noheading', '--separator', _SEP])
+            [
+                "sudo",
+                "dmsetup",
+                "info",
+                devname,
+                "-C",
+                "-o",
+                ",".join(fields),
+                "--noheading",
+                "--separator",
+                _SEP,
+            ]
+        )
     except subprocess.CalledProcessError as e:
-        log.error('Failed to probe dmsetup info: %s', e)
+        log.error("Failed to probe dmsetup info: %s", e)
         return None
-    values = output.decode('utf-8').strip().split(_SEP)
+    values = output.decode("utf-8").strip().split(_SEP)
     info = dict(zip(fields, values))
     return info
 
 
 async def probe(context=None, report=False, **kw):
-    """ Probing for dm_crypt devices requires running dmsetup info commands
-        to collect how a particular dm-X device is composed.
+    """Probing for dm_crypt devices requires running dmsetup info commands
+    to collect how a particular dm-X device is composed.
     """
     # ignore supplied context, we need to read udev after scan/vgchange
     context = pyudev.Context()
@@ -57,9 +68,9 @@ async def probe(context=None, report=False, **kw):
 
     # look for block devices with DM_UUID and CRYPT; these are crypt devices
     for device in sane_block_devices(context):
-        if 'DM_UUID' in device and device['DM_UUID'].startswith('CRYPT'):
-            devname = device['DEVNAME']
+        if "DM_UUID" in device and device["DM_UUID"].startswith("CRYPT"):
+            devname = device["DEVNAME"]
             dm_info = dmsetup_info(devname)
-            crypt_devices[dm_info['name']] = dm_info
+            crypt_devices[dm_info["name"]] = dm_info
 
     return crypt_devices

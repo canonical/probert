@@ -26,25 +26,26 @@ from probert.log import setup_logger
 
 def parse_options(argv):
     parser = argparse.ArgumentParser(
-        description='probert - Hardware prober for all',
-        prog='probert')
-    parser.add_argument('--all', action='store_true',
-                        help='Probe all hardware types.')
-    parser.add_argument('--storage', action='store_true',
-                        help='Probe storage hardware.')
-    parser.add_argument('--network', action='store_true',
-                        help='Probe network hardware.')
-    parser.add_argument("--firmware", action='store_true',
-                        help='Probe firmware')
-    parser.add_argument('--parallel', action='store_true',
-                        help='Run storage probes in parallel')
+        description="probert - Hardware prober for all", prog="probert"
+    )
+    parser.add_argument("--all", action="store_true", help="Probe all hardware types.")
+    parser.add_argument(
+        "--storage", action="store_true", help="Probe storage hardware."
+    )
+    parser.add_argument(
+        "--network", action="store_true", help="Probe network hardware."
+    )
+    parser.add_argument("--firmware", action="store_true", help="Probe firmware")
+    parser.add_argument(
+        "--parallel", action="store_true", help="Run storage probes in parallel"
+    )
     return parser.parse_args(argv)
 
 
 async def main():
     opts = parse_options(sys.argv[1:])
     setup_logger()
-    logger = logging.getLogger('probert')
+    logger = logging.getLogger("probert")
     logger.info("Starting probert v{}".format(VERSION))
     logger.info("Arguments passed: {}".format(sys.argv))
 
@@ -63,5 +64,5 @@ async def main():
     print(json.dumps(results, indent=4, sort_keys=True))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

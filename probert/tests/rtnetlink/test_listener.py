@@ -36,8 +36,7 @@ class TestListener(unittest.TestCase):
         handler = self.listener.msg_handlers["RTM_NEWLINK"]
         link = MyMockLink()
 
-        self.assertEqual(EventResult.NEW,
-                         handler.cache_handle_nl_msg(link))
+        self.assertEqual(EventResult.NEW, handler.cache_handle_nl_msg(link))
 
     def test_msg_handler_cache_handle_nl_msg__new_in_cache_not_updated(self):
         handler = self.listener.msg_handlers["RTM_NEWLINK"]
@@ -46,8 +45,7 @@ class TestListener(unittest.TestCase):
 
         self.listener.link_cache[identifier] = link
 
-        self.assertEqual(EventResult.DISCARD,
-                         handler.cache_handle_nl_msg(link))
+        self.assertEqual(EventResult.DISCARD, handler.cache_handle_nl_msg(link))
 
     def test_msg_handler_cache_handle_nl_msg__new_in_cache_updated(self):
         handler = self.listener.msg_handlers["RTM_NEWLINK"]
@@ -67,13 +65,11 @@ class TestListener(unittest.TestCase):
         export["event"] = "RTM_DELLINK"
 
         with mock.patch.object(link, "export", return_value=export):
-            self.assertEqual(EventResult.DEL,
-                             handler.cache_handle_nl_msg(link))
+            self.assertEqual(EventResult.DEL, handler.cache_handle_nl_msg(link))
 
     def test_on_link_change__no_change_state(self):
         with mock.patch.object(self.listener.route_cache, "items") as m_items:
-            self.listener.on_link_change(MyMockLink(index=1),
-                                         MyMockLink(index=1))
+            self.listener.on_link_change(MyMockLink(index=1), MyMockLink(index=1))
 
         m_items.assert_not_called()
 
@@ -82,12 +78,13 @@ class TestListener(unittest.TestCase):
         new_link = MyMockLink(index=41, flags=0x0)
 
         routes = [
-            MyMockRoute(dst="192.168.1.0", dst_len=24,
-                        family=socket.AF_INET.value, oif=41),
-            MyMockRoute(dst="192.168.2.0", dst_len=24,
-                        family=socket.AF_INET.value, oif=42),
-            MyMockRoute(dst="aaaa::", dst_len=64,
-                        family=socket.AF_INET6.value, oif=41),
+            MyMockRoute(
+                dst="192.168.1.0", dst_len=24, family=socket.AF_INET.value, oif=41
+            ),
+            MyMockRoute(
+                dst="192.168.2.0", dst_len=24, family=socket.AF_INET.value, oif=42
+            ),
+            MyMockRoute(dst="aaaa::", dst_len=64, family=socket.AF_INET6.value, oif=41),
         ]
         for route in routes:
             identifier = RouteCache.UniqueIdentifier.from_nl_msg(route)
@@ -98,21 +95,30 @@ class TestListener(unittest.TestCase):
             [
                 mock.call("DEL", route_build_event_data(routes[0])),
                 mock.call("DEL", route_build_event_data(routes[2])),
-            ], self.listener.observer.route_change.mock_calls,
+            ],
+            self.listener.observer.route_change.mock_calls,
         )
 
     def test_start(self):
         p_bind = mock.patch.object(self.listener.ipr, "bind")
-        p_links = mock.patch.object(self.listener.ipr, "get_links",
-                                    return_value=["l1", "l2"])
-        p_addr = mock.patch.object(self.listener.ipr, "get_addr",
-                                   return_value=["a1", "a2"])
-        p_routes = mock.patch.object(self.listener.ipr, "get_routes",
-                                     return_value=["r1", "r2"])
+        p_links = mock.patch.object(
+            self.listener.ipr, "get_links", return_value=["l1", "l2"]
+        )
+        p_addr = mock.patch.object(
+            self.listener.ipr, "get_addr", return_value=["a1", "a2"]
+        )
+        p_routes = mock.patch.object(
+            self.listener.ipr, "get_routes", return_value=["r1", "r2"]
+        )
         p_handle = mock.patch.object(self.listener, "handle_nl_msg")
 
-        with p_bind as m_bind, p_links as m_links, p_addr as m_addr, \
-             p_routes as m_routes, p_handle as m_handle:
+        with (
+            p_bind as m_bind,
+            p_links as m_links,
+            p_addr as m_addr,
+            p_routes as m_routes,
+            p_handle as m_handle,
+        ):
             self.listener.start()
 
         m_bind.assert_called_once_with()
@@ -121,14 +127,16 @@ class TestListener(unittest.TestCase):
         m_routes.assert_called_once_with()
 
         self.assertEqual(
-                [
-                    mock.call("l1", emit_change=False),
-                    mock.call("l2", emit_change=False),
-                    mock.call("a1", emit_change=False),
-                    mock.call("a2", emit_change=False),
-                    mock.call("r1", emit_change=False),
-                    mock.call("r2", emit_change=False),
-                ], m_handle.mock_calls)
+            [
+                mock.call("l1", emit_change=False),
+                mock.call("l2", emit_change=False),
+                mock.call("a1", emit_change=False),
+                mock.call("a2", emit_change=False),
+                mock.call("r1", emit_change=False),
+                mock.call("r2", emit_change=False),
+            ],
+            m_handle.mock_calls,
+        )
 
     def handle_nl_msg(self, type_: str, result: EventResult, emit_change=True):
         # msg should be a nlmsg, but dict is okay as long as we don't call
@@ -153,8 +161,7 @@ class TestListener(unittest.TestCase):
 
         m_cache_handle.assert_called_once_with(msg)
         m_build.assert_called_once_with(msg)
-        handler.observer_callback.assert_called_once_with(
-                "NEW", m_build())
+        handler.observer_callback.assert_called_once_with("NEW", m_build())
 
     def test_handle_nl_msg__delete(self):
         res = self.handle_nl_msg("RTM_DELLINK", result=EventResult.DEL)
@@ -162,8 +169,7 @@ class TestListener(unittest.TestCase):
 
         m_cache_handle.assert_called_once_with(msg)
         m_build.assert_called_once_with(msg)
-        handler.observer_callback.assert_called_once_with(
-                "DEL", m_build())
+        handler.observer_callback.assert_called_once_with("DEL", m_build())
 
     def test_handle_nl_msg__change(self):
         res = self.handle_nl_msg("RTM_NEWLINK", result=EventResult.CHANGE)
@@ -171,12 +177,12 @@ class TestListener(unittest.TestCase):
 
         m_cache_handle.assert_called_once_with(msg)
         m_build.assert_called_once_with(msg)
-        handler.observer_callback.assert_called_once_with(
-                "CHANGE", m_build())
+        handler.observer_callback.assert_called_once_with("CHANGE", m_build())
 
     def test_handle_nl_msg__change_no_emit(self):
-        res = self.handle_nl_msg("RTM_NEWLINK", result=EventResult.CHANGE,
-                                 emit_change=False)
+        res = self.handle_nl_msg(
+            "RTM_NEWLINK", result=EventResult.CHANGE, emit_change=False
+        )
         msg, handler, m_cache_handle, m_build = res
 
         m_cache_handle.assert_called_once_with(msg)
@@ -193,13 +199,15 @@ class TestListener(unittest.TestCase):
 
     def test_data_ready(self):
         with mock.patch.object(self.listener, "handle_nl_msg") as m_handle:
-            with mock.patch.object(self.listener.ipr, "get",
-                                   return_value=["msg1", "msg2", "msg3"]):
+            with mock.patch.object(
+                self.listener.ipr, "get", return_value=["msg1", "msg2", "msg3"]
+            ):
                 self.listener.data_ready()
 
-        self.assertEqual([
-                mock.call("msg1"), mock.call("msg2"), mock.call("msg3")],
-                m_handle.mock_calls)
+        self.assertEqual(
+            [mock.call("msg1"), mock.call("msg2"), mock.call("msg3")],
+            m_handle.mock_calls,
+        )
 
     def test_fileno(self):
         version_str = importlib.metadata.version("pyroute2")
@@ -218,8 +226,7 @@ class TestListener(unittest.TestCase):
         with mock.patch.object(self.listener.ipr, "link") as m_link:
             self.listener.set_link_flags(ifindex=13, flags=IFF_UP)
 
-        m_link.assert_called_once_with("set", index=13, flags=IFF_UP,
-                                       mask=IFF_UP)
+        m_link.assert_called_once_with("set", index=13, flags=IFF_UP, mask=IFF_UP)
 
     def test_unset_link_flags(self):
         with mock.patch.object(self.listener.ipr, "link") as m_link:

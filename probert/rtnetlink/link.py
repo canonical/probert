@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-""" This module is part of the pyroute2-based rewrite of _rtnetlinkmodule.c
+"""This module is part of the pyroute2-based rewrite of _rtnetlinkmodule.c
 (which was a C implementation using libnl).
 """
 
@@ -41,8 +41,7 @@ def build_event_data(msg: nlmsg) -> dict[str, typing.Any]:
         "name": msg.get_attr("IFLA_IFNAME").encode("utf-8"),
     }
     if data["is_vlan"]:
-        data["vlan_id"] = link_info.get_attr(
-            "IFLA_INFO_DATA").get_attr("IFLA_VLAN_ID")
+        data["vlan_id"] = link_info.get_attr("IFLA_INFO_DATA").get_attr("IFLA_VLAN_ID")
         data["vlan_link"] = msg.get_attr("IFLA_LINK")
     return data
 
@@ -55,6 +54,7 @@ class LinkCache(Cache):
         For more information, see in libnl:
             .oo_id_attrs = LINK_ATTR_IFINDEX | LINK_ATTR_FAMILY
         """
+
         ifindex: int
         family: int
 

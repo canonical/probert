@@ -21,13 +21,12 @@ import unittest
 @contextlib.contextmanager
 def simple_mocked_open(content=None):
     if not content:
-        content = ''
+        content = ""
     m_open = unittest.mock.mock_open(read_data=content)
-    with unittest.mock.patch('builtins.open', m_open, create=True):
+    with unittest.mock.patch("builtins.open", m_open, create=True):
         yield m_open
 
 
 def random_string(length=8):
-    """ return a random lowercase string with default length of 8"""
-    return ''.join(
-        random.choice(string.ascii_lowercase) for _ in range(length))
+    """return a random lowercase string with default length of 8"""
+    return "".join(random.choice(string.ascii_lowercase) for _ in range(length))

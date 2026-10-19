@@ -11,22 +11,52 @@ from subprocess import PIPE
 
 import pyudev
 
-log = logging.getLogger('probert.utils')
+log = logging.getLogger("probert.utils")
 
 NET_CONFIG_OPTIONS = [
-    "address", "netmask", "broadcast", "network", "metric", "gateway",
-    "pointtopoint", "media", "mtu", "hostname", "leasehours", "leasetime",
-    "vendor", "client", "bootfile", "server", "hwaddr", "provider", "frame",
-    "netnum", "endpoint", "local", "ttl",
+    "address",
+    "netmask",
+    "broadcast",
+    "network",
+    "metric",
+    "gateway",
+    "pointtopoint",
+    "media",
+    "mtu",
+    "hostname",
+    "leasehours",
+    "leasetime",
+    "vendor",
+    "client",
+    "bootfile",
+    "server",
+    "hwaddr",
+    "provider",
+    "frame",
+    "netnum",
+    "endpoint",
+    "local",
+    "ttl",
 ]
 
 NET_CONFIG_COMMANDS = [
-    "pre-up", "up", "post-up", "down", "pre-down", "post-down",
+    "pre-up",
+    "up",
+    "post-up",
+    "down",
+    "pre-down",
+    "post-down",
 ]
 
 NET_CONFIG_BRIDGE_OPTIONS = [
-    "bridge_ageing", "bridge_bridgeprio", "bridge_fd", "bridge_gcinit",
-    "bridge_hello", "bridge_maxage", "bridge_maxwait", "bridge_stp",
+    "bridge_ageing",
+    "bridge_bridgeprio",
+    "bridge_fd",
+    "bridge_gcinit",
+    "bridge_hello",
+    "bridge_maxage",
+    "bridge_maxwait",
+    "bridge_stp",
 ]
 
 # sysfs size attribute is always in 512-byte units
@@ -39,31 +69,30 @@ def _clean_env(env):
         env = os.environ.copy()
     else:
         env = env.copy()
-    env['LC_ALL'] = 'C'
+    env["LC_ALL"] = "C"
     return env
 
 
 def _log_stream(stream, name):
     if stream:
-        log.debug(f'{name}: ------------------------------------------')
+        log.debug(f"{name}: ------------------------------------------")
         for line in stream.splitlines():
             log.debug(line)
     else:
-        log.debug(f'<empty {name}>')
+        log.debug(f"<empty {name}>")
 
 
 def run(cmdarr, env=None, **kw):
     """Run the given, with stdout, stderr, and return code always logged.
     Returns the stdout on command success, or None on command failure."""
     env = _clean_env(env)
-    sp = subprocess.run(cmdarr, text=True, env=env,
-                        stdout=PIPE, stderr=PIPE, **kw)
+    sp = subprocess.run(cmdarr, text=True, env=env, stdout=PIPE, stderr=PIPE, **kw)
     display_cmd = shlex.join(cmdarr)
     rc = sp.returncode
-    log.debug(f'Command `{display_cmd}` exited with result: {rc}')
-    _log_stream(sp.stdout, 'stdout')
-    _log_stream(sp.stderr, 'stderr')
-    log.debug('--------------------------------------------------')
+    log.debug(f"Command `{display_cmd}` exited with result: {rc}")
+    _log_stream(sp.stdout, "stdout")
+    _log_stream(sp.stderr, "stderr")
+    log.debug("--------------------------------------------------")
     if sp.returncode == 0:
         return sp.stdout
     return None
@@ -74,18 +103,19 @@ async def arun(cmdarr, env=None, **kw):
     Returns the stdout on command success, or None on command failure."""
     env = _clean_env(env)
     sp = await asyncio.create_subprocess_exec(
-            *cmdarr, env=env, stdout=PIPE, stderr=PIPE, **kw)
+        *cmdarr, env=env, stdout=PIPE, stderr=PIPE, **kw
+    )
     display_cmd = shlex.join(cmdarr)
     stdout, stderr = await sp.communicate()
     rc = sp.returncode
 
-    stdout = stdout.decode('utf-8')
-    stderr = stderr.decode('utf-8')
+    stdout = stdout.decode("utf-8")
+    stderr = stderr.decode("utf-8")
 
-    log.debug(f'Command `{display_cmd}` exited with result: {rc}')
-    _log_stream(stdout, 'stdout')
-    _log_stream(stderr, 'stderr')
-    log.debug('--------------------------------------------------')
+    log.debug(f"Command `{display_cmd}` exited with result: {rc}")
+    _log_stream(stdout, "stdout")
+    _log_stream(stderr, "stderr")
+    log.debug("--------------------------------------------------")
     if sp.returncode == 0:
         return stdout
     return None
@@ -98,7 +128,7 @@ def dict_merge(onto, source):
     if isinstance(onto, list) and isinstance(source, list):
         target.extend(source)
         return target
-    for (key, value) in source.items():
+    for key, value in source.items():
         if key in target:
             if isinstance(target[key], dict) and isinstance(value, dict):
                 target[key] = dict_merge(target[key], value)
@@ -110,30 +140,36 @@ def dict_merge(onto, source):
 
 
 if pyudev.__version_info__ < (0, 18):
+
     def udev_get_attributes(device):
         r = {}
         for key in device.attributes:
             val = device.attributes.get(key)
             if isinstance(val, bytes):
-                val = val.decode('utf-8', 'replace')
+                val = val.decode("utf-8", "replace")
             r[key] = val
         return r
+
 else:
+
     def udev_get_attributes(device):
         r = {}
         for key in device.attributes.available_attributes:
             val = device.attributes.get(key)
             if isinstance(val, bytes):
-                val = val.decode('utf-8', 'replace')
+                val = val.decode("utf-8", "replace")
             r[key] = val
         return r
 
 
 # split lists into N lists by predicate
 def partitionn2(items, predicate=int, n=2):
-    return ((lambda i, tee: (item for pred, item in tee if pred == i))(x, t)
-            for x, t in enumerate(itertools.tee(((predicate(item), item)
-                                  for item in items), n)))
+    return (
+        (lambda i, tee: (item for pred, item in tee if pred == i))(x, t)
+        for x, t in enumerate(
+            itertools.tee(((predicate(item), item) for item in items), n)
+        )
+    )
 
 
 # unpack generators into key, value pair
@@ -145,9 +181,7 @@ def partition_to_pair(input):
     param: partition iterator from partitionn2
     """
     items = input.split()
-    partitions = partitionn2(items=items,
-                             predicate=lambda x: items.index(x) != 0,
-                             n=2)
+    partitions = partitionn2(items=items, predicate=lambda x: items.index(x) != 0, n=2)
     data = [list(p) for p in partitions]
     [key], value = data
     return key, value
@@ -155,8 +189,7 @@ def partition_to_pair(input):
 
 def disentagle_data_from_whitespace(data):
     # disentagle the data from whitespace
-    return [x.split(';')[0].strip() for x in data.split('\n')
-            if len(x)]
+    return [x.split(";")[0].strip() for x in data.split("\n") if len(x)]
 
 
 def dictify_lease(lease):
@@ -171,13 +204,13 @@ def dictify_lease(lease):
             continue
 
         key, value = partition_to_pair(line)
-        if key == 'option':
+        if key == "option":
             options.update({value[0]: value[1]})
         else:
             value = " ".join(value)
             lease_dict.update({key: value})
 
-    lease_dict.update({'options': options})
+    lease_dict.update({"options": options})
     return lease_dict
 
 
@@ -186,17 +219,19 @@ def parse_dhclient_leases_file(leasedata):
 
     :param leasesdata: string of lease data read from leases file
     """
-    return [dictify_lease(lease) for lease in
-            re.findall(r'{([^{}]*)}', leasedata.replace('"', ''))]
+    return [
+        dictify_lease(lease)
+        for lease in re.findall(r"{([^{}]*)}", leasedata.replace('"', ""))
+    ]
 
 
 def parse_networkd_lease_file(leasedata):
     """Parses systemd/networkd/netif lease data, returns dict"""
     lease = {}
-    for line in leasedata.split('\n'):
-        if line.startswith('#') or len(line) < 1:
+    for line in leasedata.split("\n"):
+        if line.startswith("#") or len(line) < 1:
             continue
-        keyvalue = line.split('=')
+        keyvalue = line.split("=")
         lease[keyvalue[0].lower()] = keyvalue[1]
     return lease
 
@@ -221,9 +256,9 @@ def parse_etc_network_interfaces(ifaces, contents, path):
     src_dir = path
     for line in contents.splitlines():
         line = line.strip()
-        if line.startswith('#'):
+        if line.startswith("#"):
             continue
-        split = line.split(' ')
+        split = line.split(" ")
         option = split[0]
         if option == "source-directory":
             src_dir = os.path.join(path, split[1])
@@ -233,70 +268,70 @@ def parse_etc_network_interfaces(ifaces, contents, path):
                 with open(src_file, "r") as fp:
                     src_data = fp.read().strip()
                 parse_etc_network_interfaces(
-                    ifaces, src_data,
-                    os.path.dirname(os.path.abspath(src_file)))
+                    ifaces, src_data, os.path.dirname(os.path.abspath(src_file))
+                )
         elif option == "auto":
             for iface in split[1:]:
                 if iface not in ifaces:
                     ifaces[iface] = {}
-                ifaces[iface]['auto'] = True
+                ifaces[iface]["auto"] = True
         elif option == "iface":
             iface, family, method = split[1:4]
             if iface not in ifaces:
                 ifaces[iface] = {}
-            elif 'family' in ifaces[iface]:
+            elif "family" in ifaces[iface]:
                 raise Exception("Cannot define %s interface again.")
-            ifaces[iface]['family'] = family
-            ifaces[iface]['method'] = method
+            ifaces[iface]["family"] = family
+            ifaces[iface]["method"] = method
             currif = iface
         elif option == "hwaddress":
-            ifaces[currif]['hwaddress'] = split[1]
+            ifaces[currif]["hwaddress"] = split[1]
         elif option in NET_CONFIG_OPTIONS:
             ifaces[currif][option] = split[1]
         elif option in NET_CONFIG_COMMANDS:
             if option not in ifaces[currif]:
                 ifaces[currif][option] = []
-            ifaces[currif][option].append(' '.join(split[1:]))
-        elif option.startswith('dns-'):
-            if 'dns' not in ifaces[currif]:
-                ifaces[currif]['dns'] = {}
-            if option == 'dns-search':
-                ifaces[currif]['dns']['search'] = []
+            ifaces[currif][option].append(" ".join(split[1:]))
+        elif option.startswith("dns-"):
+            if "dns" not in ifaces[currif]:
+                ifaces[currif]["dns"] = {}
+            if option == "dns-search":
+                ifaces[currif]["dns"]["search"] = []
                 for domain in split[1:]:
-                    ifaces[currif]['dns']['search'].append(domain)
-            elif option == 'dns-nameservers':
-                ifaces[currif]['dns']['nameservers'] = []
+                    ifaces[currif]["dns"]["search"].append(domain)
+            elif option == "dns-nameservers":
+                ifaces[currif]["dns"]["nameservers"] = []
                 for server in split[1:]:
-                    ifaces[currif]['dns']['nameservers'].append(server)
-        elif option.startswith('bridge_'):
-            if 'bridge' not in ifaces[currif]:
-                ifaces[currif]['bridge'] = {}
+                    ifaces[currif]["dns"]["nameservers"].append(server)
+        elif option.startswith("bridge_"):
+            if "bridge" not in ifaces[currif]:
+                ifaces[currif]["bridge"] = {}
             if option in NET_CONFIG_BRIDGE_OPTIONS:
-                bridge_option = option.replace('bridge_', '')
-                ifaces[currif]['bridge'][bridge_option] = split[1]
+                bridge_option = option.replace("bridge_", "")
+                ifaces[currif]["bridge"][bridge_option] = split[1]
             elif option == "bridge_ports":
-                ifaces[currif]['bridge']['ports'] = []
+                ifaces[currif]["bridge"]["ports"] = []
                 for iface in split[1:]:
-                    ifaces[currif]['bridge']['ports'].append(iface)
+                    ifaces[currif]["bridge"]["ports"].append(iface)
             elif option == "bridge_hw" and split[1].lower() == "mac":
-                ifaces[currif]['bridge']['mac'] = split[2]
+                ifaces[currif]["bridge"]["mac"] = split[2]
             elif option == "bridge_pathcost":
-                if 'pathcost' not in ifaces[currif]['bridge']:
-                    ifaces[currif]['bridge']['pathcost'] = {}
-                ifaces[currif]['bridge']['pathcost'][split[1]] = split[2]
+                if "pathcost" not in ifaces[currif]["bridge"]:
+                    ifaces[currif]["bridge"]["pathcost"] = {}
+                ifaces[currif]["bridge"]["pathcost"][split[1]] = split[2]
             elif option == "bridge_portprio":
-                if 'portprio' not in ifaces[currif]['bridge']:
-                    ifaces[currif]['bridge']['portprio'] = {}
-                ifaces[currif]['bridge']['portprio'][split[1]] = split[2]
+                if "portprio" not in ifaces[currif]["bridge"]:
+                    ifaces[currif]["bridge"]["portprio"] = {}
+                ifaces[currif]["bridge"]["portprio"][split[1]] = split[2]
     for iface in ifaces.keys():
-        if 'auto' not in ifaces[iface]:
-            ifaces[iface]['auto'] = False
+        if "auto" not in ifaces[iface]:
+            ifaces[iface]["auto"] = False
 
 
 def read_sys_block_size_bytes(device):
-    """ /sys/class/block/<device>/size and return integer value in bytes"""
-    device_dir = os.path.join('/sys/class/block', os.path.basename(device))
-    blockdev_size = os.path.join(device_dir, 'size')
+    """/sys/class/block/<device>/size and return integer value in bytes"""
+    device_dir = os.path.join("/sys/class/block", os.path.basename(device))
+    blockdev_size = os.path.join(device_dir, "size")
     with open(blockdev_size) as d:
         size = int(d.read().strip()) * SECTOR_SIZE_BYTES
 
@@ -304,12 +339,12 @@ def read_sys_block_size_bytes(device):
 
 
 def read_sys_block_slaves(device):
-    device_dir = os.path.join('/sys/class/block', os.path.basename(device))
-    return os.listdir(os.path.join(device_dir, 'slaves'))
+    device_dir = os.path.join("/sys/class/block", os.path.basename(device))
+    return os.listdir(os.path.join(device_dir, "slaves"))
 
 
 def sane_block_devices(context):
-    for device in context.list_devices(subsystem='block'):
+    for device in context.list_devices(subsystem="block"):
         if "MAJOR" not in device:
             # Shouldn't happen but apparently does! (LP: #1868109)
             continue
