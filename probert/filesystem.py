@@ -30,6 +30,12 @@ from probert.utils import (
 
 log = logging.getLogger("probert.filesystems")
 
+# ntfsresize --info walks the volume's metadata to compute the minimum size,
+# which can take minutes for some large NTFS volumes on slow HDDs
+# (LP: #2172637). Give up on the estimate rather than stall the whole probe;
+# callers then report ESTIMATED_MIN_SIZE as -1 (unknown).
+NTFS_SIZING_TIMEOUT = 60
+
 
 def _device_size_bytes(device):
     try:
@@ -208,7 +214,7 @@ async def get_ntfs_sizing(device):
         "--info",
         path,
     ]
-    out = await arun(cmd)
+    out = await arun(cmd, timeout=NTFS_SIZING_TIMEOUT)
     if out is None:
         log.debug("ntfs volume size not found: ntfsresize failure")
         return None
