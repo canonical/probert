@@ -18,6 +18,7 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, Mock, patch
 
 from probert.filesystem import (
+    NTFS_SIZING_TIMEOUT,
     get_btrfs_min_dev_size,
     get_btrfs_sizing,
     get_device_filesystem,
@@ -192,6 +193,26 @@ You might resize at 25000000 bytes or 25 MB (freeing 75 MB).
             expected["TYPE"] = "ext4"
             actual = await get_device_filesystem(self.device, True)
             self.assertEqual(expected, actual)
+
+    async def test_get_device_filesystem_sizing_ntfs_timeout(self):
+        data = {"ID_FS_TYPE": "ntfs"}
+        self.device.properties = Mock()
+        self.device.properties.__iter__ = Mock(return_value=iter(data))
+        self.device.properties.__getitem__ = lambda _, x: data[x]
+        ntfs = AsyncMock()
+        ntfs.return_value = None  # ntfsresize timed out
+        with patch.dict("probert.filesystem.sizing_tools", {"ntfs": ntfs}, clear=True):
+            expected = {"ESTIMATED_MIN_SIZE": -1, "TYPE": "ntfs"}
+            actual = await get_device_filesystem(self.device, True)
+            self.assertEqual(expected, actual)
+
+    @patch("probert.filesystem.arun")
+    @patch("probert.filesystem.shutil.which", Mock())
+    async def test_ntfs_sizing_uses_timeout(self, run):
+        run.return_value = None  # what arun returns when the timeout expires
+        self.assertEqual(None, await get_ntfs_sizing(self.device))
+        run.assert_awaited_once()
+        self.assertEqual(NTFS_SIZING_TIMEOUT, run.call_args.kwargs["timeout"])
 
     @patch("probert.filesystem.shutil.which")
     async def test_ntfsresize_not_found(self, which):

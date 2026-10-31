@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import glob
 import itertools
 import logging
@@ -98,15 +99,31 @@ def run(cmdarr, env=None, **kw):
     return None
 
 
-async def arun(cmdarr, env=None, **kw):
+async def arun(cmdarr, env=None, *, timeout=None, **kw):
     """Run the given, with stdout, stderr, and return code always logged.
-    Returns the stdout on command success, or None on command failure."""
+    Returns the stdout on command success, or None on command failure.
+    If timeout (in seconds) is given and expires, the command is killed and
+    None is returned."""
     env = _clean_env(env)
     sp = await asyncio.create_subprocess_exec(
         *cmdarr, env=env, stdout=PIPE, stderr=PIPE, **kw
     )
     display_cmd = shlex.join(cmdarr)
-    stdout, stderr = await sp.communicate()
+    try:
+        stdout, stderr = await asyncio.wait_for(sp.communicate(), timeout)
+    except BaseException as exc:
+        # Timed out, or cancelled from outside: don't leave the command running.
+        with contextlib.suppress(ProcessLookupError):
+            sp.kill()
+        try:
+            await asyncio.wait_for(sp.communicate(), 5)
+        except asyncio.TimeoutError:
+            log.debug(f"Command `{display_cmd}` did not exit after SIGKILL")
+        if not isinstance(exc, asyncio.TimeoutError):
+            raise
+        log.debug(f"Command `{display_cmd}` timed out after {timeout}s, killed")
+        log.debug("--------------------------------------------------")
+        return None
     rc = sp.returncode
 
     stdout = stdout.decode("utf-8")

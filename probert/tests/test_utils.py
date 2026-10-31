@@ -1,10 +1,12 @@
+import asyncio
 import contextlib
 import logging
 import os
+import signal
 import tempfile
 import textwrap
 import unittest
-from unittest.mock import call
+from unittest.mock import call, patch
 
 from probert import utils
 from probert.tests.helpers import random_string, simple_mocked_open
@@ -195,3 +197,42 @@ class ProbertTestRun(unittest.TestCase):
             ]
             self.assertIsNone(actual)
             self.assertEqual(expected, m_logs.output)
+
+
+class ProbertTestArun(unittest.IsolatedAsyncioTestCase):
+    def record_subprocesses(self):
+        """Patch create_subprocess_exec so tests can inspect the child."""
+        procs = []
+        real_exec = asyncio.create_subprocess_exec
+
+        async def exec_and_record(*args, **kwargs):
+            proc = await real_exec(*args, **kwargs)
+            procs.append(proc)
+            return proc
+
+        return procs, patch("asyncio.create_subprocess_exec", exec_and_record)
+
+    async def test_arun_success_with_timeout(self):
+        actual = await utils.arun(["echo", "hello"], timeout=10)
+        self.assertEqual("hello\n", actual)
+
+    async def test_arun_timeout_kills_command(self):
+        procs, patcher = self.record_subprocesses()
+        with patcher, self.assertLogs("probert.utils", level="DEBUG") as m_logs:
+            actual = await asyncio.wait_for(
+                utils.arun(["sleep", "30"], timeout=0.2), 20
+            )
+        self.assertIsNone(actual)
+        self.assertEqual(-signal.SIGKILL, procs[0].returncode)
+        self.assertIn("timed out after 0.2s, killed", "\n".join(m_logs.output))
+
+    async def test_arun_cancelled_kills_command(self):
+        procs, patcher = self.record_subprocesses()
+        with patcher:
+            task = asyncio.create_task(utils.arun(["sleep", "30"]))
+            while not procs:
+                await asyncio.sleep(0.01)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await asyncio.wait_for(task, 20)
+        self.assertEqual(-signal.SIGKILL, procs[0].returncode)
